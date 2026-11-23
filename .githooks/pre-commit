@@ -1,0 +1,11 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Hook pre-commit : `make check-fast` (lint, types)
+# avant chaque commit ; les tests complets (`make check`) tournent à la
+# demande et au push (`.githooks/pre-push`). Installé par `make hooks`. Ne
+# pas le contourner (`--no-verify`) : en l'absence de CI, les hooks sont le
+# seul garde-fou.
+set -eu
+
+echo 'pre-commit : make check-fast'
+exec make --no-print-directory check-fast

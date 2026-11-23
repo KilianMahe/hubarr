@@ -1,0 +1,36 @@
+{
+  "name": "hubarr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hubarr : interface self-hosted pour piloter une stack média.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "eslint . && prettier --check .",
+    "lint:fix": "eslint . --fix && prettier --write .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "check:licenses": "node tools/check-licenses.js",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:licenses"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.12.1",
+    "globals": "^17.14.0",
+    "openapi-typescript": "7.13.0",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.0",
+    "vue-eslint-parser": "^10.4.2",
+    "yaml": "2.9.1"
+  }
+}

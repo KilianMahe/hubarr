@@ -1,0 +1,221 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Environnement de développement. Point d'entrée : le Makefile.
+#   make dev    → deps, server, web, mocks, docs
+#   make stack  → idem + vraie stack *arr (profil « stack »)
+# Sources montées en bind mount ; node_modules et store pnpm en volumes nommés
+# (binaires natifs compilés pour Linux/musl, sans conflit avec l'hôte).
+# Tout nouveau paquet du workspace doit avoir son volume node_modules ici
+# et son point de montage créé dans la cible `dev` du Dockerfile.
+
+name: hubarr-dev
+
+x-node: &node
+  image: hubarr-dev:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: dev
+    args:
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+  working_dir: /app
+  init: true
+  environment:
+    CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-false}
+    FORCE_COLOR: '1'
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+    - node_modules_server:/app/apps/server/node_modules
+    - node_modules_web:/app/apps/web/node_modules
+    - node_modules_shared:/app/packages/shared/node_modules
+    - node_modules_mocks:/app/e2e/mocks/node_modules
+    - node_modules_e2e:/app/e2e/playwright/node_modules
+    - node_modules_docs:/app/docs/node_modules
+    - pnpm-store:/pnpm-store
+
+x-after-deps: &after-deps
+  depends_on:
+    deps:
+      condition: service_completed_successfully
+
+services:
+  # Installation des dépendances (ponctuelle), préalable à tous les autres services.
+  deps:
+    <<: *node
+    command: pnpm install --frozen-lockfile
+
+  server:
+    <<: [*node, *after-deps]
+    command: pnpm --filter @hubarr/server exec tsx watch --inspect=0.0.0.0:9229 src/main.ts
+    environment:
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-false}
+      FORCE_COLOR: '1'
+      HUBARR_DATA_DIR: /data
+      HUBARR_LOG_LEVEL: ${HUBARR_LOG_LEVEL:-info}
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - node_modules_server:/app/apps/server/node_modules
+      - node_modules_web:/app/apps/web/node_modules
+      - node_modules_shared:/app/packages/shared/node_modules
+      - node_modules_mocks:/app/e2e/mocks/node_modules
+      - node_modules_e2e:/app/e2e/playwright/node_modules
+      - node_modules_docs:/app/docs/node_modules
+      - pnpm-store:/pnpm-store
+      - ./data-dev:/data
+    ports:
+      - '7070:7070'
+      - '127.0.0.1:9229:9229'
+
+  web:
+    <<: [*node, *after-deps]
+    command: pnpm --filter @hubarr/web dev
+    ports:
+      - '5173:5173'
+
+  mocks:
+    <<: [*node, *after-deps]
+    command: pnpm --filter @hubarr/mocks dev
+    ports:
+      - '7171:7171'
+
+  docs:
+    <<: [*node, *after-deps]
+    command: pnpm --filter @hubarr/docs dev
+    ports:
+      - '5174:5174'
+
+  # --- Profil « e2e » : make e2e (image de prod, faux upstreams, Playwright) ---
+  # Base neuve en tmpfs à chaque lancement ; tout est détruit par `make e2e` à la fin.
+  e2e-mocks:
+    <<: [*node, *after-deps]
+    profiles: [e2e]
+    command: pnpm --filter @hubarr/mocks exec tsx src/main.ts
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:7171/health']
+      interval: 2s
+      retries: 30
+
+  e2e-app:
+    image: ${IMAGE:-hubarr:local}
+    profiles: [e2e]
+    environment:
+      HUBARR_LOG_LEVEL: warn
+      # Faux TMDB (le conteneur n'a pas accès à Internet).
+      HUBARR_TMDB_API_URL: http://e2e-mocks:7171/tmdb
+    tmpfs:
+      - /data:uid=1000,gid=1000
+    depends_on:
+      e2e-mocks:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '/app/healthcheck.js']
+      interval: 2s
+      retries: 30
+
+  # Même image servie sous un préfixe de chemin (reverse proxy, matrice n° 65).
+  e2e-app-prefix:
+    image: ${IMAGE:-hubarr:local}
+    profiles: [e2e]
+    environment:
+      HUBARR_LOG_LEVEL: warn
+      HUBARR_BASE_PATH: /hubarr
+    tmpfs:
+      - /data:uid=1000,gid=1000
+    healthcheck:
+      test: ['CMD', 'node', '/app/healthcheck.js']
+      interval: 2s
+      retries: 30
+
+  e2e:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: e2e
+    image: hubarr-e2e:local
+    profiles: [e2e]
+    user: '${HOST_UID:-1000}:${HOST_GID:-1000}'
+    working_dir: /app/e2e/playwright
+    init: true
+    ipc: host
+    environment:
+      HOME: /tmp
+      E2E_BASE_URL: http://e2e-app:7070
+      E2E_MOCKS_URL: http://e2e-mocks:7171
+      E2E_PREFIX_URL: http://e2e-app-prefix:7070/hubarr
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - node_modules_e2e:/app/e2e/playwright/node_modules
+    depends_on:
+      e2e-app:
+        condition: service_healthy
+      e2e-app-prefix:
+        condition: service_healthy
+    command: ./node_modules/.bin/playwright test
+
+  # --- Profil « stack » : vraie stack média de test (optionnelle) ---
+  radarr:
+    profiles: [stack]
+    image: lscr.io/linuxserver/radarr:latest
+    environment: &linuxserver
+      PUID: ${HOST_UID:-1000}
+      PGID: ${HOST_GID:-1000}
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - ./data-dev/stack/radarr:/config
+      - ./data-dev/stack/media:/media
+    ports:
+      - '7878:7878'
+
+  sonarr:
+    profiles: [stack]
+    image: lscr.io/linuxserver/sonarr:latest
+    environment: *linuxserver
+    volumes:
+      - ./data-dev/stack/sonarr:/config
+      - ./data-dev/stack/media:/media
+    ports:
+      - '8989:8989'
+
+  prowlarr:
+    profiles: [stack]
+    image: lscr.io/linuxserver/prowlarr:latest
+    environment: *linuxserver
+    volumes:
+      - ./data-dev/stack/prowlarr:/config
+    ports:
+      - '9696:9696'
+
+  qbittorrent:
+    profiles: [stack]
+    image: lscr.io/linuxserver/qbittorrent:latest
+    environment:
+      <<: *linuxserver
+      WEBUI_PORT: '8080'
+    volumes:
+      - ./data-dev/stack/qbittorrent:/config
+      - ./data-dev/stack/media:/media
+    ports:
+      - '8080:8080'
+
+  sabnzbd:
+    profiles: [stack]
+    image: lscr.io/linuxserver/sabnzbd:latest
+    environment: *linuxserver
+    volumes:
+      - ./data-dev/stack/sabnzbd:/config
+      - ./data-dev/stack/media:/media
+    ports:
+      - '8085:8080'
+
+volumes:
+  node_modules:
+  node_modules_server:
+  node_modules_web:
+  node_modules_shared:
+  node_modules_mocks:
+  node_modules_e2e:
+  node_modules_docs:
+  pnpm-store:

@@ -1,0 +1,28 @@
+// Dev Container VS Code : réutilise compose.dev.yml.
+// Ouvre l'éditeur dans le conteneur `server`, avec les node_modules Linux.
+{
+  "name": "Hubarr",
+  "dockerComposeFile": ["../compose.dev.yml"],
+  "service": "server",
+  "runServices": ["deps", "server", "web", "mocks"],
+  "workspaceFolder": "/app",
+  "remoteUser": "node",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer",
+        "ms-playwright.playwright",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "eslint.useFlatConfig": true
+      }
+    }
+  }
+}

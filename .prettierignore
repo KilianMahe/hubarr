@@ -1,0 +1,19 @@
+pnpm-lock.yaml
+dist/
+coverage/
+data-dev/
+# Documents de pilotage rédigés à la main (tableaux alignés)
+/*.md
+LICENSE
+# Migrations générées par drizzle-kit (make db-generate)
+apps/server/src/db/migrations/
+docs/.vitepress/cache/
+
+# Types générés depuis les spécifications OpenAPI (make openapi), et leurs sources
+apps/server/src/integrations/*/openapi.ts
+tools/openapi/
+
+# Artefacts Playwright (make e2e)
+e2e/playwright/test-results/
+e2e/playwright/playwright-report/
+e2e/playwright/.auth/

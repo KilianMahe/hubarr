@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Image de production locale : `make build` puis `make prod`.
+# Données dans le volume nommé `hubarr_data` (distinct de data-dev/ du
+# développement). Port 7070 : arrêter `make dev` avant, ou changer le port.
+# Pour un déploiement réel, partir de docker-compose.example.yml.
+
+name: hubarr
+
+services:
+  hubarr:
+    image: hubarr:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    container_name: hubarr
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+      HUBARR_LOG_LEVEL: ${HUBARR_LOG_LEVEL:-info}
+    volumes:
+      - hubarr_data:/data
+    ports:
+      - '7070:7070'
+
+volumes:
+  hubarr_data:

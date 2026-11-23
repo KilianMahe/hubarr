@@ -1,0 +1,19 @@
+# Dépendances et builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+.eslintcache
+
+# Données et secrets locaux
+data-dev/
+.env*
+!.env.example
+
+# Divers
+.DS_Store
+*.log
+
+# VitePress
+docs/.vitepress/cache/

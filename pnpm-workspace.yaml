@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e/mocks
+  - e2e/playwright
+  - docs
+
+# Paquets autorisés (true) ou non (false) à exécuter un script d'installation.
+allowBuilds:
+  argon2: true
+  better-sqlite3: true
+  esbuild: true
+  # Bascule Vue 2 / Vue 3 de @tanstack/vue-query : inutile, Vue 3 est la cible par défaut.
+  vue-demi: false

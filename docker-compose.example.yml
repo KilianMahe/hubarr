@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Example Hubarr deployment, using the image published on Docker Hub.
+#
+#   mkdir -p /srv/hubarr && cd /srv/hubarr
+#   (copy this file as docker-compose.yml)
+#   docker compose up -d
+#
+# Update: docker compose pull && docker compose up -d (an installed PWA follows
+# the image version). To pin a version: naroner/hubarr:1.0.0.
+# Backup: the hubarr_data volume holds all the data (see /docs/troubleshooting).
+# To mount a host folder instead: - ./data:/data, with PUID/PGID set to your IDs.
+# Image built from source (make build): use hubarr:local instead.
+
+# Project name: the volume is called hubarr_hubarr_data (backup, docker volume ls).
+name: hubarr
+
+services:
+  hubarr:
+    image: naroner/hubarr:latest
+    container_name: hubarr
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Paris
+      # Owner of the files in /data (mostly useful with a host folder).
+      PUID: 1000
+      PGID: 1000
+      # Log level: fatal, error, warn, info, debug, trace.
+      HUBARR_LOG_LEVEL: info
+      # Behind a reverse proxy under a path (https://example.com/hubarr/) that
+      # forwards the full path; not needed on a subdomain or when the proxy
+      # sends X-Forwarded-Prefix (see /docs/reverse-proxy).
+      # HUBARR_BASE_PATH: /hubarr
+      # Origins allowed to embed Hubarr in an iframe (portal).
+      # HUBARR_FRAME_ANCESTORS: https://portal.example.com
+    volumes:
+      # Database, backup and avatars (named volume, managed by Docker).
+      - hubarr_data:/data
+    ports:
+      - '7070:7070'
+
+volumes:
+  hubarr_data:

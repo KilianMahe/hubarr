@@ -1,0 +1,15 @@
+{
+  "name": "@hubarr/docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentation utilisateur de Hubarr (VitePress, FR/EN), servie sur /docs.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev --host 0.0.0.0 --port 5174",
+    "build": "vitepress build"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

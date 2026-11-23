@@ -1,0 +1,11 @@
+# Contexte de build Docker : uniquement ce qui sert au build.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+data-dev
+.git
+.devcontainer
+.env*
+!.env.example
+*.log

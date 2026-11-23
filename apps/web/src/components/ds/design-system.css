@@ -1,0 +1,98 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Classes globales du design system (P5b.3), importées par `app/main.ts` :
+   mise en page des fiches en page (film, série ; corps centré,
+   rangée d'actions, grille de cartes, synopsis repliable) et rangée de tuiles. */
+
+.detail-page {
+  padding-bottom: 32px;
+}
+.detail-page__body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.detail-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.detail-page__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.detail-page__wide {
+  grid-column: 1 / -1;
+}
+.detail-soft {
+  opacity: 0.85;
+}
+.detail-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.detail-link {
+  color: inherit;
+  font-weight: 500;
+}
+.detail-overview {
+  line-height: 1.7;
+  margin-bottom: 4px;
+}
+.detail-overview--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 959px) {
+  .detail-page__cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 599px) {
+  .detail-page__actions .v-btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+/* Rangée de tuiles de statistiques (`StatTile`) qui s'adapte à la largeur. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+/* Champs en pilule (P5c.2, V13) : contour d'un seul tenant. Les trois
+   segments de Vuetify (début, encoche, fin) laissaient des traits verticaux à
+   leurs jonctions une fois les coins arrondis, surtout à une densité d'écran
+   fractionnaire (mobile). La bordure passe sur le conteneur (transparence dans
+   la couleur, pour ne pas estomper le libellé) ; le libellé flottant reçoit le
+   fond de son support (page, carte ou dialogue) pour couper la ligne. */
+.v-field.rounded-pill.v-field--variant-outlined .v-field__outline {
+  border: var(--v-field-border-width) solid
+    color-mix(in srgb, currentColor calc(var(--v-field-border-opacity) * 100%), transparent);
+  border-radius: inherit;
+}
+.v-field.rounded-pill.v-field--variant-outlined .v-field__outline__start,
+.v-field.rounded-pill.v-field--variant-outlined .v-field__outline__end,
+.v-field.rounded-pill.v-field--variant-outlined .v-field__outline__notch::before,
+.v-field.rounded-pill.v-field--variant-outlined .v-field__outline__notch::after {
+  border-width: 0 !important;
+}
+.v-field.rounded-pill.v-field--variant-outlined .v-field-label--floating {
+  padding-inline: 4px;
+  margin-inline-start: -4px;
+  background: rgb(var(--v-theme-background));
+  /* Opacité propre = couche composée à part, aux bords visibles sur mobile :
+     l'atténuation passe dans la couleur. */
+  opacity: 1;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+}
+.v-card .v-field.rounded-pill.v-field--variant-outlined .v-field-label--floating,
+.v-sheet .v-field.rounded-pill.v-field--variant-outlined .v-field-label--floating {
+  background: rgb(var(--v-theme-surface));
+}

@@ -1,0 +1,645 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Module Tableau de bord (P4.1) : `DashboardController`, ouvert à tout
+// utilisateur connecté. Un endpoint JSON par carte (n° 31 à 42), chargé à part
+// par le front : l'échec d'une carte n'affecte pas les autres. Chaque carte
+// « échoue ouverte » (forme vide plutôt qu'une erreur) ; un service non
+// configuré renvoie `available: false`, qui masque la carte.
+//
+// Les agrégats coûteux (prochaines sorties, historique d'activité) sont gardés
+// 45 s en mémoire, partagés entre cartes et onglets ; un résultat vide n'est
+// jamais gardé. Les bibliothèques passent par le cache partagé des pages
+// Films/Séries (`modules/media/library.ts`).
+
+import {
+  HEALTH_FLAT_SERVICES,
+  SERVICE_SETTINGS,
+  addDays,
+  dashboardActivitySchema,
+  dashboardEmbySchema,
+  dashboardHealthSchema,
+  dashboardHeroSchema,
+  dashboardPageSchema,
+  dashboardRecentSchema,
+  dashboardRequestsSchema,
+  dashboardTransmissionSchema,
+  dashboardTrendingSchema,
+  dashboardUpcomingSchema,
+  dayInZone,
+  quickLookDetailSchema,
+  resolveActivitySource,
+  type CalendarEpisode,
+  type DashboardActivity,
+  type DashboardHealth,
+  type DashboardRequests,
+  type Movie,
+  type QuickLookDetail,
+  type Series,
+} from '@hubarr/shared';
+import { desc } from 'drizzle-orm';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
+import { watchlistItems } from '../../db/schema';
+import { ApiError } from '../../http/errors';
+import type { ZodTypeProvider } from '../../http/zod';
+import { EmbyClient } from '../../integrations/activity/emby';
+import { TautulliClient } from '../../integrations/activity/tautulli';
+import { TracearrClient } from '../../integrations/activity/tracearr';
+import { SeerrClient } from '../../integrations/seerr/client';
+import { resultsOf, tmdbImage, tmdbSized, type TmdbClient } from '../../integrations/tmdb/client';
+import { httpFor } from '../activity/routes';
+import { type FromInstance } from '../calendar/events';
+import { int, num, obj, str, text } from '../discover/enrich';
+import { tmdbClient } from '../discover/tmdb';
+import { getInstanceBySlug, listEnabledInstances, type InstanceRow } from '../instances/instances';
+import { collectMovies, collectSeries, type Owned } from '../media/library';
+import { apiKeyServiceClient, radarrClient, sonarrClient } from '../services/clients';
+import { isServiceConfigured } from '../services/config';
+import { readDashboardLayout, readResolvedPreferences } from '../settings/preferences';
+import { torrentClient } from '../torrents/clients';
+import {
+  MAX_RECOMMENDATIONS,
+  MAX_REQUESTS,
+  MAX_TRANSMISSION,
+  MAX_WATCHLIST,
+  UPCOMING_DAYS,
+  movieReleaseChips,
+  pickHeroSpotlight,
+  quickLookExtras,
+  recentAdditions,
+  seriesReleaseChips,
+  tmdbMovieReleaseChips,
+  upcomingItems,
+} from './widgets';
+
+export const WIDGET_CACHE_TTL_MS = 45_000;
+
+export interface DashboardRoutesOptions {
+  now?: () => number;
+}
+
+/** Agrégat gardé 45 s ; un résultat vide expire aussitôt (la carte suivante réessaie). */
+async function cached<T>(app: FastifyInstance, key: string, fn: () => Promise<T[]>): Promise<T[]> {
+  const full = `dash.${key}`;
+  const hit = app.cache.store.get(full);
+  if (hit !== undefined) return hit as T[];
+  const value = await fn();
+  if (value.length > 0) app.cache.store.set(full, value, WIDGET_CACHE_TTL_MS);
+  return value;
+}
+
+async function fanOut<T>(
+  app: FastifyInstance,
+  type: 'radarr' | 'sonarr',
+  load: (row: InstanceRow) => Promise<T[]>,
+): Promise<FromInstance<T>[]> {
+  const rows = listEnabledInstances(app.db, type);
+  const lists = await Promise.all(
+    rows.map(async (row) => {
+      try {
+        return { items: await load(row), slug: row.slug, name: row.name };
+      } catch (error) {
+        app.log.warn({ err: error, instance: row.slug }, `dashboard : calendrier ${type} en échec`);
+        return null;
+      }
+    }),
+  );
+  return lists.filter((l): l is FromInstance<T> => l !== null);
+}
+
+const typeParams = z.object({
+  type: z.enum(['movie', 'tv']),
+  id: z.coerce.number().int().positive(),
+});
+const libraryParams = z.object({
+  type: z.enum(['movie', 'series']),
+  slug: z.string().min(1).max(100),
+  id: z.coerce.number().int().positive(),
+});
+
+export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async (
+  instance,
+  options,
+) => {
+  const app = instance.withTypeProvider<ZodTypeProvider>();
+  const nowDate = () => new Date((options.now ?? Date.now)());
+  const timezone = () => readResolvedPreferences(instance.db).display_timezone;
+  const today = () => dayInZone(nowDate(), timezone()) ?? nowDate().toISOString().slice(0, 10);
+  const configured = (id: Parameters<typeof isServiceConfigured>[1]) =>
+    isServiceConfigured(instance.db, id);
+  const libraries = () => configured('radarr') || configured('sonarr');
+  const tmdb = (): TmdbClient | null => {
+    const client = tmdbClient(instance);
+    return client.configured ? client : null;
+  };
+
+  const upcoming = () =>
+    cached(instance, 'upcoming', async () => {
+      const at = nowDate();
+      const [movies, episodes] = await Promise.all([
+        fanOut<Movie>(instance, 'radarr', (row) =>
+          radarrClient(instance, row).calendar(UPCOMING_DAYS, 0, at),
+        ),
+        fanOut<CalendarEpisode>(instance, 'sonarr', (row) =>
+          sonarrClient(instance, row).calendar(UPCOMING_DAYS, 0, at),
+        ),
+      ]);
+      return upcomingItems(movies, episodes, today());
+    });
+
+  const trending = async () => {
+    const client = tmdb();
+    if (client === null) return [];
+    try {
+      return resultsOf(await client.trendingAll('week')).slice(0, MAX_RECOMMENDATIONS);
+    } catch {
+      return [];
+    }
+  };
+
+  // n° 31 : données de la page (aucun appel à un service : la page s'affiche aussitôt).
+  app.get(
+    '/api/tableau-de-bord',
+    { schema: { response: { 200: dashboardPageSchema } } },
+    async () => {
+      const watchlist = instance.db
+        .select()
+        .from(watchlistItems)
+        .orderBy(desc(watchlistItems.addedAt))
+        .limit(MAX_WATCHLIST)
+        .all();
+      return {
+        layout: readDashboardLayout(instance.db),
+        configured: {
+          radarr: configured('radarr'),
+          sonarr: configured('sonarr'),
+          seerr: configured('seerr'),
+          tmdb: configured('tmdb'),
+          tautulli: configured('tautulli'),
+          transmission: configured('transmission'),
+          tracearr: configured('tracearr'),
+          emby: configured('emby'),
+        },
+        watchlist: watchlist.map((w) => ({
+          tmdbId: w.tmdbId,
+          mediaType: w.mediaType,
+          title: w.title,
+          poster: tmdbImage(w.posterPath, 'w342'),
+          year: w.year,
+          vote: w.vote,
+        })),
+      };
+    },
+  );
+
+  // n° 32 : derniers ajouts.
+  app.get(
+    '/api/tableau-de-bord/widget/recent',
+    { schema: { response: { 200: dashboardRecentSchema } } },
+    async () => {
+      if (!libraries()) return { available: false, items: [] };
+      const [movies, series] = await Promise.all([
+        collectMovies(instance),
+        collectSeries(instance),
+      ]);
+      return { available: true, items: recentAdditions(movies, series) };
+    },
+  );
+
+  // n° 33 : tendances TMDB.
+  app.get(
+    '/api/tableau-de-bord/widget/recommendations',
+    { schema: { response: { 200: dashboardTrendingSchema } } },
+    async () => {
+      if (tmdb() === null) return { available: false, items: [] };
+      const items = (await trending()).flatMap((r) => {
+        const type =
+          r.media_type === 'tv'
+            ? ('tv' as const)
+            : r.media_type === 'movie'
+              ? ('movie' as const)
+              : null;
+        if (type === null) return [];
+        const date = text(r.release_date) ?? text(r.first_air_date);
+        return [
+          {
+            id: int(r.id),
+            type,
+            title: str(r.title) ?? str(r.name) ?? '',
+            year: date !== null && date.length >= 4 ? Number(date.slice(0, 4)) : null,
+            poster: tmdbImage(r.poster_path, 'w342'),
+            vote: num(r.vote_average),
+          },
+        ];
+      });
+      return { available: true, items };
+    },
+  );
+
+  // n° 34 : prochaines sorties sur 7 jours.
+  app.get(
+    '/api/tableau-de-bord/widget/upcoming',
+    { schema: { response: { 200: dashboardUpcomingSchema } } },
+    async () => {
+      const day = today();
+      if (!libraries()) return { available: false, today: day, days: UPCOMING_DAYS, items: [] };
+      const last = addDays(day, UPCOMING_DAYS - 1);
+      const items = (await upcoming()).filter((it) => it.day >= day && it.day <= last);
+      return { available: true, today: day, days: UPCOMING_DAYS, items };
+    },
+  );
+
+  // n° 35 : demandes Seerr en attente (5 au plus), enrichies du titre et de l'affiche.
+  app.get(
+    '/api/tableau-de-bord/widget/requests',
+    { schema: { response: { 200: dashboardRequestsSchema } } },
+    async (request) => {
+      if (!configured('seerr')) return { available: false, items: [] };
+      const items: DashboardRequests['items'] = [];
+      try {
+        const seerr = new SeerrClient(apiKeyServiceClient(instance, 'seerr'));
+        const data = obj(await seerr.requests(MAX_REQUESTS, 0, 'pending', null));
+        const results = Array.isArray(data.results) ? data.results : [];
+        const client = tmdb();
+        for (const raw of results.slice(0, MAX_REQUESTS)) {
+          const req = obj(raw);
+          const media = obj(req.media);
+          const tmdbId = int(media.tmdbId);
+          if (!tmdbId) continue;
+          const type = (str(media.mediaType) ?? str(req.type)) === 'tv' ? 'tv' : 'movie';
+          let title: string | null = null;
+          let poster: string | null = null;
+          if (client !== null) {
+            const details = await (type === 'tv' ? client.tv(tmdbId) : client.movie(tmdbId)).catch(
+              () => ({}),
+            );
+            const d = obj(details);
+            title = str(d.title) ?? str(d.name);
+            poster = tmdbImage(d.poster_path, 'w185');
+          } else {
+            const details = obj(await seerr.tmdb(req));
+            title = str(details.title) ?? str(details.name);
+            poster = tmdbImage(details.posterPath, 'w185');
+          }
+          const by = obj(req.requestedBy);
+          items.push({
+            id: int(req.id),
+            type,
+            tmdbId,
+            title: title ?? `TMDb #${tmdbId}`,
+            poster,
+            requestedBy: str(by.displayName) ?? str(by.email) ?? '—',
+            requestedAt: str(req.createdAt),
+          });
+        }
+      } catch (error) {
+        request.log.warn({ err: error }, 'dashboard : demandes Seerr en échec');
+      }
+      return { available: true, items };
+    },
+  );
+
+  // n° 36 : pastilles de santé, une par instance Radarr/Sonarr active puis par service.
+  app.get(
+    '/api/tableau-de-bord/widget/health',
+    { schema: { response: { 200: dashboardHealthSchema } } },
+    async () => {
+      const monitor = instance.serviceHealth;
+      const chips: DashboardHealth['chips'] = [];
+      for (const type of ['radarr', 'sonarr'] as const) {
+        const rows = listEnabledInstances(instance.db, type);
+        const states = await Promise.all(
+          rows.map((row) =>
+            monitor
+              .statusFor(type, row.slug)
+              .catch(() => ({ status: 'down' as const, latencyMs: null })),
+          ),
+        );
+        rows.forEach((row, i) => {
+          const s = states[i];
+          if (s?.status)
+            chips.push({ id: type, name: row.name, status: s.status, latencyMs: s.latencyMs });
+        });
+      }
+      const flat = await Promise.all(
+        HEALTH_FLAT_SERVICES.map((service) =>
+          monitor.statusFor(service).catch(() => ({ status: null, latencyMs: null })),
+        ),
+      );
+      HEALTH_FLAT_SERVICES.forEach((service, i) => {
+        const s = flat[i];
+        if (s?.status) {
+          chips.push({
+            id: service,
+            name: SERVICE_SETTINGS[service].label,
+            status: s.status,
+            latencyMs: s.latencyMs,
+          });
+        }
+      });
+      return { chips };
+    },
+  );
+
+  // n° 37 : activité en cours (Tautulli, ou Tracearr selon la préférence) et historique récent.
+  app.get(
+    '/api/tableau-de-bord/widget/plex',
+    { schema: { response: { 200: dashboardActivitySchema } } },
+    async (): Promise<DashboardActivity> => {
+      const source = resolveActivitySource(
+        readResolvedPreferences(instance.db).display_activity_source,
+        (service) => configured(service),
+      );
+      if (source === null) return { available: false, source: null, activity: null, history: [] };
+      if (source === 'tracearr') {
+        const client = new TracearrClient(httpFor(instance, 'tracearr'), instance.cache.store);
+        const [activity, history] = await Promise.all([
+          client.activity(true, true),
+          cached(instance, 'tracearr_history', async () =>
+            (await client.history(null, 8).catch(() => ({ rows: [] }))).rows.map((r) => ({
+              title: r.title,
+              grandparentTitle: null,
+              episodeCode: null,
+              year: r.year,
+              mediaType: r.mediaType,
+              poster: r.poster,
+              userDisplayName: r.userDisplayName,
+              watchedAt: r.watchedAt,
+              ratingKey: null,
+              quickLook: r.quickLook,
+            })),
+          ),
+        ]);
+        return { available: true, source, activity, history };
+      }
+      const client = new TautulliClient(httpFor(instance, 'tautulli'));
+      const [activity, history] = await Promise.all([
+        client.activity(true, true),
+        cached(instance, 'plex_history', async () =>
+          (await client.history(8, 0, '').catch(() => [])).map((r) => ({
+            title: r.title,
+            grandparentTitle: r.grandparentTitle,
+            episodeCode: r.episodeCode,
+            year: r.year,
+            mediaType: r.mediaType,
+            poster: r.poster,
+            userDisplayName: r.userDisplayName,
+            watchedAt: r.watchedAt,
+            ratingKey: r.ratingKey,
+            quickLook: null,
+          })),
+        ),
+      ]);
+      return { available: true, source, activity, history };
+    },
+  );
+
+  // n° 38 : Transmission (vitesses, compteurs, téléchargements actifs).
+  app.get(
+    '/api/tableau-de-bord/widget/transmission',
+    { schema: { response: { 200: dashboardTransmissionSchema } } },
+    async (request) => {
+      if (!configured('transmission'))
+        return { available: false, error: false, stats: null, active: [] };
+      try {
+        const client = torrentClient(instance, 'transmission');
+        const torrents = await client.torrents();
+        const active = torrents
+          .filter((t) => t.state === 'downloading')
+          .sort((a, b) => b.dlSpeed - a.dlSpeed)
+          .slice(0, MAX_TRANSMISSION);
+        return { available: true, error: false, stats: await client.stats(torrents), active };
+      } catch (error) {
+        request.log.warn({ err: error }, 'dashboard : Transmission en échec');
+        return { available: true, error: true, stats: null, active: [] };
+      }
+    },
+  );
+
+  // n° 39 : lecture en cours sur Emby.
+  app.get(
+    '/api/tableau-de-bord/widget/emby',
+    { schema: { response: { 200: dashboardEmbySchema } } },
+    async () => {
+      if (!configured('emby')) return { available: false, activity: null };
+      return {
+        available: true,
+        activity: await new EmbyClient(httpFor(instance, 'emby')).activity(true, true),
+      };
+    },
+  );
+
+  // n° 40 : bandeau (mise en avant, statistiques des bibliothèques, sorties à 7 jours).
+  app.get(
+    '/api/tableau-de-bord/widget/hero',
+    { schema: { response: { 200: dashboardHeroSchema } } },
+    async () => {
+      const [movies, series, trend, coming] = await Promise.all([
+        collectMovies(instance),
+        collectSeries(instance),
+        trending(),
+        libraries() ? upcoming() : Promise.resolve([]),
+      ]);
+      return {
+        spotlight: pickHeroSpotlight(movies, trend),
+        stats: {
+          films: movies.length === 0 ? null : movies.length,
+          series: series.length === 0 ? null : series.length,
+        },
+        upcomingCount: coming.length,
+      };
+    },
+  );
+
+  const quickLookError = () =>
+    new ApiError(404, 'NOT_FOUND', { details: { reason: 'dashboard.quicklook.error' } });
+
+  // n° 41 : aperçu rapide d'un titre TMDB (tendances, watchlist).
+  app.get(
+    '/api/tableau-de-bord/quicklook/tmdb/:type/:id',
+    { schema: { params: typeParams, response: { 200: quickLookDetailSchema } } },
+    async (request): Promise<QuickLookDetail> => {
+      const client = tmdb();
+      if (client === null) throw quickLookError();
+      const { type, id } = request.params;
+      const isTv = type === 'tv';
+      const data = await (isTv ? client.tv(id) : client.movie(id)).catch(() => ({}));
+      if (!int(obj(data).id)) throw quickLookError();
+      const d = obj(data);
+      const date = str(isTv ? d.first_air_date : d.release_date) ?? '';
+      const ended = isTv && ['Ended', 'Canceled'].includes(str(d.status) ?? '');
+      const match = await libraryMatch(instance, type, id);
+      const day = today();
+      const networks = Array.isArray(d.networks) ? d.networks : [];
+      return {
+        title: str(d.title) ?? str(d.name) ?? '—',
+        year: date.length >= 4 ? Number(date.slice(0, 4)) : null,
+        poster: tmdbImage(d.poster_path, 'w342'),
+        backdrop: tmdbImage(d.backdrop_path, 'w1280'),
+        overview: str(d.overview),
+        genres: (Array.isArray(d.genres) ? d.genres : [])
+          .map((g) => str(obj(g).name) ?? '')
+          .slice(0, 4),
+        rating: num(d.vote_average),
+        runtime: isTv ? null : num(d.runtime),
+        network: isTv ? str(obj(networks[0]).name) : null,
+        seasons: isTv ? num(d.number_of_seasons) : null,
+        status: match?.status ?? null,
+        action: match
+          ? { kind: 'manage', type: isTv ? 'series' : 'movie', slug: match.slug, id: match.id }
+          : { kind: 'discover', type, id },
+        inLibrary: match !== null,
+        radarrId: !isTv && match ? match.id : null,
+        sonarrId: isTv && match ? match.id : null,
+        airStatus: isTv ? (ended ? 'ended' : 'continuing') : null,
+        ...quickLookExtras(d, client.locale),
+        tmdbId: id,
+        tmdbType: type,
+        posterPath: str(d.poster_path),
+        releaseDates: isTv
+          ? seriesReleaseChips(
+              text(d.first_air_date),
+              str(obj(d.next_episode_to_air).air_date),
+              str(obj(d.last_episode_to_air).air_date),
+              ended,
+              day,
+            )
+          : tmdbMovieReleaseChips(
+              Array.isArray(obj(d.release_dates).results)
+                ? (obj(d.release_dates).results as never[])
+                : [],
+              client.locale,
+              day,
+            ),
+      };
+    },
+  );
+
+  // n° 42 : aperçu rapide d'un titre d'une bibliothèque (instance exacte).
+  app.get(
+    '/api/tableau-de-bord/quicklook/:type/:slug/:id',
+    { schema: { params: libraryParams, response: { 200: quickLookDetailSchema } } },
+    async (request): Promise<QuickLookDetail> => {
+      const { type, slug, id } = request.params;
+      const row = await findLibraryRow(instance, type, slug, id);
+      if (row === null) throw quickLookError();
+      const day = today();
+      const base = {
+        cast: [],
+        providers: [],
+        trailerKey: null,
+        imdbId: row.item.imdbId,
+        tmdbId: row.item.tmdbId,
+        tmdbType: type === 'series' ? ('tv' as const) : ('movie' as const),
+        posterPath: null,
+        inLibrary: true,
+        action: { kind: 'manage' as const, type, slug: row.slug, id },
+      };
+      if (row.kind === 'series') {
+        const s = row.item;
+        const ended = s.ended || s.status === 'ended';
+        return {
+          ...base,
+          title: s.title || '—',
+          year: s.year,
+          poster: tmdbSized(s.poster, 'w342'),
+          backdrop: tmdbSized(s.fanart, 'w1280'),
+          overview: s.overview,
+          genres: s.genres.slice(0, 4),
+          rating: s.ratings,
+          runtime: null,
+          network: s.network,
+          seasons: null,
+          status: s.monitored ? 'monitored' : 'missing',
+          radarrId: null,
+          sonarrId: id,
+          airStatus: ended ? 'ended' : 'continuing',
+          releaseDates: seriesReleaseChips(
+            s.firstAired,
+            s.nextAiring,
+            s.previousAiring,
+            ended,
+            day,
+          ),
+        };
+      }
+      const m = row.item;
+      return {
+        ...base,
+        title: m.title || '—',
+        year: m.year,
+        poster: tmdbSized(m.poster, 'w342'),
+        backdrop: tmdbSized(m.fanart, 'w1280'),
+        overview: m.overview,
+        genres: m.genres.slice(0, 4),
+        rating: m.ratings,
+        runtime: m.runtime,
+        network: null,
+        seasons: null,
+        status: m.hasFile ? 'downloaded' : m.monitored ? 'monitored' : 'missing',
+        radarrId: id,
+        sonarrId: null,
+        airStatus: null,
+        releaseDates: movieReleaseChips(m.inCinemasAt, m.digitalAt, m.physicalAt, day),
+      };
+    },
+  );
+};
+
+type LibraryRow =
+  { kind: 'movie'; item: Movie; slug: string } | { kind: 'series'; item: Series; slug: string };
+
+/**
+ * Ligne d'une bibliothèque pour l'aperçu : l'agrégat en cache d'abord (aucun
+ * appel sur un dashboard chaud, l'instance demandée de préférence), sinon
+ * lecture directe de l'instance.
+ */
+async function findLibraryRow(
+  app: FastifyInstance,
+  type: 'movie' | 'series',
+  slug: string,
+  id: number,
+): Promise<LibraryRow | null> {
+  const pick = <T extends { id: number | null }>(rows: Owned<T>[]): Owned<T> | null =>
+    rows.find((r) => r.item.id === id && r.slug === slug) ??
+    rows.find((r) => r.item.id === id) ??
+    null;
+  if (type === 'series') {
+    const hit = pick(await collectSeries(app));
+    if (hit) return { kind: 'series', item: hit.item, slug: hit.slug };
+    const row = getInstanceBySlug(app.db, 'sonarr', slug);
+    if (!row?.enabled) return null;
+    const item = await sonarrClient(app, row)
+      .series(id)
+      .catch(() => null);
+    return item === null ? null : { kind: 'series', item, slug };
+  }
+  const hit = pick(await collectMovies(app));
+  if (hit) return { kind: 'movie', item: hit.item, slug: hit.slug };
+  const row = getInstanceBySlug(app.db, 'radarr', slug);
+  if (!row?.enabled) return null;
+  const item = await radarrClient(app, row)
+    .movie(id)
+    .catch(() => null);
+  return item === null ? null : { kind: 'movie', item, slug };
+}
+
+/** Titre TMDB présent dans une bibliothèque (lien « Gérer » et badge d'état), sinon `null`. */
+async function libraryMatch(
+  app: FastifyInstance,
+  type: 'movie' | 'tv',
+  tmdbId: number,
+): Promise<{ slug: string; id: number; status: 'downloaded' | 'monitored' | 'missing' } | null> {
+  if (type === 'movie') {
+    const hit = (await collectMovies(app)).find(
+      (m) => m.item.tmdbId === tmdbId && m.item.id !== null,
+    );
+    if (hit?.item.id == null) return null;
+    const status = hit.item.hasFile ? 'downloaded' : hit.item.monitored ? 'monitored' : 'missing';
+    return { slug: hit.slug, id: hit.item.id, status };
+  }
+  const hit = (await collectSeries(app)).find(
+    (s) => s.item.tmdbId === tmdbId && s.item.id !== null,
+  );
+  if (hit?.item.id == null) return null;
+  return { slug: hit.slug, id: hit.item.id, status: hit.item.monitored ? 'monitored' : 'missing' };
+}

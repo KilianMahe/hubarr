@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hubarr</title>
+    <!-- Préfixe de chemin (reverse proxy) : le serveur remplace cette balise à la volée.
+         Toutes les URL de la page sont relatives à elle. -->
+    <base href="/" />
+    <!-- PWA : installable sur mobile et sur ordinateur (service worker : src/app/pwa.ts). -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#111111" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Thème avant le premier rendu (P0.10) : variante classique, puis couleurs du serveur. -->
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="api/theme.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/app/main.ts"></script>
+  </body>
+</html>

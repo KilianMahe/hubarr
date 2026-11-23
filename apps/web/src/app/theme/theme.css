@@ -1,0 +1,13 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Utilitaires des couleurs propres à Hubarr (voir vuetify-theme.ts). Vuetify
+   génère déjà `bg-*` et `text-*` pour chaque couleur du thème (`text-muted`,
+   `bg-sidebar`…) : seules les combinaisons qu'il ne sait pas faire sont ici.
+   Vuetify 4 range tous ses styles dans des `@layer` : une règle hors couche
+   l'emporte sans `!important` (un `!important` hors couche perdrait au
+   contraire contre un `!important` de Vuetify). */
+
+/* Barre du haut translucide : le contenu défile flouté sous elle. */
+.bg-topbar-translucent {
+  background-color: rgba(var(--v-theme-topbar), var(--v-topbar-opacity));
+  backdrop-filter: blur(12px);
+}
