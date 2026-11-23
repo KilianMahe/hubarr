@@ -86,7 +86,7 @@ Each service has its client in `src/integrations/<service>`, built on a shared l
 - per-call connection and response **timeouts**;
 - a **circuit breaker per service and per instance**: a connection failure marks the service unreachable for 10 s, and further calls fail immediately instead of waiting for the timeout;
 - **authentication strategies**: API key (header or query), Basic auth, Bearer token, and client-specific sessions (qBittorrent and Deluge cookies, Transmission token);
-- an **SSRF guard**: schemes other than `http(s)` and link-local addresses are refused, including after DNS resolution;
+- an **SSRF guard**: schemes other than `http(s)` and link-local addresses are refused, including after DNS resolution, checked again on every connection (DNS rebinding);
 - **typed errors** (`UpstreamError`) mapped to API codes (`SERVICE_UNREACHABLE`, `UPSTREAM_ERROR`…).
 
 Radarr, Sonarr and Prowlarr clients are typed from their OpenAPI specifications (`make openapi`); other responses are validated with zod. Radarr and Sonarr administration share a single module parameterized by instance kind, and the three torrent clients share one view thanks to adapters that declare their capabilities.
@@ -128,9 +128,9 @@ SQL migrations (Drizzle) run **at startup**, after a `hubarr.db.bak` copy. The s
 
 - **Passwords** hashed with argon2id; **sessions** use a random 256-bit token of which only the hash is stored; `HttpOnly`, `SameSite=Lax` cookie, `Secure` over HTTPS.
 - **CSRF**: synchronizer token on every mutation, login included, plus `Sec-Fetch-Site` and `Origin` checks.
-- **Login throttling**: 5 failures in 15 minutes per account and per IP.
+- **Login throttling**: 5 attempts in 15 minutes per account and IP, 25 per IP, and 50 per account whatever the IP (a client trusted as a proxy can change its `X-Forwarded-For` at will). Checking the current password from the profile has the same 5-attempt limit.
 - **Headers**: strict CSP (`script-src 'self'`, no inline script in the application), configurable `frame-ancestors` (`HUBARR_FRAME_ANCESTORS`), `X-Content-Type-Options`, `Referrer-Policy`, HSTS, `Permissions-Policy`.
-- **Service secrets** stored server side and never sent back to the browser.
+- **Service secrets** stored server side and never sent back to the browser; an import that changes the origin (scheme, host, port) of a service clears its stored secrets.
 - **Image proxy** restricted to the expected paths of each service.
 - **Reverse proxy**: `X-Forwarded-*` and `X-Forwarded-Prefix` are only trusted from the addresses in `HUBARR_TRUST_PROXY`.
 
@@ -140,7 +140,7 @@ The multi-stage `docker/Dockerfile` produces the final image:
 
 1. **build**: install locked dependencies, build the front end (Vite), the server (tsup) and the documentation (VitePress);
 2. **prune**: `pnpm deploy --prod` keeps runtime dependencies only; native binaries (SQLite, argon2) are loaded during the build, which fails if they are missing;
-3. **runtime**: `node:24-alpine`, `tini`, `/data` volume, port 7070, `HEALTHCHECK` on `/api/health`. The entrypoint hands `/data` to `PUID:PGID` (1000 by default) then starts Hubarr under that identity with `su-exec`: the server never runs as root.
+3. **runtime**: `node:24-alpine`, `tini`, `/data` volume, port 7070, `HEALTHCHECK` on `/api/health`. The entrypoint hands `/data` to `PUID:PGID` (1000 by default) then starts Hubarr under that identity with `su-exec`: the server never runs as root, and the application code belongs to root, read-only for the server.
 
 The image is published on Docker Hub (`naroner/hubarr`, amd64); `make build` builds it from source for the machine's architecture. All configuration goes through environment variables (see [Installation](./installation.md#environment-variables)). Logs go to standard output (level `HUBARR_LOG_LEVEL`).
 

@@ -59,7 +59,7 @@ Langue de l'interface de Hubarr et langue des métadonnées TMDb, puis langue de
 ## Sauvegarde
 
 - **Exporter** télécharge un fichier JSON avec les préférences, la disposition, la visibilité dans le menu, les URL et utilisateurs des services et les instances Radarr/Sonarr. **Aucune clé d'API ni aucun mot de passe** n'y figure.
-- **Importer** relit un tel fichier (64 Ko au plus). L'import ajoute ou met à jour, sans rien supprimer ; une instance existante garde sa clé d'API. Ressaisissez ensuite les clés et mots de passe.
+- **Importer** relit un tel fichier (64 Ko au plus). L'import ajoute ou met à jour, sans rien supprimer ; une instance ou un service existant garde ses secrets, sauf si le fichier change son schéma, son hôte ou son port : sa clé d'API et son mot de passe sont alors effacés, pour qu'un fichier piégé ne puisse pas les envoyer à un autre serveur. Ressaisissez ensuite les clés et mots de passe.
 
 Les exports de Prismarr ne sont pas acceptés : une installation de Hubarr repart de zéro.
 

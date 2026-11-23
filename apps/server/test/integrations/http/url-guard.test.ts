@@ -2,7 +2,13 @@
 // Port des tests `urlBlockedReason` de `HealthServiceTest`.
 
 import { describe, expect, it } from 'vitest';
-import { urlBlockedReason } from '../../../src/integrations/http/url-guard';
+import type { LookupAddress } from 'node:dns';
+import {
+  BLOCKED_LOOKUP_CODE,
+  createGuardedLookup,
+  urlBlockedReason,
+  type RawLookup,
+} from '../../../src/integrations/http/url-guard';
 
 const noDns = () => Promise.resolve<string[]>([]);
 
@@ -55,5 +61,52 @@ describe('urlBlockedReason', () => {
         Promise.resolve(['1.2.3.4']),
       ),
     ).toBeNull();
+  });
+});
+
+describe('createGuardedLookup', () => {
+  const resolving =
+    (...addresses: LookupAddress[]): RawLookup =>
+    (_host, _options, callback) => {
+      callback(null, addresses);
+    };
+  const run = (raw: RawLookup, all: boolean) =>
+    new Promise<{ error: NodeJS.ErrnoException | null; address: unknown; family?: number }>(
+      (resolve) => {
+        createGuardedLookup(raw)('svc.lan', { all }, (error, address, family) => {
+          resolve({ error, address, ...(family === undefined ? {} : { family }) });
+        });
+      },
+    );
+
+  it('laisse passer une adresse privée, sous les deux formes de réponse', async () => {
+    const raw = resolving({ address: '192.168.1.10', family: 4 });
+    expect(await run(raw, false)).toEqual({ error: null, address: '192.168.1.10', family: 4 });
+    expect(await run(raw, true)).toEqual({
+      error: null,
+      address: [{ address: '192.168.1.10', family: 4 }],
+    });
+  });
+
+  it('refuse un nom dont une des adresses est de lien local (rebinding, métadonnées cloud)', async () => {
+    for (const all of [false, true]) {
+      const result = await run(
+        resolving({ address: '10.0.0.2', family: 4 }, { address: '169.254.169.254', family: 4 }),
+        all,
+      );
+      expect(result.error?.code).toBe(BLOCKED_LOOKUP_CODE);
+    }
+    const mapped = await run(resolving({ address: '::ffff:169.254.169.254', family: 6 }), false);
+    expect(mapped.error?.code).toBe(BLOCKED_LOOKUP_CODE);
+  });
+
+  it('transmet l’échec de résolution', async () => {
+    const failing: RawLookup = (_host, _options, callback) => {
+      const error: NodeJS.ErrnoException = new Error('nope');
+      error.code = 'ENOTFOUND';
+      callback(error, []);
+    };
+    expect((await run(failing, false)).error?.code).toBe('ENOTFOUND');
+    expect((await run(resolving(), false)).error?.code).toBe('ENOTFOUND');
   });
 });

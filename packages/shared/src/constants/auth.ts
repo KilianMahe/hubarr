@@ -16,10 +16,14 @@ export const CSRF_HEADER = 'x-csrf-token';
 /**
  * Limitation des tentatives de connexion (`login_throttling` de Symfony) :
  * 5 tentatives par couple IP + e-mail sur une fenêtre glissante de 15 minutes,
- * et 5 × 5 par IP seule (limite globale par défaut de Symfony).
+ * et 5 × 5 par IP seule (limite globale par défaut de Symfony). S'y ajoute une
+ * limite par e-mail, toutes IP confondues : l'IP vient de `X-Forwarded-For` dès
+ * que le pair est un proxy de confiance (réseaux privés par défaut), un client
+ * du LAN peut donc la faire varier à chaque tentative.
  */
 export const LOGIN_THROTTLE = {
   maxAttempts: 5,
   maxAttemptsPerIp: 25,
+  maxAttemptsPerAccount: 50,
   windowMs: 15 * 60 * 1000,
 } as const;

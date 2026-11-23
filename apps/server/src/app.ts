@@ -159,7 +159,7 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
   void app.register(themeRoutes);
   void app.register(setupRoutes, now);
   void app.register(authRoutes, now);
-  void app.register(profileRoutes, { avatarsDir: join(options.dataDir, 'avatars') });
+  void app.register(profileRoutes, { avatarsDir: join(options.dataDir, 'avatars'), ...now });
   void app.register(settingsRoutes, {
     version: options.version ?? '0.0.0-dev',
     dataDir: options.dataDir,

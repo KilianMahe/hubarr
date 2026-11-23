@@ -1,6 +1,6 @@
 {
   "name": "@hubarr/docs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Documentation utilisateur de Hubarr (VitePress, FR/EN), servie sur /docs.",
   "license": "AGPL-3.0-or-later",

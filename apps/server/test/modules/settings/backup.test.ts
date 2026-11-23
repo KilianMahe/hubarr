@@ -192,7 +192,7 @@ describe('import', () => {
             type: 'radarr',
             slug: 'old',
             name: 'Renamed',
-            url: 'http://new',
+            url: 'http://old/radarr',
             enabled: true,
             position: 3,
           },
@@ -218,7 +218,7 @@ describe('import', () => {
     const old = getInstanceBySlug(database.db, 'radarr', 'old');
     expect(old).toMatchObject({
       name: 'Renamed',
-      url: 'http://new',
+      url: 'http://old/radarr',
       position: 3,
       isDefault: false,
     });
@@ -229,6 +229,49 @@ describe('import', () => {
         .map((row) => row.slug)
         .sort(),
     ).toEqual(['local', 'old', 'radarr-4k']);
+  });
+
+  it('changement d’origine (hôte, port, schéma) : secrets enregistrés effacés', async () => {
+    await createInstance(
+      database.db,
+      'radarr',
+      { name: 'Radarr', url: 'http://radarr:7878', apiKey: 'radarr-secret' },
+      noDns,
+    );
+    applyServicePatch(database.db, 'prowlarr', { url: 'http://p:9696', apiKey: 'prowlarr-secret' });
+    applyServicePatch(database.db, 'qbittorrent', {
+      url: 'http://q:8080',
+      user: 'admin',
+      password: 'qbit-secret',
+    });
+    applyServicePatch(database.db, 'tautulli', { url: 'http://t:8181', apiKey: 'tautulli-secret' });
+    const response = await upload(
+      JSON.stringify({
+        hubarr_export_version: 1,
+        settings: {},
+        services: {
+          prowlarr: { url: 'https://attacker.example' },
+          qbittorrent: { url: 'http://q:9090' },
+          // Même origine : rien n'est effacé.
+          tautulli: { url: 'http://t:8181/' },
+        },
+        instances: [{ type: 'radarr', slug: 'radarr', name: 'Radarr', url: 'https://evil:7878' }],
+      }),
+    );
+    expect(response.statusCode).toBe(200);
+    expect(readServiceConfig(database.db, 'prowlarr')).toMatchObject({
+      url: 'https://attacker.example',
+      apiKey: '',
+    });
+    expect(readServiceConfig(database.db, 'qbittorrent')).toMatchObject({
+      url: 'http://q:9090',
+      user: 'admin',
+      password: '',
+    });
+    expect(readServiceConfig(database.db, 'tautulli').apiKey).toBe('tautulli-secret');
+    const radarr = getInstanceBySlug(database.db, 'radarr', 'radarr');
+    expect(radarr?.url).toBe('https://evil:7878');
+    expect(radarr && apiKeyOf(radarr)).toBeNull();
   });
 
   it('secrets glissés dans le fichier ignorés, clés inconnues comptées', async () => {

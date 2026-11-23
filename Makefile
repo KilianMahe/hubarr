@@ -29,7 +29,7 @@ MOUNTS  := data-dev node_modules apps/server/node_modules apps/web/node_modules 
 .PHONY: help dev stack down logs ps image install sh lint lint-files lint-fix \
         format typecheck test test-watch check outdated clean hooks build prod \
         prod-down prod-logs db-generate db-migrate i18n-import openapi docs e2e \
-        screenshots check-fast release smoke-arm64 publish publish-github
+        screenshots check-fast release smoke-arm64 publish publish-github github-release dockerhub-description
 
 help: ## Affiche cette aide
 	@grep -E '^[a-z][a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -163,6 +163,13 @@ publish: ## Pousse l'image d'une version sur Docker Hub (VERSION=x.y.z ; DOCKER_
 publish-github: ## Publie une version sur GitHub (VERSION=x.y.z) : historique public sans CLAUDE.md, PLAN, MEMOIRE, design/
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make publish-github VERSION=1.0.0'; exit 2; }
 	./tools/publish-github.sh $(VERSION)
+
+github-release: ## Page de release GitHub d'une version (VERSION=x.y.z, jeton dans GITHUB_TOKEN)
+	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make github-release VERSION=1.0.0'; exit 2; }
+	$(COMPOSE) run --rm --no-deps -e GITHUB_TOKEN server node tools/publish-notes.js github-release $(VERSION)
+
+dockerhub-description: ## Description du dépôt Docker Hub depuis docker/DOCKERHUB.md (jeton dans DOCKERHUB_TOKEN)
+	$(COMPOSE) run --rm --no-deps -e DOCKERHUB_TOKEN -e DOCKERHUB_USERNAME server node tools/publish-notes.js dockerhub
 
 release: ## Publication locale (VERSION=x.y.z) : contrôles, e2e, CHANGELOG, commit et tag, images hubarr:x.y.z et hubarr:local
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make release VERSION=1.0.0'; exit 2; }

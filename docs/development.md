@@ -70,3 +70,4 @@ make release VERSION=1.2.0
 ```
 
 The target checks that the tree is clean, runs `make check` and `make e2e`, moves the "Unreleased" section of `CHANGELOG.md` under the new version, creates the commit and the `v1.2.0` tag, then builds the image and tags it `hubarr:local`, `naroner/hubarr:1.2.0` and `naroner/hubarr:latest`. Then publish with `make publish VERSION=1.2.0` (Docker Hub) and `make publish-github VERSION=1.2.0` (public GitHub repository, one commit per release).
+Finally, `GITHUB_TOKEN=… make github-release VERSION=1.2.0` creates the GitHub release page from the changelog (`DRY_RUN=1` previews it), and `DOCKERHUB_TOKEN=… make dockerhub-description` (token scope "Read, Write, Delete") updates the Docker Hub description from `docker/DOCKERHUB.md`.

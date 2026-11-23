@@ -5,7 +5,13 @@
 // fe80::/10, fd00:ec2::), par lesquelles les clouds exposent leurs métadonnées
 // sans authentification. Le reste du RFC 1918 reste autorisé : Radarr sur
 // 192.168.x ou 10.x est le cas normal d'un homelab.
+//
+// Deux niveaux : `urlBlockedReason` à l'enregistrement et au diagnostic (message
+// clair pour l'admin), puis `guardedLookup` à chaque connexion de l'agent HTTP,
+// qui couvre les URL enregistrées sans résolution et un DNS qui change de
+// réponse entre la vérification et l'appel (rebinding).
 
+import { lookup as dnsLookup, type LookupAddress, type LookupOptions } from 'node:dns';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
@@ -74,7 +80,75 @@ export async function urlBlockedReason(
   return addresses.some(isLinkLocal) ? 'link-local' : null;
 }
 
+/**
+ * Même origine (schéma, hôte, port) : un secret enregistré pour une URL ne doit
+ * pas suivre un changement d'hôte qu'il n'a pas saisi lui-même (import).
+ */
+export function sameOrigin(a: string, b: string): boolean {
+  try {
+    return new URL(a.trim()).origin === new URL(b.trim()).origin;
+  } catch {
+    return false;
+  }
+}
+
 /** Retire les crochets IPv6 et le point final d'un FQDN enraciné. */
 function normalizeHost(hostname: string): string {
   return hostname.replace(/^\[|\]$/g, '').replace(/\.+$/, '');
 }
+
+/** Code de l'erreur levée par `guardedLookup` (diagnostic « bloqué »). */
+export const BLOCKED_LOOKUP_CODE = 'HUBARR_URL_BLOCKED';
+
+type LookupCallback = (
+  error: NodeJS.ErrnoException | null,
+  address: string | LookupAddress[],
+  family?: number,
+) => void;
+
+/** Résolution DNS de bas niveau, signature de `dns.lookup` (injectable pour les tests). */
+export type RawLookup = (
+  hostname: string,
+  options: LookupOptions & { all: true },
+  callback: (error: NodeJS.ErrnoException | null, addresses: LookupAddress[]) => void,
+) => void;
+
+const systemLookup: RawLookup = (hostname, options, callback) => {
+  dnsLookup(hostname, options, callback);
+};
+
+/**
+ * `lookup` de `net.connect` qui refuse un nom résolu en adresse de lien local.
+ * Toutes les adresses sont contrôlées, puis la forme attendue par l'appelant
+ * (`all` ou adresse unique) est rendue.
+ */
+export function createGuardedLookup(raw: RawLookup = systemLookup) {
+  return (hostname: string, options: LookupOptions, callback: LookupCallback): void => {
+    raw(hostname, { ...options, all: true }, (error, addresses) => {
+      if (error !== null) {
+        callback(error, []);
+        return;
+      }
+      if (addresses.some((entry) => isLinkLocal(entry.address))) {
+        const blocked: NodeJS.ErrnoException = new Error(`blocked: link-local (${hostname})`);
+        blocked.code = BLOCKED_LOOKUP_CODE;
+        callback(blocked, []);
+        return;
+      }
+      if (options.all === true) {
+        callback(null, addresses);
+        return;
+      }
+      const first = addresses[0];
+      if (first === undefined) {
+        const missing: NodeJS.ErrnoException = new Error(`getaddrinfo ENOTFOUND ${hostname}`);
+        missing.code = 'ENOTFOUND';
+        callback(missing, []);
+        return;
+      }
+      callback(null, first.address, first.family);
+    });
+  };
+}
+
+export const guardedLookup = createGuardedLookup();

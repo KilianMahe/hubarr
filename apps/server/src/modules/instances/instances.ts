@@ -261,6 +261,14 @@ export async function updateInstance(
   return row;
 }
 
+/** Efface les identifiants enregistrés d'une instance (clé d'API). */
+export function clearInstanceCredentials(db: DbExecutor, instance: InstanceRow): void {
+  db.update(serviceInstances)
+    .set({ credentials: {}, updatedAt: new Date() })
+    .where(eq(serviceInstances.id, instance.id))
+    .run();
+}
+
 /** Bascule l'activation (clé d'API et autres champs inchangés). */
 export function setInstanceEnabled(db: DbExecutor, instance: InstanceRow, enabled: boolean): void {
   db.update(serviceInstances)

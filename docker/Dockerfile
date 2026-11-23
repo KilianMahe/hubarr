@@ -87,10 +87,13 @@ ENV NODE_ENV=production \
     HUBARR_PORT=7070 \
     HUBARR_DATA_DIR=/data
 WORKDIR /app
-COPY --from=build --chown=node:node /out/node_modules ./node_modules
-COPY --from=build --chown=node:node /out/dist ./
-COPY --from=build --chown=node:node /src/apps/web/dist ./public
-COPY --from=build --chown=node:node /src/docs/.vitepress/dist ./docs
+# Code en lecture seule pour le serveur : propriété de root, alors que le
+# processus tourne sous PUID (1000 par défaut, l'UID de `node`). Une faille
+# d'écriture de fichier ne peut pas réécrire l'application.
+COPY --from=build /out/node_modules ./node_modules
+COPY --from=build /out/dist ./
+COPY --from=build /src/apps/web/dist ./public
+COPY --from=build /src/docs/.vitepress/dist ./docs
 USER node
 # Garde-fou des binaires natifs : le build échoue si better-sqlite3
 # ou argon2 ne se chargent pas dans l'image finale (sans outils de compilation).

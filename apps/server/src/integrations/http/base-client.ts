@@ -19,7 +19,7 @@ import { Agent, request as undiciRequest, type Dispatcher } from 'undici';
 import { noAuth, type AuthStrategy, type OutgoingRequest, type ResponseHead } from './auth';
 import type { ServiceHealthCache } from './circuit-breaker';
 import { UpstreamError, extractApiErrorMessage, sanitizeLogBody } from './errors';
-import { staticUrlBlockedReason } from './url-guard';
+import { BLOCKED_LOOKUP_CODE, guardedLookup, staticUrlBlockedReason } from './url-guard';
 
 export const CONNECT_TIMEOUT_MS = 4_000;
 export const DEFAULT_TIMEOUT_MS = 8_000;
@@ -52,9 +52,12 @@ const READ_TIMEOUT_CODES = new Set(['UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIM
 
 let sharedAgent: Agent | null = null;
 
-/** Agent partagé : pool de connexions par origine, délai de connexion de 4 s. */
+/**
+ * Agent partagé : pool de connexions par origine, délai de connexion de 4 s,
+ * résolution DNS filtrée (aucune connexion vers une adresse de lien local).
+ */
 export function defaultDispatcher(): Dispatcher {
-  sharedAgent ??= new Agent({ connect: { timeout: CONNECT_TIMEOUT_MS } });
+  sharedAgent ??= new Agent({ connect: { timeout: CONNECT_TIMEOUT_MS, lookup: guardedLookup } });
   return sharedAgent;
 }
 
@@ -384,6 +387,14 @@ export class HttpClient {
       });
     }
     const code = errorCode(error);
+    if (code === BLOCKED_LOOKUP_CODE) {
+      return new UpstreamError('blocked', {
+        ...base,
+        networkCode: 'link-local',
+        message: 'blocked: link-local',
+        cause: error,
+      });
+    }
     const message = error instanceof Error ? error.message : String(error);
     if (isTimeout(error) || (code !== undefined && READ_TIMEOUT_CODES.has(code))) {
       return new UpstreamError('timeout', {

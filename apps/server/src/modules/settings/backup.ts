@@ -12,7 +12,10 @@
 //
 // Import additif : une instance existante (même type et slug) est mise à jour
 // en gardant sa clé ; une nouvelle est créée sans clé ; rien n'est supprimé.
-// Un secret glissé dans le fichier est ignoré.
+// Un secret glissé dans le fichier est ignoré. Si le fichier change l'origine
+// (schéma, hôte, port) d'un service ou d'une instance, ses secrets enregistrés
+// sont effacés : un fichier piégé ne doit pas pouvoir rediriger les clés d'API
+// vers un serveur tiers à la première requête.
 
 import {
   DASHBOARD_SECTIONS,
@@ -29,8 +32,10 @@ import {
 } from '@hubarr/shared';
 import type { Db, DbExecutor } from '../../db/client';
 import type { HostResolver } from '../../integrations/http';
+import { sameOrigin } from '../../integrations/http/url-guard';
 import {
   apiKeyOf,
+  clearInstanceCredentials,
   createInstance,
   defaultQualityProfileIdOf,
   getInstanceBySlug,
@@ -38,7 +43,12 @@ import {
   setDefaultInstance,
   updateInstance,
 } from '../instances/instances';
-import { applyServicePatch, isSaved, readServiceConfig } from '../services/config';
+import {
+  applyServicePatch,
+  clearServiceSecrets,
+  isSaved,
+  readServiceConfig,
+} from '../services/config';
 import {
   DASHBOARD_ORDER_KEY,
   applyDisplayPatch,
@@ -240,6 +250,10 @@ export async function applyImport(
         continue;
       }
       // Seuls URL, utilisateur et interrupteur sont lus : un secret est ignoré.
+      const previousUrl = readServiceConfig(tx, id).url;
+      if (typeof raw.url === 'string' && previousUrl !== '' && !sameOrigin(previousUrl, raw.url)) {
+        clearServiceSecrets(tx, id);
+      }
       applyServicePatch(tx, id, {
         ...(typeof raw.url === 'string' ? { url: raw.url.trim() } : {}),
         ...(typeof raw.user === 'string' ? { user: raw.user.trim() } : {}),
@@ -277,13 +291,14 @@ export async function applyImport(
     try {
       const existing = getInstanceBySlug(db, type, slug);
       if (existing !== null) {
-        // Clé d'API vide : celle déjà saisie est conservée.
-        await updateInstance(
+        // Clé d'API vide : celle déjà saisie est conservée, sauf changement d'origine.
+        const updated = await updateInstance(
           db,
           existing,
           { name, url, slug, enabled, position, defaultQualityProfileId },
           options,
         );
+        if (!sameOrigin(existing.url, url)) clearInstanceCredentials(db, updated);
       } else {
         await createInstance(
           db,

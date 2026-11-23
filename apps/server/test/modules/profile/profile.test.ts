@@ -120,6 +120,24 @@ describe('POST /api/profil', () => {
     expect((await browser.get('/api/profil')).json<ProfileResponse>().displayNameRaw).toBe('');
   });
 
+  it('limite les essais du mot de passe actuel à 5 par 15 minutes', async () => {
+    const attempt = (currentPassword: string) =>
+      browser.post('/api/profil', {
+        currentPassword,
+        newPassword: 'new-password-1',
+        confirmPassword: 'new-password-1',
+      });
+    for (let i = 0; i < 5; i++) expect((await attempt('wrong-password')).statusCode).toBe(400);
+    // Même le bon mot de passe n'est plus évalué.
+    const blocked = await attempt(PASSWORD);
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.headers['retry-after']).toBeDefined();
+    expect(blocked.json()).toMatchObject({
+      code: 'LOGIN_THROTTLED',
+      details: [{ path: 'currentPassword', message: 'login.error.throttled' }],
+    });
+  });
+
   it('signale un nouveau mot de passe trop court ou mal confirmé', async () => {
     const response = await browser.post('/api/profil', {
       currentPassword: PASSWORD,

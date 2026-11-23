@@ -86,7 +86,7 @@ Chaque service a son client dans `src/integrations/<service>`, construit sur un 
 - **délais** de connexion et de réponse par appel ;
 - **disjoncteur par service et par instance** : un échec de connexion marque le service injoignable pendant 10 s, les appels suivants échouent aussitôt au lieu d'attendre le délai ;
 - **stratégies d'authentification** : clé d'API (en-tête ou paramètre), authentification Basic, jeton Bearer, et les sessions propres à certains clients (cookie de qBittorrent et Deluge, jeton de Transmission) ;
-- **garde anti-SSRF** : schémas autres que `http(s)` et adresses de lien local refusés, y compris après résolution DNS ;
+- **garde anti-SSRF** : schémas autres que `http(s)` et adresses de lien local refusés, y compris après résolution DNS, revérifiée à chaque connexion (rebinding DNS) ;
 - **erreurs typées** (`UpstreamError`) converties en codes d'API (`SERVICE_UNREACHABLE`, `UPSTREAM_ERROR`…).
 
 Les clients de Radarr, Sonarr et Prowlarr sont typés à partir de leurs spécifications OpenAPI (`make openapi`) ; les autres réponses sont validées par zod. L'administration de Radarr et de Sonarr partage un seul module paramétré par le type d'instance, et les trois clients torrent partagent une seule vue grâce à des adaptateurs qui déclarent leurs capacités.
@@ -128,9 +128,9 @@ Les migrations SQL (Drizzle) s'appliquent **au démarrage**, après une copie `h
 
 - **Mots de passe** hachés en argon2id ; **sessions** par jeton aléatoire de 256 bits dont seule l'empreinte est stockée ; cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS.
 - **CSRF** : jeton de synchronisation sur toutes les mutations, connexion comprise, plus contrôle de `Sec-Fetch-Site` et `Origin`.
-- **Limitation** de la connexion : 5 échecs en 15 minutes par compte et par IP.
+- **Limitation** de la connexion : 5 tentatives en 15 minutes par compte et IP, 25 par IP, et 50 par compte quelle que soit l'IP (un client reconnu comme proxy peut changer son `X-Forwarded-For` à volonté). La vérification du mot de passe actuel depuis le profil a la même limite de 5 essais.
 - **En-têtes** : CSP stricte (`script-src 'self'`, aucun script inline dans l'application), `frame-ancestors` configurable (`HUBARR_FRAME_ANCESTORS`), `X-Content-Type-Options`, `Referrer-Policy`, HSTS, `Permissions-Policy`.
-- **Secrets des services** stockés côté serveur et jamais renvoyés au navigateur.
+- **Secrets des services** stockés côté serveur et jamais renvoyés au navigateur ; un import qui change l'origine (schéma, hôte, port) d'un service efface ses secrets enregistrés.
 - **Proxy d'images** borné aux chemins attendus de chaque service.
 - **Reverse proxy** : `X-Forwarded-*` et `X-Forwarded-Prefix` ne sont pris en compte que depuis les adresses de `HUBARR_TRUST_PROXY`.
 
@@ -140,7 +140,7 @@ Le `docker/Dockerfile` multi-étapes produit l'image finale :
 
 1. **build** : installation des dépendances verrouillées, build du front (Vite), du serveur (tsup) et de la documentation (VitePress) ;
 2. **prune** : `pnpm deploy --prod` ne garde que les dépendances d'exécution ; les binaires natifs (SQLite, argon2) sont chargés pendant le build, qui échoue s'ils sont absents ;
-3. **runtime** : `node:24-alpine`, `tini`, volume `/data`, port 7070, `HEALTHCHECK` sur `/api/health`. Le point d'entrée attribue `/data` à `PUID:PGID` (1000 par défaut) puis lance Hubarr sous cette identité avec `su-exec` : le serveur ne tourne jamais en root.
+3. **runtime** : `node:24-alpine`, `tini`, volume `/data`, port 7070, `HEALTHCHECK` sur `/api/health`. Le point d'entrée attribue `/data` à `PUID:PGID` (1000 par défaut) puis lance Hubarr sous cette identité avec `su-exec` : le serveur ne tourne jamais en root, et le code de l'application appartient à root, en lecture seule pour le serveur.
 
 L'image est publiée sur Docker Hub (`naroner/hubarr`, amd64) ; `make build` la construit depuis les sources pour l'architecture de la machine. Toute la configuration passe par des variables d'environnement (voir [Installation](./installation.md#variables-d-environnement)). Les journaux sortent sur la sortie standard (niveau `HUBARR_LOG_LEVEL`).
 

@@ -10,6 +10,7 @@
 
 import {
   AVATAR_MAX_BYTES,
+  LOGIN_THROTTLE,
   profileResponseSchema,
   profileUpdateRequestSchema,
   type ProfileResponse,
@@ -21,12 +22,15 @@ import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
 import { revokeUserSessions } from '../../plugins/sessions';
 import { hashPassword, verifyPassword } from '../../security/password';
+import { SlidingWindowLimiter } from '../auth/login-throttle';
 import { findUserById, toAuthUser, type UserRow } from '../users/users';
 import { AVATAR_FILENAME_PATTERN, AvatarStore, avatarMimeType, detectAvatarType } from './avatars';
 
 export interface ProfileRoutesOptions {
   /** Dossier des avatars (`<HUBARR_DATA_DIR>/avatars`). */
   avatarsDir: string;
+  /** Horloge injectable (limitation des essais du mot de passe actuel). */
+  now?: () => number;
 }
 
 const RECENT_WATCHLIST_SIZE = 4;
@@ -37,6 +41,13 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
 ) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const avatars = new AvatarStore(options.avatarsDir);
+  // Une session volée ne doit pas permettre de deviner le mot de passe actuel
+  // sans limite : mêmes 5 essais par 15 minutes que la connexion, par compte.
+  const passwordChecks = new SlidingWindowLimiter(
+    LOGIN_THROTTLE.maxAttempts,
+    LOGIN_THROTTLE.windowMs,
+    options.now,
+  );
 
   /** Ligne du compte connecté (la route est protégée : la session est authentifiée). */
   function currentUser(request: FastifyRequest): UserRow {
@@ -88,7 +99,7 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
   app.post(
     '/api/profil',
     { schema: { body: profileUpdateRequestSchema, response: { 200: profileResponseSchema } } },
-    async (request) => {
+    async (request, reply) => {
       const user = currentUser(request);
       const { displayName, currentPassword, newPassword } = request.body;
       const changes: Partial<Pick<UserRow, 'displayName' | 'passwordHash'>> = {
@@ -98,6 +109,18 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
       // Le schéma garantit que les trois champs sont cohérents dès que l'un est rempli.
       const changesPassword = newPassword !== '';
       if (changesPassword) {
+        const key = String(user.id);
+        const wait = passwordChecks.retryAfter(key);
+        if (wait > 0) {
+          const retryAfter = Math.ceil(wait / 1000);
+          void reply.header('retry-after', String(retryAfter));
+          throw new ApiError(429, 'LOGIN_THROTTLED', {
+            details: [
+              { path: 'currentPassword', code: 'custom', message: 'login.error.throttled' },
+            ],
+          });
+        }
+        passwordChecks.consume(key);
         if (!(await verifyPassword(user.passwordHash, currentPassword))) {
           // Tout ou rien : le nom affiché n'est pas enregistré non plus, comme dans l'original.
           throw new ApiError(400, 'VALIDATION', {
@@ -106,6 +129,7 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
             ],
           });
         }
+        passwordChecks.reset(key);
         changes.passwordHash = await hashPassword(newPassword);
       }
 

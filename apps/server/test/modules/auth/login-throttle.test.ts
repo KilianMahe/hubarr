@@ -57,4 +57,16 @@ describe('LoginThrottle', () => {
     throttle.succeeded('ip', 'e');
     for (let i = 0; i < 5; i++) expect(throttle.attempt('ip', 'e')).toBe(0);
   });
+
+  it('limite l’e-mail toutes IP confondues (rotation de X-Forwarded-For)', () => {
+    const throttle = new LoginThrottle(createClock().now);
+    for (let i = 0; i < LOGIN_THROTTLE.maxAttemptsPerAccount; i++) {
+      expect(
+        throttle.attempt(`10.0.${String(Math.floor(i / 4))}.${String(i % 4)}`, 'admin@x'),
+      ).toBe(0);
+    }
+    expect(throttle.attempt('10.9.9.9', 'admin@x')).toBeGreaterThan(0);
+    // Les autres comptes ne sont pas concernés.
+    expect(throttle.attempt('10.9.9.9', 'autre@x')).toBe(0);
+  });
 });

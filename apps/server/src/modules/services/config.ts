@@ -119,6 +119,14 @@ export function applyServicePatch(db: DbExecutor, id: FlatServiceId, patch: Serv
   return true;
 }
 
+/** Efface la clé d'API et le mot de passe enregistrés (URL et utilisateur gardés). */
+export function clearServiceSecrets(db: DbExecutor, id: FlatServiceId): boolean {
+  const before = readServiceConfig(db, id);
+  if (before.apiKey === '' && before.password === '') return false;
+  writeServiceConfig(db, id, { ...before, apiKey: '', password: '' });
+  return true;
+}
+
 function writeServiceConfig(db: DbExecutor, id: FlatServiceId, config: FlatServiceConfig): void {
   const credentials: Record<string, string> = {};
   if (config.apiKey !== '') credentials.apiKey = config.apiKey;

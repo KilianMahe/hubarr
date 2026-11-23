@@ -4,6 +4,16 @@ All notable changes to Hubarr are documented here. The format is based on [Keep 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-23
+
+### Security
+
+- **Login**: an additional limit of 50 attempts in 15 minutes per account, whatever the IP address. The default `HUBARR_TRUST_PROXY` trusts private networks, so a client on the local network could send a different `X-Forwarded-For` with each attempt and get around the per-IP limits.
+- **Profile**: checking the current password before a password change is limited to 5 attempts in 15 minutes, so a stolen session cannot be used to guess it.
+- **Services**: the SSRF guard now also checks each connection. A host name that resolves to a link-local address (cloud metadata) is refused, even when the URL was saved without a DNS check or the DNS answer changed after the check (DNS rebinding).
+- **Configuration import**: when the file changes the scheme, host or port of an existing service or instance, its stored API key and password are cleared. Before this, a tampered file could send them to another server.
+- **Docker image**: the application files belong to root, so the server process cannot overwrite them. The entrypoint no longer follows symbolic links when it hands `/data` over to `PUID:PGID`.
+
 ## [1.0.0] - 2026-11-23
 
 First public release.
@@ -23,5 +33,6 @@ First public release.
 - Bilingual **documentation** embedded and served at `/docs`: user guide, service pages, functional overview, technical architecture.
 - Single **Docker image** published on Docker Hub (`naroner/hubarr`): the server never runs as root, file ownership configurable (`PUID`, `PGID`), health check; database migrations at startup with a prior backup; the installed PWA only updates with the image.
 
-[Unreleased]: https://github.com/KilianMahe/hubarr/compare/v1.0.0...main
+[Unreleased]: https://github.com/KilianMahe/hubarr/compare/v1.0.1...main
+[1.0.1]: https://github.com/KilianMahe/hubarr/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/KilianMahe/hubarr/releases/tag/v1.0.0

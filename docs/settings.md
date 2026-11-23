@@ -59,7 +59,7 @@ Hubarr's interface language and TMDb metadata language, then the interface langu
 ## Backup
 
 - **Export** downloads a JSON file with the preferences, the layout, side menu visibility, service URLs and usernames, and the Radarr/Sonarr instances. **No API key and no password** is included.
-- **Import** reads such a file back (64 KB at most). Importing adds or updates, never deletes; an existing instance keeps its API key. Type the keys and passwords again afterwards.
+- **Import** reads such a file back (64 KB at most). Importing adds or updates, never deletes; an existing instance or service keeps its secrets, unless the file changes its scheme, host or port: its API key and password are then cleared, so that a tampered file cannot send them to another server. Type the keys and passwords again afterwards.
 
 Prismarr exports are not accepted: a Hubarr install starts from scratch.
 

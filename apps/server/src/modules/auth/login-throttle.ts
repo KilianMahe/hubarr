@@ -2,10 +2,13 @@
 // Limitation des tentatives de connexion, portage de `login_throttling` de
 // Symfony (`DefaultLoginRateLimiter`) :
 // - une limite par couple IP + e-mail (5 / 15 min) et une limite par IP (25 / 15 min) ;
-// - chaque tentative consomme les deux, **avant** la vérification du mot de passe :
+// - une limite par e-mail toutes IP confondues (50 / 15 min), propre à Hubarr :
+//   l'IP d'un client derrière un proxy de confiance est déclarative
+//   (`X-Forwarded-For`) et ne suffit pas à borner une attaque par dictionnaire ;
+// - chaque tentative consomme les trois, **avant** la vérification du mot de passe :
 //   au-delà, la tentative est refusée sans être évaluée ;
-// - une connexion réussie remet à zéro la limite IP + e-mail (pas celle de l'IP,
-//   qu'un compte valide ne doit pas pouvoir réinitialiser).
+// - une connexion réussie remet à zéro les limites IP + e-mail et e-mail (pas
+//   celle de l'IP, qu'un compte valide ne doit pas pouvoir réinitialiser).
 // Fenêtre glissante exacte, en mémoire : un redémarrage remet les compteurs à zéro.
 
 import { LOGIN_THROTTLE } from '@hubarr/shared';
@@ -54,6 +57,7 @@ export class SlidingWindowLimiter {
 export class LoginThrottle {
   private readonly perAccount: SlidingWindowLimiter;
   private readonly perIp: SlidingWindowLimiter;
+  private readonly perEmail: SlidingWindowLimiter;
 
   constructor(now: () => number = Date.now) {
     this.perAccount = new SlidingWindowLimiter(
@@ -66,6 +70,11 @@ export class LoginThrottle {
       LOGIN_THROTTLE.windowMs,
       now,
     );
+    this.perEmail = new SlidingWindowLimiter(
+      LOGIN_THROTTLE.maxAttemptsPerAccount,
+      LOGIN_THROTTLE.windowMs,
+      now,
+    );
   }
 
   /**
@@ -74,14 +83,20 @@ export class LoginThrottle {
    */
   attempt(ip: string, email: string): number {
     const accountKey = `${ip}|${email}`;
-    const wait = Math.max(this.perAccount.retryAfter(accountKey), this.perIp.retryAfter(ip));
+    const wait = Math.max(
+      this.perAccount.retryAfter(accountKey),
+      this.perIp.retryAfter(ip),
+      this.perEmail.retryAfter(email),
+    );
     if (wait > 0) return wait;
     this.perAccount.consume(accountKey);
     this.perIp.consume(ip);
+    this.perEmail.consume(email);
     return 0;
   }
 
   succeeded(ip: string, email: string): void {
     this.perAccount.reset(`${ip}|${email}`);
+    this.perEmail.reset(email);
   }
 }

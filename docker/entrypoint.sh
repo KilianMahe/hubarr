@@ -25,7 +25,9 @@ esac
 mkdir -p "$DATA_DIR"
 if [ "$(stat -c %u:%g "$DATA_DIR")" != "$PUID:$PGID" ]; then
   echo "hubarr : dossier $DATA_DIR attribué à $PUID:$PGID"
-  chown -R "$PUID:$PGID" "$DATA_DIR"
+  # -h : un lien symbolique déposé dans le volume est changé lui-même, jamais
+  # sa cible (le script tourne encore en root).
+  chown -R -h "$PUID:$PGID" "$DATA_DIR"
 fi
 
 exec su-exec "$PUID:$PGID" "$@"
