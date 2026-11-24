@@ -13,16 +13,16 @@ import {
   type TorrentSort,
 } from '@hubarr/shared';
 import {
-  mdiAccountMultiple,
-  mdiArrowDown,
-  mdiArrowUp,
-  mdiClockOutline,
-  mdiDelete,
-  mdiFolderOutline,
-  mdiPause,
-  mdiPlay,
-  mdiScaleBalance,
-} from '@mdi/js';
+  msArrowDownward,
+  msArrowUpward,
+  msBalance,
+  msDelete,
+  msFolder,
+  msGroup,
+  msPauseFill,
+  msPlayArrowFill,
+  msSchedule,
+} from '../../components/symbols';
 import { computed } from 'vue';
 import { useDisplay } from 'vuetify';
 import { useFormat } from '../../app/format';
@@ -185,7 +185,7 @@ function onRowClick(event: Event, hash: string): void {
           </template>
           <td class="text-end text-no-wrap" data-row-stop>
             <v-btn
-              :icon="t.state === 'paused' ? mdiPlay : mdiPause"
+              :icon="t.state === 'paused' ? msPlayArrowFill : msPauseFill"
               size="small"
               variant="text"
               :aria-label="tk(t.state === 'paused' ? 'row.resume_title' : 'row.pause_title')"
@@ -193,7 +193,7 @@ function onRowClick(event: Event, hash: string): void {
               @click="emit('action', t.hash, t.state === 'paused' ? 'resume' : 'pause')"
             />
             <v-btn
-              :icon="mdiDelete"
+              :icon="msDelete"
               size="small"
               variant="text"
               color="error"
@@ -239,19 +239,19 @@ function onRowClick(event: Event, hash: string): void {
         >
           <span>{{ format.bytes(t.size) }}</span>
           <span v-if="t.dlSpeed > 0" class="text-info"
-            ><v-icon :icon="mdiArrowDown" size="12" />{{ format.speed(t.dlSpeed) }}</span
+            ><v-icon :icon="msArrowDownward" size="12" />{{ format.speed(t.dlSpeed) }}</span
           >
           <span v-if="t.upSpeed > 0" class="text-success"
-            ><v-icon :icon="mdiArrowUp" size="12" />{{ format.speed(t.upSpeed) }}</span
+            ><v-icon :icon="msArrowUpward" size="12" />{{ format.speed(t.upSpeed) }}</span
           >
           <span v-if="t.state === 'downloading' && t.eta !== null"
-            ><v-icon :icon="mdiClockOutline" size="12" />{{ duration(t.eta) }}</span
+            ><v-icon :icon="msSchedule" size="12" />{{ duration(t.eta) }}</span
           >
           <span :title="tk('row.title_seeds_leechers')"
-            ><v-icon :icon="mdiAccountMultiple" size="12" />{{ t.seeds }}/{{ t.leechs }}</span
+            ><v-icon :icon="msGroup" size="12" />{{ t.seeds }}/{{ t.leechs }}</span
           >
           <span :title="tk('row.title_ratio')"
-            ><v-icon :icon="mdiScaleBalance" size="12" />{{ t.ratio.toFixed(2) }}</span
+            ><v-icon :icon="msBalance" size="12" />{{ t.ratio.toFixed(2) }}</span
           >
           <span
             v-if="t.addedOn !== null"
@@ -270,7 +270,7 @@ function onRowClick(event: Event, hash: string): void {
             v-if="t.category"
             size="x-small"
             label
-            :prepend-icon="mdiFolderOutline"
+            :prepend-icon="msFolder"
             :color="categoryColor(t.category)"
             :title="categoryTitle(t.category)"
             :loading="resolving === t.hash"
@@ -287,7 +287,7 @@ function onRowClick(event: Event, hash: string): void {
         <template #append>
           <div class="d-flex" data-row-stop>
             <v-btn
-              :icon="t.state === 'paused' ? mdiPlay : mdiPause"
+              :icon="t.state === 'paused' ? msPlayArrowFill : msPauseFill"
               size="small"
               variant="text"
               :aria-label="tk(t.state === 'paused' ? 'row.resume_title' : 'row.pause_title')"
@@ -295,7 +295,7 @@ function onRowClick(event: Event, hash: string): void {
               @click.stop="emit('action', t.hash, t.state === 'paused' ? 'resume' : 'pause')"
             />
             <v-btn
-              :icon="mdiDelete"
+              :icon="msDelete"
               size="small"
               variant="text"
               color="error"

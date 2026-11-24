@@ -2,14 +2,17 @@
 <script setup lang="ts">
 // Ligne dense à vignette (vue « étendue »), sur `MediaListItem` : affiche,
 // titre, année · saisons · chaîne · taille, puce de diffusion, « animé »,
-// progression des épisodes (plus de synopsis, P5b.1 F2).
+// progression des épisodes (plus de synopsis, P5b.1 F2) ; épisodes vus
+// (Tracearr, lot 7).
 import { formatGb } from '../../app/format';
 import type { SeriesLibraryItem } from '@hubarr/shared';
-import { mdiBookmark, mdiBookmarkOutline } from '@mdi/js';
+import { msBookmark, msBookmarkFill } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MediaListItem from '../../components/ds/MediaListItem.vue';
 import StatusChip from '../../components/ds/StatusChip.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
+import { watchedProgress } from '../activity/watched';
 import { posterUrl } from '../movies/movie-display';
 import {
   AIRING_STATUS_COLORS,
@@ -20,7 +23,13 @@ import {
   seriesProgressTitle,
 } from './library';
 
-const props = defineProps<{ series: SeriesLibraryItem; selectMode: boolean; selected: boolean }>();
+const props = defineProps<{
+  series: SeriesLibraryItem;
+  selectMode: boolean;
+  selected: boolean;
+  /** Épisodes vus par l'utilisateur connecté, hors spéciaux (Tracearr). */
+  watchedEpisodes?: number;
+}>();
 const emit = defineEmits<{
   select: [event: MouseEvent | KeyboardEvent];
   open: [];
@@ -29,6 +38,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const state = computed(() => seriesDisplayState(props.series));
+const watched = computed(() =>
+  watchedProgress(props.watchedEpisodes ?? 0, props.series.episodeCount),
+);
 const airing = computed(() => airingStatusKey(props.series.status));
 const monitorLabel = computed(() =>
   t(props.series.monitored ? 'media.series.detail.unmonitor' : 'media.series.detail.monitor'),
@@ -66,10 +78,11 @@ const monitorLabel = computed(() =>
       <span class="text-body-small text-muted"
         >{{ series.episodeFileCount }}/{{ series.episodeCount }}</span
       >
+      <WatchedBadge v-if="watched" dense :progress="watched" />
     </template>
     <template #append>
       <v-btn
-        :icon="series.monitored ? mdiBookmark : mdiBookmarkOutline"
+        :icon="series.monitored ? msBookmarkFill : msBookmark"
         :color="series.monitored ? 'service-text' : 'muted'"
         variant="text"
         size="small"

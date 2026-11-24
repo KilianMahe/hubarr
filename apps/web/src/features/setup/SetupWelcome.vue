@@ -3,7 +3,7 @@
 // Étape 1 de l'assistant (`setup/welcome.html.twig`) : langue de l'instance,
 // présentation, puis le compte administrateur.
 import { SUPPORTED_LOCALES, isLocale, type Locale } from '@hubarr/shared';
-import { mdiDownload, mdiMagnify, mdiMovieOpen, mdiStarFourPoints } from '@mdi/js';
+import { msDownload, msMovie, msSearch, msWandStars } from '../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api } from '../../app/api/client';
@@ -16,10 +16,10 @@ const notify = useNotifyStore();
 const saving = ref(false);
 
 const FEATURES = [
-  { icon: mdiMovieOpen, key: 'setup.step.welcome.features.media' },
-  { icon: mdiMagnify, key: 'setup.step.welcome.features.indexers' },
-  { icon: mdiDownload, key: 'setup.step.welcome.features.downloads' },
-  { icon: mdiStarFourPoints, key: 'setup.step.welcome.features.discovery' },
+  { icon: msMovie, key: 'setup.step.welcome.features.media' },
+  { icon: msSearch, key: 'setup.step.welcome.features.indexers' },
+  { icon: msDownload, key: 'setup.step.welcome.features.downloads' },
+  { icon: msWandStars, key: 'setup.step.welcome.features.discovery' },
 ];
 const languages = SUPPORTED_LOCALES.map((code) => ({
   value: code,

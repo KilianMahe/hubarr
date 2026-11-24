@@ -3,7 +3,7 @@
 // Ligne dense d'un média : vignette (affiche ou image), titre, ligne de
 // métadonnées, puces (slot `chips`), action à droite (slot `append`). En mode
 // sélection, une pastille cochée remplace le clic d'ouverture.
-import { mdiCheckCircle, mdiCircleOutline } from '@mdi/js';
+import { msCheckCircleFill, msRadioButtonUnchecked } from '../symbols';
 import MetaLine from './MetaLine.vue';
 
 withDefaults(
@@ -30,7 +30,7 @@ const emit = defineEmits<{ open: []; select: [event: MouseEvent | KeyboardEvent]
     >
       <v-icon
         v-if="selectMode"
-        :icon="selected ? mdiCheckCircle : mdiCircleOutline"
+        :icon="selected ? msCheckCircleFill : msRadioButtonUnchecked"
         :color="selected ? 'service' : 'muted'"
         aria-hidden="true"
       />

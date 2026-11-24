@@ -10,7 +10,7 @@ import {
   type ProwlarrIndexer,
   type ProwlarrRelease,
 } from '@hubarr/shared';
-import { mdiCheck, mdiDownload, mdiMagnify } from '@mdi/js';
+import { msCheck, msDownload, msSearch } from '../../components/symbols';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
@@ -108,7 +108,7 @@ const COLUMNS = [
         <v-filter-field
           v-model="query"
           :placeholder="t('prowlarr.index.search_placeholder')"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           variant="outlined"
           density="compact"
           hide-details
@@ -214,7 +214,7 @@ const COLUMNS = [
                       size="small"
                       variant="tonal"
                       color="service-text"
-                      :prepend-icon="grabs.get(release.guid) === 'done' ? mdiCheck : mdiDownload"
+                      :prepend-icon="grabs.get(release.guid) === 'done' ? msCheck : msDownload"
                       :loading="grabs.get(release.guid) === 'pending'"
                       :disabled="grabs.has(release.guid) || release.indexerId === null"
                       data-test="prowlarr-grab"
@@ -249,7 +249,7 @@ const COLUMNS = [
                 </div>
                 <template #append>
                   <v-btn
-                    :icon="grabs.get(release.guid) === 'done' ? mdiCheck : mdiDownload"
+                    :icon="grabs.get(release.guid) === 'done' ? msCheck : msDownload"
                     size="small"
                     variant="text"
                     color="service-text"

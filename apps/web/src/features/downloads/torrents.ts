@@ -10,17 +10,17 @@ import {
   type TorrentState,
 } from '@hubarr/shared';
 import {
-  mdiAlertCircle,
-  mdiArrowDownBold,
-  mdiArrowUpBold,
-  mdiCheckCircle,
-  mdiClockOutline,
-  mdiFolderMove,
-  mdiHelpCircle,
-  mdiPauseCircle,
-  mdiProgressClock,
-  mdiRefresh,
-} from '@mdi/js';
+  msArrowDownwardAlt,
+  msArrowUpwardAlt,
+  msCheckCircleFill,
+  msDriveFileMove,
+  msErrorFill,
+  msHelpFill,
+  msPauseCircleFill,
+  msRefresh,
+  msSchedule,
+  msTimelapse,
+} from '../../components/symbols';
 
 export const TORRENT_POLL_MS = 3_000;
 export const VPN_POLL_MS = 30_000;
@@ -94,25 +94,25 @@ export function stateColor(state: TorrentState): string {
 export function stateIcon(state: TorrentState): string {
   switch (state) {
     case 'downloading':
-      return mdiArrowDownBold;
+      return msArrowDownwardAlt;
     case 'seeding':
-      return mdiArrowUpBold;
+      return msArrowUpwardAlt;
     case 'paused':
-      return mdiPauseCircle;
+      return msPauseCircleFill;
     case 'queued':
-      return mdiClockOutline;
+      return msSchedule;
     case 'checking':
-      return mdiRefresh;
+      return msRefresh;
     case 'stalled':
-      return mdiProgressClock;
+      return msTimelapse;
     case 'error':
-      return mdiAlertCircle;
+      return msErrorFill;
     case 'moving':
-      return mdiFolderMove;
+      return msDriveFileMove;
     case 'completed':
-      return mdiCheckCircle;
+      return msCheckCircleFill;
     default:
-      return mdiHelpCircle;
+      return msHelpFill;
   }
 }
 

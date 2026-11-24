@@ -6,7 +6,7 @@
 // - délai de connexion de 4 s, délai total de 8 s par défaut (réglable par appel) ;
 // - disjoncteur par service et instance (`ServiceHealthCache`) : seul un échec de
 //   **connexion** l'ouvre ; une lecture trop lente après connexion ne marque pas
-//   le service injoignable (issue #41 de Prismarr) ; un succès le referme ;
+//   le service injoignable ; un succès le referme ;
 // - erreurs normalisées (`UpstreamError`) avec le message extrait de la réponse,
 //   et corps nettoyé (clés, magnets) avant d'aller dans les logs.
 //
@@ -63,6 +63,7 @@ export function defaultDispatcher(): Dispatcher {
 
 export interface UpstreamLogger {
   warn(obj: object, msg: string): void;
+  debug?(obj: object, msg: string): void;
 }
 
 export type QueryValue = string | number | boolean | null | undefined;
@@ -213,10 +214,14 @@ export class HttpClient {
     const base = { service: this.service, instance: this.instance, method, path: options.path };
     const track = options.trackHealth !== false;
     if (track && this.#health.isDown(this.service, this.instance)) {
-      throw new UpstreamError('circuit_open', { ...base, message: 'service marked down' });
+      const open = new UpstreamError('circuit_open', { ...base, message: 'service marked down' });
+      // Chaque appel refusé pendant 10 s : niveau `debug`, l'échec d'origine est déjà journalisé.
+      this.#logFailure(open, 0, 'debug');
+      throw open;
     }
 
     const started = this.#clock();
+    const elapsed = () => Math.round(this.#clock() - started);
     let response: RawResponse;
     try {
       response = await this.#send(options, method);
@@ -227,17 +232,7 @@ export class HttpClient {
     } catch (error) {
       const upstream = this.#toUpstreamError(error, base);
       if (track && upstream.kind === 'network') this.#health.markDown(this.service, this.instance);
-      this.#logger?.warn(
-        {
-          service: this.service,
-          instance: this.instance,
-          method,
-          path: options.path,
-          kind: upstream.kind,
-          code: upstream.info.networkCode,
-        },
-        `${this.service}: ${method} ${options.path} → ${upstream.message}`,
-      );
+      this.#logFailure(upstream, elapsed());
       throw upstream;
     }
 
@@ -246,29 +241,23 @@ export class HttpClient {
     if (!accepted) {
       const body = await safeText(response.body);
       if (track) this.#health.clear(this.service, this.instance);
-      this.#logger?.warn(
-        {
-          service: this.service,
-          instance: this.instance,
-          method,
-          path: options.path,
-          status,
-          body: sanitizeLogBody(body),
-        },
-        `${this.service}: ${method} ${options.path} → HTTP ${status}`,
-      );
-      throw new UpstreamError('http', {
+      const upstream = new UpstreamError('http', {
         ...base,
         status,
         message: extractApiErrorMessage(body, status),
       });
+      this.#logFailure(upstream, elapsed(), 'warn', sanitizeLogBody(body));
+      throw upstream;
     }
 
     if (track) this.#health.clear(this.service, this.instance);
-    const data = await this.#parse<T>(response, options.responseType ?? 'json', {
-      ...base,
-      status,
-    });
+    let data: T;
+    try {
+      data = await this.#parse<T>(response, options.responseType ?? 'json', { ...base, status });
+    } catch (error) {
+      if (error instanceof UpstreamError) this.#logFailure(error, elapsed());
+      throw error;
+    }
     return {
       status,
       headers: response.headers,
@@ -320,6 +309,43 @@ export class HttpClient {
     const url = new URL(this.baseUrl + (path.startsWith('/') ? path : `/${path}`));
     if (query) appendQuery(url, query);
     return url;
+  }
+
+  /**
+   * Journalise un appel en échec avec ce qu'il faut pour le diagnostiquer :
+   * service, instance, méthode, chemin (sans la requête, donc sans clé), statut,
+   * type d'erreur, code réseau, durée et état du disjoncteur après l'échec.
+   */
+  #logFailure(
+    error: UpstreamError,
+    durationMs: number,
+    level: 'warn' | 'debug' = 'warn',
+    body?: string,
+  ): void {
+    const logger = this.#logger;
+    if (logger === undefined) return;
+    const { info } = error;
+    const target = this.instance === undefined ? this.service : `${this.service}/${this.instance}`;
+    const outcome = error.kind === 'http' ? `HTTP ${String(info.status)}` : error.message;
+    const detail =
+      error.kind === 'http' && info.message !== undefined && info.message !== outcome
+        ? ` (${info.message})`
+        : '';
+    const fields = {
+      service: this.service,
+      instance: this.instance,
+      method: info.method,
+      path: info.path,
+      kind: error.kind,
+      status: info.status,
+      networkCode: info.networkCode,
+      durationMs,
+      circuit: this.#health.isDown(this.service, this.instance) ? 'open' : 'closed',
+      ...(body === undefined || body === '' ? {} : { body }),
+    };
+    const message = `${target}: ${String(info.method)} ${String(info.path)} → ${outcome}${detail}`;
+    if (level === 'debug') logger.debug?.(fields, message);
+    else logger.warn(fields, message);
   }
 
   async #send(options: RequestOptions, method: string): Promise<RawResponse> {

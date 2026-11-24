@@ -23,6 +23,7 @@ function event(overrides: Partial<CalendarEvent>): CalendarEvent {
     status: null,
     hasFile: false,
     monitored: true,
+    downloadStatus: 'missing',
     id: 1,
     runtime: null,
     studio: null,

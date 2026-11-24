@@ -7,8 +7,6 @@ import {
   BACKUP_FILE,
   DATABASE_FILE,
   DatabaseTooNewError,
-  LEGACY_DATABASE_FILE,
-  LegacyDatabaseError,
   prepareDatabase,
 } from '../../src/db/migrate';
 import { createTempDir, MIGRATIONS_FOLDER } from '../helpers';
@@ -54,19 +52,21 @@ describe('prepareDatabase', () => {
     tmp.remove();
   });
 
-  it('crée le dossier et la base, applique la migration initiale sans sauvegarde', async () => {
+  it('crée le dossier et la base, applique les migrations sans sauvegarde', async () => {
     const { database, report } = await prepareDatabase({
       dataDir,
       migrationsFolder: MIGRATIONS_FOLDER,
     });
     database.close();
 
-    expect(report).toEqual({ applied: 1, backupFile: null });
+    expect(report).toEqual({ applied: 2, backupFile: null });
     expect(tableNames(join(dataDir, DATABASE_FILE))).toEqual([
       '__drizzle_migrations',
       'service_instance',
       'session',
       'setting',
+      'tracearr_sync',
+      'tracearr_watch',
       'user',
       'watchlist_item',
     ]);
@@ -116,29 +116,6 @@ describe('prepareDatabase', () => {
     });
     database.close();
     expect(report.applied).toBe(0);
-  });
-
-  it('refuse une base Doctrine (Prismarr PHP)', async () => {
-    (await prepareDatabase({ dataDir, migrationsFolder: MIGRATIONS_FOLDER })).database.close();
-    const sqlite = new Database(join(dataDir, DATABASE_FILE));
-    sqlite.exec('CREATE TABLE doctrine_migration_versions (version VARCHAR(191) PRIMARY KEY)');
-    sqlite.close();
-
-    await expect(
-      prepareDatabase({ dataDir, migrationsFolder: MIGRATIONS_FOLDER }),
-    ).rejects.toBeInstanceOf(LegacyDatabaseError);
-  });
-
-  it('refuse un volume de données Prismarr (prismarr.db présent)', async () => {
-    (await prepareDatabase({ dataDir, migrationsFolder: MIGRATIONS_FOLDER })).database.close();
-    writeFileSync(join(dataDir, LEGACY_DATABASE_FILE), '');
-
-    const error: unknown = await prepareDatabase({
-      dataDir,
-      migrationsFolder: MIGRATIONS_FOLDER,
-    }).catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(LegacyDatabaseError);
-    expect((error as LegacyDatabaseError).message).toContain('volume de données neuf');
   });
 
   it('refuse une base migrée par une version plus récente', async () => {

@@ -6,17 +6,22 @@ import {
   collectionSchema,
   collectionSearchSchema,
   discoverHomeSchema,
+  folderSuggestionsSchema,
   genresResponseSchema,
   myRecommendationsSchema,
   personSchema,
   personSearchSchema,
+  popularByYearSchema,
   resolvedMediaSchema,
   smartSearchSchema,
   tmdbDetailSchema,
   tmdbPageSchema,
+  tmdbSuggestionsSchema,
   watchlistResponseSchema,
   watchlistStatusSchema,
   watchlistToggleResponseSchema,
+  watchedSuggestionsSchema,
+  POPULAR_YEAR_MIN,
   type DiscoverSection,
   type LibStatusValue,
   type TmdbMediaType,
@@ -42,6 +47,8 @@ export interface SmartSearchParams {
   vote_min?: number | undefined;
   hide_owned?: boolean | undefined;
   exact?: boolean | undefined;
+  /** Animés seulement (films et séries). */
+  anime?: boolean | undefined;
   page?: number | undefined;
 }
 
@@ -54,6 +61,8 @@ export interface ExplorerParams {
   vote_count_min?: number;
   sort?: string;
   page?: number;
+  /** Animés seulement, du type `type`. */
+  anime?: boolean;
 }
 
 /** Titre dont la fiche est ouverte (`?detail=movie/603` dans l'URL de la page). */
@@ -75,6 +84,12 @@ export const discoverApi = {
     api.get(`/api/decouverte/section/${type}?page=${page}`, tmdbPageSchema, signal),
   myRecommendations: (signal?: AbortSignal) =>
     api.get('/api/decouverte/mes-recommandations', myRecommendationsSchema, signal),
+  folders: (signal?: AbortSignal) =>
+    api.get('/api/decouverte/dossiers', folderSuggestionsSchema, signal),
+  watched: (signal?: AbortSignal) =>
+    api.get('/api/decouverte/regardes', watchedSuggestionsSchema, signal),
+  popularByYear: (year: number, signal?: AbortSignal) =>
+    api.get(`/api/decouverte/annee/${year}`, popularByYearSchema, signal),
   filter: (params: ExplorerParams, signal?: AbortSignal) =>
     api.get(`/api/decouverte/filter?${qs({ ...params })}`, tmdbPageSchema, signal),
   genres: (type: TmdbMediaType, signal?: AbortSignal) =>
@@ -83,6 +98,8 @@ export const discoverApi = {
     api.get(`/api/decouverte/resolve/${type}/${id}`, resolvedMediaSchema),
   detail: (type: TmdbMediaType, id: number, signal?: AbortSignal) =>
     api.get(`/api/decouverte/detail/${type}/${id}`, tmdbDetailSchema, signal),
+  suggestions: (type: TmdbMediaType, id: number, signal?: AbortSignal) =>
+    api.get(`/api/decouverte/suggestions/${type}/${id}`, tmdbSuggestionsSchema, signal),
   smartSearch: (params: SmartSearchParams, signal?: AbortSignal) =>
     api.get(`/api/decouverte/recherche?${qs({ ...params })}`, smartSearchSchema, signal),
   collectionSearch: (q: string, signal?: AbortSignal) =>
@@ -139,6 +156,53 @@ export function countdownDays(release: string | null, now = new Date()): number 
   return days > 0 && days <= 365 ? days : null;
 }
 
+/** Années du sélecteur « Populaires en [année] » : de l'an prochain à la plus ancienne. */
+export function popularYears(now = new Date(), min = POPULAR_YEAR_MIN): number[] {
+  const years: number[] = [];
+  for (let year = now.getFullYear() + 1; year >= min; year -= 1) years.push(year);
+  return years;
+}
+
+/**
+ * Bornes d'années de l'explorateur : une année précise l'emporte sur la
+ * décennie (les deux s'excluent dans l'écran) ; aucune borne sans l'une ni
+ * l'autre.
+ */
+export function explorerYearBounds(
+  decade: number | null,
+  year: number | null,
+): Pick<ExplorerParams, 'year_min' | 'year_max'> {
+  if (year !== null) return { year_min: year, year_max: year };
+  if (decade !== null) return { year_min: decade, year_max: decade + 9 };
+  return {};
+}
+
 /** Derniers titres consultés (page Découverte), dans le navigateur. */
 export const RECENT_KEY = 'hubarr.tmdb-recent';
 export const RECENT_MAX = 10;
+
+/**
+ * Sous-onglets de la page Découverte (lot 12), dans l'ordre des chips ; la
+ * valeur est celle du paramètre `?onglet=` de l'URL.
+ */
+export const DISCOVER_TABS = ['pour-vous', 'tendances', 'mieux-notes', 'par-annee'] as const;
+export type DiscoverTab = (typeof DISCOVER_TABS)[number];
+
+/** Valeur de `?onglet=` → onglet ; `null` si absente ou inconnue. */
+export function parseDiscoverTab(value: unknown): DiscoverTab | null {
+  return typeof value === 'string' && (DISCOVER_TABS as readonly string[]).includes(value)
+    ? (value as DiscoverTab)
+    : null;
+}
+
+/**
+ * Onglet affiché : celui de l'URL, sinon « Pour vous », sauf quand ce dernier
+ * n'a rien à montrer (chargement terminé, aucune rangée) : « Tendances ».
+ */
+export function effectiveDiscoverTab(
+  requested: DiscoverTab | null,
+  forYou: { settled: boolean; empty: boolean },
+): DiscoverTab {
+  if (requested !== null) return requested;
+  return forYou.settled && forYou.empty ? 'tendances' : 'pour-vous';
+}

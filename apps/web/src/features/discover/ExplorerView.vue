@@ -1,18 +1,19 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 // Explorateur (`decouverte/explorer.html.twig`, route n° 559 et n° 553, 560 à
-// 563) : type, genres (plusieurs), décennie, tri, puis « Rechercher » et
+// 563) : type, genres (plusieurs), décennie ou année précise (l'une efface
+// l'autre), tri, puis « Rechercher » et
 // « Charger plus » ; recherche d'une collection ou d'un acteur, dont les
 // titres s'ouvrent dans une feuille. Fiche par `?detail=…`.
-import type { PersonHit, TmdbCard, TmdbMediaType } from '@hubarr/shared';
-import { mdiArrowLeft, mdiCompassOutline } from '@mdi/js';
+import { ANIME_GENRE_ID, type PersonHit, type TmdbCard, type TmdbMediaType } from '@hubarr/shared';
+import { msArrowBack, msExplore } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import EmptyState from '../../components/EmptyState.vue';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import CollectionSheet from './CollectionSheet.vue';
-import { discoverApi, type ExplorerParams } from './discover-api';
+import { discoverApi, explorerYearBounds, popularYears, type ExplorerParams } from './discover-api';
 import MediaCard from './MediaCard.vue';
 import PersonSheet from './PersonSheet.vue';
 import TmdbDetailDialog from './TmdbDetailDialog.vue';
@@ -32,29 +33,56 @@ const SORTS = {
   box_office: 'revenue.desc',
 } as const;
 interface ExplorerFilters {
-  type: TmdbMediaType;
+  /** `anime` : animés du type `animeType` (genre Animation, japonais). */
+  type: TmdbMediaType | 'anime';
+  animeType: TmdbMediaType;
   genres: number[];
   decade: number | null;
+  year: number | null;
   sort: keyof typeof SORTS;
 }
 const filters = reactive<ExplorerFilters>({
   type: 'movie',
+  animeType: 'tv',
   genres: [],
   decade: null,
+  year: null,
   sort: 'popular',
 });
+const YEARS = popularYears();
+// Décennie et année s'excluent : choisir l'une efface l'autre.
 watch(
-  () => filters.type,
-  () => {
-    filters.genres = [];
+  () => filters.decade,
+  (decade) => {
+    if (decade != null) filters.year = null;
   },
 );
+watch(
+  () => filters.year,
+  (year) => {
+    if (year != null) filters.decade = null;
+  },
+);
+/** Type TMDB interrogé : celui du sous-choix pour les animés. */
+const mediaType = computed<TmdbMediaType>(() =>
+  filters.type === 'anime' ? filters.animeType : filters.type,
+);
+watch(mediaType, () => {
+  filters.genres = [];
+});
 const genres = useQuery({
-  queryKey: computed(() => ['discover', 'genres', filters.type] as const),
-  queryFn: ({ signal }) => discoverApi.genres(filters.type, signal),
+  queryKey: computed(() => ['discover', 'genres', mediaType.value] as const),
+  queryFn: ({ signal }) => discoverApi.genres(mediaType.value, signal),
   staleTime: 3_600_000,
   retry: false,
 });
+
+// Pour les animés, le genre Animation est implicite : inutile de le proposer.
+const genreChips = computed(() =>
+  (genres.data.value?.genres ?? []).filter(
+    (g) => filters.type !== 'anime' || g.id !== ANIME_GENRE_ID,
+  ),
+);
 
 const results = ref<TmdbCard[]>([]);
 const page = ref(0);
@@ -66,16 +94,17 @@ const error = ref(false);
 function params(nextPage: number): ExplorerParams {
   const sort =
     filters.sort === 'recent'
-      ? filters.type === 'movie'
+      ? mediaType.value === 'movie'
         ? 'primary_release_date.desc'
         : 'first_air_date.desc'
-      : filters.sort === 'box_office' && filters.type === 'tv'
+      : filters.sort === 'box_office' && mediaType.value === 'tv'
         ? 'popularity.desc'
         : SORTS[filters.sort];
   return {
-    type: filters.type,
+    type: mediaType.value,
+    ...(filters.type === 'anime' ? { anime: true } : {}),
     ...(filters.genres.length ? { genres: filters.genres.join(',') } : {}),
-    ...(filters.decade !== null ? { year_min: filters.decade, year_max: filters.decade + 9 } : {}),
+    ...explorerYearBounds(filters.decade ?? null, filters.year ?? null),
     ...(filters.sort === 'top_rated' ? { vote_count_min: 200 } : {}),
     sort,
     page: nextPage,
@@ -136,7 +165,7 @@ const actorId = computed({
   <v-container fluid class="py-4" data-test="explorer-view">
     <ServiceDownBanner service="tmdb" />
     <div class="d-flex align-center ga-2 mb-2">
-      <v-btn :to="{ name: 'tmdb' }" variant="text" :prepend-icon="mdiArrowLeft">{{
+      <v-btn :to="{ name: 'tmdb' }" variant="text" :prepend-icon="msArrowBack">{{
         t('decouverte.explorer.back_to_discover')
       }}</v-btn>
     </div>
@@ -156,18 +185,33 @@ const actorId = computed({
           >
             <v-btn value="movie">{{ t('decouverte.filters.movies') }}</v-btn>
             <v-btn value="tv">{{ t('decouverte.filters.series') }}</v-btn>
+            <v-btn value="anime" data-test="explorer-type-anime">{{
+              t('decouverte.filters.anime')
+            }}</v-btn>
           </v-btn-toggle>
+          <template v-if="filters.type === 'anime'">
+            <div class="text-label-large mb-1">
+              {{ t('decouverte.explorer.section.anime_type') }}
+            </div>
+            <v-btn-toggle
+              v-model="filters.animeType"
+              mandatory
+              density="compact"
+              variant="outlined"
+              divided
+              class="mb-3"
+              data-test="explorer-anime-type"
+            >
+              <v-btn value="tv">{{ t('decouverte.filters.series') }}</v-btn>
+              <v-btn value="movie">{{ t('decouverte.filters.movies') }}</v-btn>
+            </v-btn-toggle>
+          </template>
 
           <div class="text-label-large mb-1">{{ t('decouverte.explorer.section.genre') }}</div>
           <v-chip-group v-model="filters.genres" multiple column class="mb-2">
-            <v-chip
-              v-for="g in genres.data.value?.genres ?? []"
-              :key="g.id"
-              :value="g.id"
-              filter
-              size="small"
-              >{{ g.name }}</v-chip
-            >
+            <v-chip v-for="g in genreChips" :key="g.id" :value="g.id" filter size="small">{{
+              g.name
+            }}</v-chip>
           </v-chip-group>
 
           <div class="text-label-large mb-1">{{ t('decouverte.explorer.section.decade') }}</div>
@@ -176,6 +220,20 @@ const actorId = computed({
               t('decouverte.explorer.decade_label', { decade: d })
             }}</v-chip>
           </v-chip-group>
+
+          <div class="text-label-large mb-1">{{ t('decouverte.explorer.section.year') }}</div>
+          <v-filter-select
+            v-model="filters.year"
+            :items="YEARS"
+            :label="t('decouverte.explorer.section.year')"
+            :placeholder="t('decouverte.explorer.any_year')"
+            density="compact"
+            hide-details
+            variant="outlined"
+            clearable
+            class="mb-3"
+            data-test="explorer-year"
+          />
 
           <div class="text-label-large mb-1">{{ t('decouverte.explorer.section.sort') }}</div>
           <v-chip-group v-model="filters.sort" mandatory column class="mb-3">
@@ -267,13 +325,13 @@ const actorId = computed({
         </div>
         <EmptyState
           v-if="page === 0 && !loading"
-          :icon="mdiCompassOutline"
+          :icon="msExplore"
           :title="t('decouverte.explorer.title')"
           :text="t('decouverte.explorer.empty_hint')"
         />
         <EmptyState
           v-else-if="page > 0 && results.length === 0 && !loading"
-          :icon="mdiCompassOutline"
+          :icon="msExplore"
           :title="t('decouverte.explorer.no_results')"
         />
         <div v-if="page > 0 && page < totalPages" class="text-center mt-4">

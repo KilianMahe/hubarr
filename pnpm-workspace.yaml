@@ -12,3 +12,11 @@ allowBuilds:
   esbuild: true
   # Bascule Vue 2 / Vue 3 de @tanstack/vue-query : inutile, Vue 3 est la cible par défaut.
   vue-demi: false
+
+# Versions imposées à des dépendances transitives.
+overrides:
+  # vitepress 1.6.4 (dernière version stable) dépend de vite 5, touché par des
+  # failles de son serveur de dev (Trivy, dont CVE-2026-112942 HIGH). vite 6.4
+  # les corrige et reste accepté par @vitejs/plugin-vue 5 (^5 || ^6). À retirer
+  # avec vitepress 2 (vite 8).
+  'vitepress>vite': 6.4.6

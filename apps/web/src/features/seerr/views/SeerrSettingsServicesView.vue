@@ -6,7 +6,7 @@
 // modification, suppression). Les clés d'API restent masquées : un masque
 // laissé tel quel garde la clé enregistrée (serveur).
 import { SEERR_SECRET_MASK } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -216,7 +216,7 @@ const ruleSummary = (r: Row) =>
             {{ t('jellyseerr.settings.services.' + kind + '_settings') }}
             <v-spacer />
             <v-btn
-              :prepend-icon="mdiPlus"
+              :prepend-icon="msAdd"
               size="small"
               variant="tonal"
               :data-test="'seerr-add-' + kind"
@@ -238,7 +238,7 @@ const ruleSummary = (r: Row) =>
                 }}</v-chip>
                 <v-chip v-if="srv.is4k" size="x-small" label class="me-1">4K</v-chip>
                 <v-btn
-                  :icon="mdiPencil"
+                  :icon="msEdit"
                   size="small"
                   variant="text"
                   :aria-label="t('jellyseerr.common.edit')"
@@ -246,7 +246,7 @@ const ruleSummary = (r: Row) =>
                   @click="openServer(kind, srv)"
                 />
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   size="small"
                   variant="text"
                   color="error"
@@ -266,7 +266,7 @@ const ruleSummary = (r: Row) =>
           <v-card-title class="d-flex align-center text-title-small">
             {{ t('jellyseerr.settings.services.rules_title') }}
             <v-spacer />
-            <v-btn :prepend-icon="mdiPlus" size="small" variant="tonal" @click="openRule(null)">{{
+            <v-btn :prepend-icon="msAdd" size="small" variant="tonal" @click="openRule(null)">{{
               t('jellyseerr.common.add')
             }}</v-btn>
           </v-card-title>
@@ -282,14 +282,14 @@ const ruleSummary = (r: Row) =>
             >
               <template #append>
                 <v-btn
-                  :icon="mdiPencil"
+                  :icon="msEdit"
                   size="small"
                   variant="text"
                   :aria-label="t('jellyseerr.common.edit')"
                   @click="openRule(r)"
                 />
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   size="small"
                   variant="text"
                   color="error"

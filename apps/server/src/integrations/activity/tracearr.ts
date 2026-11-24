@@ -395,6 +395,74 @@ export function tracearrUserStats(rows: TracearrHistory['rows']): TracearrUserDe
   };
 }
 
+/** Identité Tracearr (API v2 `/users`), regroupant ses comptes de serveur. */
+export interface TracearrIdentity {
+  id: string;
+  name: string;
+}
+
+/** Lecture de l'historique v2 réduite à ce que la synchronisation « Vu » garde. */
+export interface TracearrWatchRow {
+  recordId: string;
+  mediaType: 'movie' | 'episode';
+  /** Film : son ID TMDB ; épisode : `null` (la série passe par `showMediaId`). */
+  tmdbId: number | null;
+  showMediaId: string | null;
+  season: number | null;
+  episode: number | null;
+  startedAt: number;
+  percent: number;
+  watched: boolean;
+}
+
+export interface TracearrShowIds {
+  tmdbId: number | null;
+  tvdbId: number | null;
+}
+
+export function normalizeTracearrIdentities(data: Record<string, unknown>): TracearrIdentity[] {
+  return rows(data.data).flatMap((raw) => {
+    const r = camelize(raw);
+    const id = text(r.id);
+    const name = text(r.identityName) ?? text(r.username);
+    return id === null || name === null ? [] : [{ id, name }];
+  });
+}
+
+/** Lignes d'historique v2 utiles au « Vu » : films (avec ID TMDB) et épisodes. */
+export function normalizeTracearrWatchRows(data: Record<string, unknown>): TracearrWatchRow[] {
+  return rows(data.data).flatMap((raw): TracearrWatchRow[] => {
+    const r = camelize(raw);
+    const recordId = text(r.id);
+    const type = text(r.mediaType);
+    const started = parseDate(text(r.startedAt));
+    if (recordId === null || started === null || (type !== 'movie' && type !== 'episode'))
+      return [];
+    const tmdb = int(r.tmdbId);
+    if (type === 'movie' && tmdb <= 0) return [];
+    const show = text(r.showMediaId);
+    const total = int(r.totalDurationMs);
+    const percent = isNumeric(r.percentComplete)
+      ? clampPercent(float(r.percentComplete))
+      : total > 0
+        ? clampPercent((int(r.progressMs) / total) * 100)
+        : 0;
+    return [
+      {
+        recordId,
+        mediaType: type,
+        tmdbId: type === 'movie' ? tmdb : null,
+        showMediaId: type === 'episode' && show !== null && isUuid(show) ? show : null,
+        season: isNumeric(r.seasonNumber) ? int(r.seasonNumber) : null,
+        episode: isNumeric(r.episodeNumber) ? int(r.episodeNumber) : null,
+        startedAt: started.getTime(),
+        percent: Math.round(percent),
+        watched: r.watched === true,
+      },
+    ];
+  });
+}
+
 type Response = { ok: true; data: Record<string, unknown> } | { ok: false } | null;
 
 export interface TracearrCache {
@@ -603,6 +671,76 @@ export class TracearrClient {
       scannedRows: scanned,
       truncated: cursor !== null,
     };
+  }
+
+  /**
+   * Identités Tracearr (API v2 `/users`, au plus 1 000). `unsupported` si la
+   * v2 est absente, `null` si Tracearr ne répond pas : le « Vu » exige la v2
+   * (seul son historique porte les ID TMDB et le filtre par utilisateur).
+   */
+  async identities(): Promise<TracearrIdentity[] | 'unsupported' | null> {
+    const out: TracearrIdentity[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < 10; page += 1) {
+      const response = await this.#v2Request('/users', {
+        pageSize: '100',
+        ...(cursor !== null ? { cursor } : {}),
+      });
+      if (response === false) return 'unsupported';
+      if (!response?.ok) return null;
+      out.push(...normalizeTracearrIdentities(response.data));
+      const next = text(record(response.data.meta).nextCursor);
+      cursor = next !== null && isCursor(next) ? next : null;
+      if (cursor === null) break;
+    }
+    return out;
+  }
+
+  /**
+   * Page d'historique v2 d'une identité (synchronisation « Vu »), à partir de
+   * `since` le cas échéant. `null` : v2 absente, refus ou panne.
+   */
+  async watchPage(
+    userId: string,
+    since: Date | null,
+    cursor: string | null,
+  ): Promise<{ rows: TracearrWatchRow[]; nextCursor: string | null } | null> {
+    if (cursor !== null && !isCursor(cursor)) return null;
+    const response = await this.#v2Request('/history', {
+      user_id: userId,
+      pageSize: '100',
+      ...(since !== null ? { since: since.toISOString() } : {}),
+      ...(cursor !== null ? { cursor } : {}),
+    });
+    if (response === false || !response?.ok) return null;
+    const next = text(record(response.data.meta).nextCursor);
+    return {
+      rows: normalizeTracearrWatchRows(response.data),
+      nextCursor: next !== null && isCursor(next) ? next : null,
+    };
+  }
+
+  /** ID TMDB et TVDB de séries Tracearr (v2 `/media/:id`), gardés 24 h (5 min si absents). */
+  async showIds(mediaIds: string[]): Promise<Map<string, TracearrShowIds>> {
+    const found = new Map<string, TracearrShowIds>();
+    for (const id of [...new Set(mediaIds.filter(isUuid))]) {
+      const key = `tracearr.show_ids.${id}`;
+      const cached = this.cache?.get(key) as TracearrShowIds | undefined;
+      if (cached !== undefined) {
+        found.set(id, cached);
+        continue;
+      }
+      const response = await this.#request(`/media/${id}`, {}, TRACEARR_API_V2);
+      const data = response !== null && response !== 404 && response.ok ? response.data : null;
+      const ids: TracearrShowIds = {
+        tmdbId: data !== null && int(data.tmdb_id) > 0 ? int(data.tmdb_id) : null,
+        tvdbId: data !== null && int(data.tvdb_id) > 0 ? int(data.tvdb_id) : null,
+      };
+      const miss = ids.tmdbId === null && ids.tvdbId === null;
+      this.cache?.set(key, ids, miss ? SHOW_TMDB_MISS_TTL_MS : SHOW_TMDB_TTL_MS);
+      found.set(id, ids);
+    }
+    return found;
   }
 
   async image(server: string, img: string): Promise<ProxiedImage | null> {

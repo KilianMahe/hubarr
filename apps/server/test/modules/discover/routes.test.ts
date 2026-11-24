@@ -4,8 +4,18 @@
 // les instances, candidats), fiche détaillée, watchlist (`TmdbControllerTest`,
 // `TmdbClientFailureCacheTest`, `TmdbClientRegionPriorityTest`).
 
-import type { ResolvedMedia, TmdbDetail, TmdbPage, WatchlistItem } from '@hubarr/shared';
+import type {
+  FolderSuggestions,
+  PopularByYear,
+  ResolvedMedia,
+  TmdbDetail,
+  TmdbPage,
+  TmdbSuggestions,
+  WatchedSuggestions,
+  WatchlistItem,
+} from '@hubarr/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { tracearrWatch, users } from '../../../src/db/schema';
 import { regionPriority } from '../../../src/integrations/tmdb/client';
 import { applyServicePatch } from '../../../src/modules/services/config';
 import { mediaEnv, movie, series, type MediaEnv } from '../media-env';
@@ -201,6 +211,222 @@ describe('fiche détaillée', () => {
     expect(d.providers?.country).toBe('US');
     expect(d.certification).toBe('[US] PG-13');
     expect(d.similar[0]).toMatchObject({ id: 1, type: 'movie' });
+  });
+});
+
+describe('suggestions de la fiche', () => {
+  it('recommandations puis similaires, marqués en bibliothèque, sans le titre ni doublon', async () => {
+    env = await mediaEnv({ role: 'user' });
+    env.up.sonarr.on('GET /api/v3/series', { body: [series(1, { tmdbId: 1399 }), series(2)] });
+    env.up.tmdb.on(
+      'GET /3/tv/1399/recommendations',
+      tmdbPage([
+        { id: 9002, name: 'Owned' },
+        { id: 1399, name: 'Self' },
+        { id: 66732, name: 'Stranger Things' },
+      ]),
+    );
+    env.up.tmdb.on(
+      'GET /3/tv/1399/similar',
+      tmdbPage([
+        { id: 66732, name: 'Stranger Things' },
+        { id: 1396, name: 'Breaking Bad' },
+      ]),
+    );
+    const s = (
+      await env.browser.get('/api/decouverte/suggestions/tv/1399')
+    ).json<TmdbSuggestions>();
+    expect(s.recommendations.map((c) => c.id)).toEqual([9002, 66732]);
+    expect(s.recommendations[0]).toMatchObject({
+      type: 'tv',
+      inLibrary: true,
+      libId: 2,
+      libSlug: env.sonarr.slug,
+    });
+    expect(s.recommendations[1]).toMatchObject({ inLibrary: false, libId: null });
+    expect(s.similar.map((c) => c.id)).toEqual([1396]);
+  });
+
+  it('TMDB non configuré → 409', async () => {
+    env = await mediaEnv({ tmdb: false });
+    expect((await env.browser.get('/api/decouverte/suggestions/movie/603')).statusCode).toBe(409);
+  });
+});
+
+describe('suggestions personnelles (lot 8)', () => {
+  it('une rangée par dossier racine, pondérée, sans les titres possédés, calcul en cache', async () => {
+    env = await mediaEnv({ role: 'user' });
+    env.up.radarr.on('GET /api/v3/movie', {
+      body: [
+        movie(1, { tmdbId: 501, rootFolderPath: '/movies', added: '2024-01-01T00:00:00Z' }),
+        movie(2, { tmdbId: 502, rootFolderPath: '/movies/', added: '2025-01-01T00:00:00Z' }),
+        movie(3, { tmdbId: 503, rootFolderPath: null, path: '/kids/Film (2020)' }),
+      ],
+    });
+    env.up.sonarr.on('GET /api/v3/series', {
+      body: [series(1, { tmdbId: 1399, rootFolderPath: '/tv' })],
+    });
+    let calls = 0;
+    env.up.tmdb.on('GET /3/movie/501/recommendations', () => {
+      calls += 1;
+      return tmdbPage([
+        { id: 502, title: 'Possédé' },
+        { id: 700, title: 'Une fois', vote_average: 9 },
+        { id: 701, title: 'Deux fois' },
+      ]);
+    });
+    env.up.tmdb.on('GET /3/movie/502/recommendations', tmdbPage([{ id: 701, title: 'Deux fois' }]));
+    env.up.tmdb.on('GET /3/movie/503/recommendations', tmdbPage([{ id: 800, title: 'Enfants' }]));
+    env.up.tmdb.on('GET /3/tv/1399/recommendations', tmdbPage([{ id: 66732, name: 'Série' }]));
+
+    const first = (await env.browser.get('/api/decouverte/dossiers')).json<FolderSuggestions>();
+    expect(
+      first.folders.map((f) => [f.service, f.instance, f.label, f.results.map((c) => c.id)]),
+    ).toEqual([
+      ['radarr', 'Films', 'kids', [800]],
+      ['radarr', 'Films', 'movies', [701, 700]],
+      ['sonarr', 'Séries', 'tv', [66732]],
+    ]);
+    expect(first.folders[1]?.results[0]).toMatchObject({ type: 'movie', inLibrary: false });
+    await env.browser.get('/api/decouverte/dossiers');
+    expect(calls).toBe(1);
+  });
+
+  it('dossiers : TMDB non configuré → 409', async () => {
+    env = await mediaEnv({ tmdb: false });
+    expect((await env.browser.get('/api/decouverte/dossiers')).statusCode).toBe(409);
+  });
+
+  it('d’après les lectures récentes : sans les titres vus, les possédés marqués', async () => {
+    env = await mediaEnv({ role: 'user' });
+    const unlinked = (await env.browser.get('/api/decouverte/regardes')).json<WatchedSuggestions>();
+    expect(unlinked).toEqual({ linked: false, seeds: 0, results: [] });
+
+    const db = env.database.db;
+    db.update(users).set({ tracearrUserId: 'u1' }).run();
+    const play = (
+      recordId: string,
+      mediaType: 'movie' | 'episode',
+      tmdbId: number,
+      day: number,
+      watched = true,
+    ) => ({
+      tracearrUserId: 'u1',
+      recordId,
+      mediaType,
+      tmdbId,
+      tvdbId: null,
+      season: mediaType === 'episode' ? 1 : null,
+      episode: mediaType === 'episode' ? day : null,
+      watchedAt: new Date(Date.UTC(2026, 10, day)),
+      percent: watched ? 100 : 10,
+      watched,
+    });
+    db.insert(tracearrWatch)
+      .values([
+        play('m1', 'movie', 603, 20),
+        play('e1', 'episode', 1399, 19),
+        play('e2', 'episode', 1399, 18),
+        play('m2', 'movie', 604, 21, false),
+      ])
+      .run();
+    env.up.radarr.on('GET /api/v3/movie', { body: [movie(1, { tmdbId: 605, hasFile: true })] });
+    env.up.tmdb.on(
+      'GET /3/movie/603/recommendations',
+      tmdbPage([
+        { id: 603, title: 'Lui-même' },
+        { id: 604, title: 'Commencé, pas vu' },
+        { id: 605, title: 'Possédé' },
+      ]),
+    );
+    env.up.tmdb.on(
+      'GET /3/tv/1399/recommendations',
+      tmdbPage([
+        { id: 1399, name: 'Vue' },
+        { id: 1396, name: 'Breaking Bad' },
+      ]),
+    );
+    const s = (await env.browser.get('/api/decouverte/regardes')).json<WatchedSuggestions>();
+    expect(s.linked).toBe(true);
+    expect(s.seeds).toBe(2);
+    expect(s.results.map((c) => `${c.type}_${c.id}`)).toEqual([
+      'movie_604',
+      'movie_605',
+      'tv_1396',
+    ]);
+    expect(s.results[1]).toMatchObject({ inLibrary: true, libStatus: 'downloaded' });
+  });
+
+  it('populaires d’une année : films et séries triés par popularité, bornes de l’année', async () => {
+    env = await mediaEnv({ role: 'user' });
+    env.up.radarr.on('GET /api/v3/movie', { body: [movie(1, { tmdbId: 11, hasFile: true })] });
+    env.up.tmdb.on('GET /3/discover/movie', (call) => {
+      expect(call.query.get('primary_release_year')).toBe('2024');
+      expect(call.query.get('sort_by')).toBe('popularity.desc');
+      return tmdbPage([{ id: 11, title: 'Possédé', release_date: '2024-05-01' }]);
+    });
+    env.up.tmdb.on('GET /3/discover/tv', (call) => {
+      expect(call.query.get('first_air_date_year')).toBe('2024');
+      return tmdbPage([{ id: 22, name: 'Série 2024' }]);
+    });
+    const y = (await env.browser.get('/api/decouverte/annee/2024')).json<PopularByYear>();
+    expect(y.year).toBe(2024);
+    expect(y.movies[0]).toMatchObject({ id: 11, type: 'movie', year: 2024, inLibrary: true });
+    expect(y.tv[0]).toMatchObject({ id: 22, type: 'tv', inLibrary: false });
+    expect((await env.browser.get('/api/decouverte/annee/1800')).statusCode).toBe(400);
+    const tooLate = new Date().getUTCFullYear() + 2;
+    expect((await env.browser.get(`/api/decouverte/annee/${tooLate}`)).statusCode).toBe(400);
+  });
+});
+
+describe('animés', () => {
+  it('explorateur et recherche : genre Animation ajouté, langue originale japonaise', async () => {
+    env = await mediaEnv({ role: 'user' });
+    env.up.tmdb.on('GET /3/discover/tv', (call) => {
+      expect(call.query.get('with_genres')).toBe('35,16');
+      expect(call.query.get('with_original_language')).toBe('ja');
+      return tmdbPage([{ id: 31, name: 'Animé', genre_ids: [16, 35], original_language: 'ja' }]);
+    });
+    const page = (
+      await env.browser.get('/api/decouverte/filter?type=tv&genres=35&anime=1')
+    ).json<TmdbPage>();
+    expect(page.results.map((c) => c.id)).toEqual([31]);
+
+    env.up.tmdb.on('GET /3/discover/movie', (call) => {
+      expect(call.query.get('with_genres')).toBe('16');
+      expect(call.query.get('with_original_language')).toBe('ja');
+      return tmdbPage([{ id: 41, title: 'Film animé', genre_ids: [16], original_language: 'ja' }]);
+    });
+    env.up.tmdb.on('GET /3/discover/tv', (call) => {
+      expect(call.query.get('with_genres')).toBe('16');
+      return tmdbPage([]);
+    });
+    const browse = (await env.browser.get('/api/decouverte/recherche?anime=1')).json<{
+      mode: string;
+      results: { id: number }[];
+    }>();
+    expect(browse.mode).toBe('discover');
+    expect(browse.results.map((c) => c.id)).toEqual([41]);
+
+    // Recherche par texte : seuls les animés sont gardés.
+    env.up.tmdb.on(
+      'GET /3/search/multi',
+      tmdbPage([
+        { id: 51, media_type: 'tv', name: 'Naruto', genre_ids: [16], original_language: 'ja' },
+        {
+          id: 52,
+          media_type: 'movie',
+          title: 'Naruto US',
+          genre_ids: [16],
+          original_language: 'en',
+        },
+      ]),
+    );
+    const found = (
+      await env.browser.get('/api/decouverte/recherche?q=naruto&anime=1&exact=1')
+    ).json<{ best: { id: number } | null; results: { id: number }[] }>();
+    const ids = [found.best?.id, ...found.results.map((c) => c.id)].filter(Boolean);
+    expect(ids).toEqual([51]);
   });
 });
 

@@ -5,7 +5,7 @@
 // tendance, populaire ; « déjà ajouté ») ; ajout par un dialogue (synopsis,
 // durée, studio, notes, genres ; profil, dossier, recherche automatique).
 import { suggestionsPageSchema, type Suggestion } from '@hubarr/shared';
-import { mdiCheck } from '@mdi/js';
+import { msCheck } from '../../../components/symbols';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { moviesApi } from '../../movies/movies-api';
@@ -125,7 +125,7 @@ const runtime = (minutes: number) =>
               size="x-small"
               color="success"
               variant="tonal"
-              :prepend-icon="mdiCheck"
+              :prepend-icon="msCheck"
               >{{ t(ctx.key('already_added')) }}</v-chip
             >
             <v-chip v-else-if="movie.recommended" size="x-small" color="info" variant="tonal">{{

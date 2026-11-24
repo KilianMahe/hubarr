@@ -22,7 +22,9 @@
       "finish": "Finish",
       "refresh": "Refresh",
       "view_all": "View all",
-      "view_more": "View more"
+      "view_more": "View more",
+      "more_actions": "More actions",
+      "view": "View"
     },
     "status": {
       "loading": "Loading…",
@@ -49,7 +51,8 @@
       "text": "{text}",
       "copy": "Copy",
       "copied": "Copied to clipboard",
-      "skip_to_content": "Skip to content"
+      "skip_to_content": "Skip to content",
+      "refreshing_cache": "Updating…"
     },
     "ds": {
       "selected": "{count} selected",
@@ -71,12 +74,6 @@
     "tagline": "Self-hosted media stack"
   },
   "sidebar": {
-    "section": {
-      "overview": "Overview",
-      "media": "Media",
-      "discovery": "Discover",
-      "tools": "Tools"
-    },
     "nav": {
       "dashboard": "Dashboard",
       "qbittorrent": "qBittorrent",
@@ -97,7 +94,8 @@
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar",
       "settings": "Settings",
-      "logout": "Sign out"
+      "logout": "Sign out",
+      "aria_label": "Secondary links"
     },
     "family": {
       "arrs": "Arrs",
@@ -316,6 +314,9 @@
     }
   },
   "home": {
+    "tabs": {
+      "discover": "Discover"
+    },
     "welcome": {
       "title": "Welcome to Hubarr",
       "subtitle": "No service is configured yet. Pick a section to get started.",
@@ -561,6 +562,23 @@
         "downloading": "Downloading",
         "other": "Queued"
       }
+    },
+    "downloads": {
+      "title": "Downloaded per day · 30 days",
+      "total": "Total",
+      "average": "Daily average",
+      "bar": "{day}: {size}",
+      "chart_label": "Downloaded per day: {total} over {days} days",
+      "failed": "No answer, not counted: {clients}",
+      "hint": "Based on the downloads still in the clients: a removed item is no longer counted."
+    },
+    "disks": {
+      "title": "Disk space",
+      "used": "{percent}% used",
+      "free": "{free} free of {total}",
+      "alert": "Almost full",
+      "failed": "No answer: {instances}",
+      "empty": "No disk found for the root folders."
     }
   },
   "tautulli": {
@@ -753,6 +771,23 @@
       "view_all": "View all →",
       "type_film": "Movie",
       "type_tv": "TV Show"
+    },
+    "tracearr": {
+      "section": "Tracearr",
+      "hint": "Pick your Tracearr account: the movies and episodes you have watched are marked “Watched” on detail pages and in the library.",
+      "account": "My Tracearr account",
+      "none": "None",
+      "unknown_account": "Account not found",
+      "linked": "Tracearr account linked: importing your plays",
+      "unlinked": "Tracearr account unlinked",
+      "resync": "Resynchronize",
+      "resynced": "Tracearr plays reimported",
+      "sync_pending": "Importing plays…",
+      "sync_status": "Synced on {date} · {count, plural, =0 {no plays} one {# play} other {# plays}}",
+      "sync_error": "Last sync failed: Tracearr is not responding.",
+      "unavailable_unconfigured": "Tracearr is not configured or is disabled.",
+      "unavailable_unsupported": "This Tracearr version has no v2 API: update Tracearr to use “Watched”.",
+      "unavailable_unreachable": "Tracearr is not responding: the account list is unavailable."
     }
   },
   "error": {
@@ -816,6 +851,7 @@
       "services": "External services",
       "display": "Display",
       "backup": "Backup",
+      "logs": "Logs",
       "updates": "Updates",
       "about": "About",
       "aria_label": "Settings sections"
@@ -938,11 +974,11 @@
     "languages": {
       "tab_label": "Languages",
       "description": "Central control for Hubarr UI language and connected services. Changes to Radarr/Sonarr/Prowlarr/Seerr are pushed via their APIs.",
-      "prismarr_section": "Hubarr",
-      "prismarr_ui_label": "Interface language",
-      "prismarr_ui_help": "Language displayed in Hubarr. Users cannot change their own language (admin-only setting).",
-      "prismarr_metadata_label": "TMDb metadata language",
-      "prismarr_metadata_help": "Language for titles, overviews and metadata fetched from TMDb (for the Search page and enriched cards).",
+      "hubarr_section": "Hubarr",
+      "hubarr_ui_label": "Interface language",
+      "hubarr_ui_help": "Language displayed in Hubarr. Users cannot change their own language (admin-only setting).",
+      "hubarr_metadata_label": "TMDb metadata language",
+      "hubarr_metadata_help": "Language for titles, overviews and metadata fetched from TMDb (for the Search page and enriched cards).",
       "services_section": "Connected services",
       "col_instance": "Instance",
       "radarr_ui_label": "UI language",
@@ -976,7 +1012,8 @@
         "description": "Drag to reorder the dashboard sections, and choose which ones to show.",
         "reset_hint": "Use \"Reset display preferences\" below to restore the default layout.",
         "move_up": "Move up",
-        "move_down": "Move down"
+        "move_down": "Move down",
+        "drag": "Drag to move"
       },
       "switch": {
         "on": "Enabled",
@@ -1254,6 +1291,35 @@
       "open": "Settings",
       "open_instance": "{name} settings",
       "groups": "{service} settings"
+    },
+    "logs": {
+      "title": "Logs",
+      "subtitle": "{count, plural, =0 {No entries} one {# entry} other {# entries}} · last {capacity} kept · level {level} and above",
+      "download": "Download (.jsonl)",
+      "auto_refresh": "Auto refresh",
+      "filter": {
+        "level": "Minimum level",
+        "service": "Service",
+        "search": "Search",
+        "no_service": "No service in the logs"
+      },
+      "level": {
+        "trace": "Trace",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warning",
+        "error": "Error",
+        "fatal": "Fatal"
+      },
+      "empty": {
+        "title": "No entries",
+        "text": "Warnings and errors from Hubarr and the services will show up here. Logs are kept in memory and start over at each restart.",
+        "filtered": "No entry matches the filters"
+      },
+      "detail": {
+        "title": "Log entry",
+        "context": "Context"
+      }
     }
   },
   "decouverte": {
@@ -1269,6 +1335,7 @@
       "type": "Type",
       "movies": "Movies",
       "series": "TV shows",
+      "anime": "Anime",
       "genre": "Genre",
       "all": "All",
       "year_from": "Year from",
@@ -1296,9 +1363,21 @@
     },
     "section": {
       "my_recs": {
-        "title": "For you",
-        "subtitle": "based on your library",
+        "title": "From your library",
+        "subtitle": "based on your latest additions",
         "loading": "Scanning your library…"
+      },
+      "watched": {
+        "title": "Because you watched",
+        "subtitle": "your recent plays, via Tracearr"
+      },
+      "folder": {
+        "title": "For “{folder}”",
+        "subtitle": "{instance} folder"
+      },
+      "by_year": {
+        "title": "Popular in {year}",
+        "year": "Year"
       },
       "trending": "Trending this week",
       "popular_movies": "Popular movies",
@@ -1356,6 +1435,7 @@
       "alt_titles": "Alternative titles",
       "reviews": "Reviews",
       "gallery": "Gallery",
+      "recommendations": "Recommendations",
       "similar": "Similar",
       "add_to": "Add to {service}",
       "view_in": "View in {section}",
@@ -1473,12 +1553,15 @@
       "back_to_discover": "Search",
       "section": {
         "type": "Type",
+        "anime_type": "Format",
         "genre": "Genre",
         "decade": "Decade",
+        "year": "Year",
         "sort": "Sort",
         "collections": "Collections",
         "by_actor": "By actor"
       },
+      "any_year": "Any",
       "sort_options": {
         "popular": "Popular",
         "top_rated": "Top-rated",
@@ -1541,6 +1624,13 @@
       "search_instead": "Search instead for \"__Q__\"",
       "person_kicker": "Person",
       "see_filmography": "See filmography"
+    },
+    "tabs": {
+      "for_you": "For you",
+      "trending": "Trending",
+      "top_rated": "Top rated",
+      "by_year": "By year",
+      "for_you_empty": "Nothing to suggest yet: add titles to your library or link your Tracearr account in your profile."
     }
   },
   "media": {
@@ -1623,6 +1713,15 @@
       "parse": "Title parser",
       "backups": "Backups",
       "updates": "Updates"
+    },
+    "page": {
+      "monitored": "Monitored",
+      "unmonitored": "Not monitored",
+      "quality": "Quality",
+      "size": "Size",
+      "rating": "Rating",
+      "episodes": "{files}/{total} episodes",
+      "seasons": "Seasons"
     },
     "films": {
       "header_count": "{count, plural, one {# movie} other {# movies}}",
@@ -2592,6 +2691,7 @@
       "episode": {
         "status_downloaded": "Downloaded",
         "status_missing": "Missing",
+        "status_upcoming": "Upcoming",
         "status_unmonitored": "Unmonitored",
         "search_episode": "Search this episode"
       },
@@ -3949,6 +4049,8 @@
       "blocked_warning": "{count, plural, one {# blocked import — manual intervention required.} other {# blocked imports — manual intervention required.}}"
     },
     "add": {
+      "section_library": "Library",
+      "section_monitoring": "Monitoring",
       "empty_movie_title": "Which movie do you want to add?",
       "empty_series_title": "Which series do you want to add?",
       "empty_movie_hint": "Type at least two characters of the title, or an identifier such as tmdb:603 or imdb:tt0133093.",
@@ -6278,9 +6380,11 @@
       "episode": "Episodes",
       "status": "Status",
       "status_all": "All",
-      "status_monitored": "Monitored",
-      "status_missing": "Not monitored",
-      "status_available": "Available"
+      "status_downloaded": "Downloaded",
+      "status_downloading": "Downloading",
+      "status_missing": "Missing",
+      "status_upcoming": "Upcoming",
+      "status_unmonitored": "Not monitored"
     },
     "view": {
       "month": "Month",
@@ -6354,8 +6458,10 @@
       "cross_month": "Week of {start_day} {start_month} — {end_day} {end_month} {year}"
     },
     "status": {
-      "available": "Available",
-      "monitored": "Monitored",
+      "downloaded": "Downloaded",
+      "downloading": "Downloading",
+      "missing": "Missing",
+      "upcoming": "Upcoming",
       "unmonitored": "Not monitored"
     },
     "day": {
@@ -6435,6 +6541,12 @@
       "progress": "Progress",
       "open_media": "Open the title",
       "codec_change": "{from} → {to}"
+    },
+    "watched": {
+      "all": "Watched",
+      "some": "{watched}/{total} watched",
+      "episodes": "{count, plural, one {# episode watched} other {# episodes watched}}",
+      "title": "Watched on your Tracearr account"
     }
   }
 }

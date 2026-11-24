@@ -1,20 +1,21 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 // Onglet « Serveur » d'un service (P5b.4, D131) : pastille, nom et version du
-// service, puis ses pages d'administration et ses commandes en cartes de
-// listes d'actions. Une commande peut demander confirmation.
+// service, compteurs de la bibliothèque, puis ses pages d'administration et ses
+// commandes en cartes de listes d'actions. Une commande peut demander confirmation.
 import type { ServiceId } from '@hubarr/shared';
-import { mdiChevronRight } from '@mdi/js';
+import { msChevronRight } from './symbols';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDialog from './ConfirmDialog.vue';
 import ServiceLogo from '../features/settings/ServiceLogo.vue';
-import type { ServerGroup, ServerItem } from './server-panel';
+import type { ServerGroup, ServerItem, ServerStat } from './server-panel';
 
 defineProps<{
   service: ServiceId;
   title: string;
   version?: string | null;
+  stats?: ServerStat[] | null;
   groups: ServerGroup[];
 }>();
 const { t } = useI18n();
@@ -55,6 +56,21 @@ function onConfirm(): void {
       </p>
     </div>
     <v-card
+      v-if="stats && stats.length > 0"
+      variant="flat"
+      border
+      class="server-panel__stats mb-3"
+      data-test="server-stats"
+    >
+      <div v-for="stat in stats" :key="stat.label" class="server-panel__stat">
+        <strong class="text-title-medium"
+          >{{ stat.value
+          }}<small v-if="stat.unit" class="server-panel__unit">{{ stat.unit }}</small></strong
+        >
+        <span class="text-body-small text-muted text-truncate">{{ stat.label }}</span>
+      </div>
+    </v-card>
+    <v-card
       v-for="(group, index) in groups"
       :key="index"
       variant="flat"
@@ -83,7 +99,7 @@ function onConfirm(): void {
               width="2"
               color="service"
             />
-            <v-icon v-else :icon="mdiChevronRight" size="20" class="text-muted" />
+            <v-icon v-else :icon="msChevronRight" size="20" class="text-muted" />
           </template>
         </v-list-item>
       </v-list>
@@ -106,6 +122,26 @@ function onConfirm(): void {
 }
 .server-panel__head h2 {
   margin: 0;
+}
+.server-panel__stats {
+  display: flex;
+  padding: 10px 0;
+}
+.server-panel__stat {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  line-height: 1.2;
+}
+.server-panel__stat + .server-panel__stat {
+  border-left: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.server-panel__unit {
+  margin-left: 2px;
+  color: rgb(var(--v-theme-service-text));
+  font-size: 0.7em;
 }
 .server-panel__group + .server-panel__group {
   margin-top: 12px;

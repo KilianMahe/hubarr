@@ -14,7 +14,14 @@ import {
   type QualityDefinition,
   type QualityProfile,
 } from '@hubarr/shared';
-import { mdiArrowDown, mdiArrowUp, mdiDelete, mdiDragVertical, mdiPencil, mdiPlus } from '@mdi/js';
+import {
+  msAdd,
+  msArrowDownward,
+  msArrowUpward,
+  msDelete,
+  msDragIndicator,
+  msEdit,
+} from '../../../components/symbols';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDialog from '../../../components/ConfirmDialog.vue';
@@ -208,7 +215,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
           <v-btn
             color="service"
             size="small"
-            :prepend-icon="mdiPlus"
+            :prepend-icon="msAdd"
             data-test="quality-profile-add"
             @click="edit(null)"
             >{{ t(ctx.key('add')) }}</v-btn
@@ -242,7 +249,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
               </td>
               <td class="text-end text-no-wrap">
                 <v-btn
-                  :icon="mdiPencil"
+                  :icon="msEdit"
                   variant="text"
                   size="small"
                   :aria-label="t(ctx.key('edit'))"
@@ -251,7 +258,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
                   @click="edit(profile)"
                 />
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   variant="text"
                   color="error"
                   size="small"
@@ -380,7 +387,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
       @save="save"
     >
       <template v-if="editing" #extra>
-        <v-btn color="error" variant="text" :prepend-icon="mdiDelete" @click="askDelete(editing)">{{
+        <v-btn color="error" variant="text" :prepend-icon="msDelete" @click="askDelete(editing)">{{
           t(ctx.key('delete'))
         }}</v-btn>
       </template>
@@ -471,7 +478,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
         >
           <template #prepend>
             <v-icon
-              :icon="mdiDragVertical"
+              :icon="msDragIndicator"
               size="small"
               class="me-1 text-muted"
               :title="t(ctx.key('drag_reorder'))"
@@ -496,7 +503,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
           </v-list-item-title>
           <template #append>
             <v-btn
-              :icon="mdiArrowUp"
+              :icon="msArrowUpward"
               variant="text"
               size="x-small"
               :disabled="index === 0"
@@ -504,7 +511,7 @@ const maxGiB = computed(() => Math.ceil(toGiBPerHour(limit.value)));
               @click="move(index, index - 1)"
             />
             <v-btn
-              :icon="mdiArrowDown"
+              :icon="msArrowDownward"
               variant="text"
               size="x-small"
               :disabled="index === items.length - 1"

@@ -4,7 +4,7 @@
 // les instances activées, problèmes d'abord, relus toutes les 10 s ; titre
 // vers la fiche, progression et état, puis un lien vers l'onglet « File
 // d'attente » de chaque instance. Réservée aux admins, comme les files.
-import { mdiTrayArrowDown } from '@mdi/js';
+import { msDownload } from '../../../components/symbols';
 import { useQueries } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -57,7 +57,7 @@ const multiple = computed(() => instances.value.length > 1);
 <template>
   <DashCard
     :title="t('dashboard.queue.title')"
-    :icon="mdiTrayArrowDown"
+    :icon="msDownload"
     :loading="loading"
     data-test="card-queue"
   >

@@ -2,27 +2,27 @@
 // Pages d'une instance Radarr : onglets (`RadarrNav`) et barre basse mobile.
 
 import {
-  mdiAlertOctagonOutline,
-  mdiFilmstrip,
-  mdiHistory,
-  mdiMagnify,
-  mdiPlus,
-  mdiMultimedia,
-  mdiServerNetwork,
-  mdiTrayArrowDown,
-  mdiTrendingDown,
-} from '@mdi/js';
+  msAdd,
+  msDownload,
+  msHistory,
+  msLan,
+  msPermMedia,
+  msReport,
+  msSearch,
+  msTheaters,
+  msTrendingDown,
+} from '../../components/symbols';
 import type { ArrPage, BottomNavItem, RouteFab } from '../../app/navigation';
 
 export const RADARR_PAGES: ArrPage[] = [
-  { name: 'radarr', labelKey: 'media.nav.films', icon: mdiFilmstrip },
+  { name: 'radarr', labelKey: 'media.nav.films', icon: msTheaters },
   // Onglet dédié (P5c.6, V18, D143).
-  { name: 'radarr-queue', labelKey: 'media.queue_page.title', icon: mdiTrayArrowDown },
-  { name: 'radarr-history', labelKey: 'media.item.history', icon: mdiHistory },
-  { name: 'radarr-blocklist', labelKey: 'media.item.blocklist', icon: mdiAlertOctagonOutline },
-  { name: 'radarr-missing', labelKey: 'media.item.missing', icon: mdiMagnify },
-  { name: 'radarr-cutoff', labelKey: 'media.item.cutoff', icon: mdiTrendingDown },
-  { name: 'radarr-collections', labelKey: 'media.item.collections', icon: mdiMultimedia },
+  { name: 'radarr-queue', labelKey: 'media.queue_page.title', icon: msDownload },
+  { name: 'radarr-history', labelKey: 'media.item.history', icon: msHistory },
+  { name: 'radarr-blocklist', labelKey: 'media.item.blocklist', icon: msReport },
+  { name: 'radarr-missing', labelKey: 'media.item.missing', icon: msSearch },
+  { name: 'radarr-cutoff', labelKey: 'media.item.cutoff', icon: msTrendingDown },
+  { name: 'radarr-collections', labelKey: 'media.item.collections', icon: msPermMedia },
 ];
 
 /**
@@ -45,7 +45,7 @@ export const RADARR_BOTTOM_NAV: BottomNavItem[] = [
   }),
   {
     labelKey: 'server.tab',
-    icon: mdiServerNetwork,
+    icon: msLan,
     to: { name: 'radarr-server' },
     // Toutes les autres pages de l'instance (historique, liste de blocage…).
     matches: (route) =>
@@ -55,7 +55,7 @@ export const RADARR_BOTTOM_NAV: BottomNavItem[] = [
 
 /** FAB du service (mobile) : ajout, exécuté par la bibliothèque (`?action=add`). */
 export const RADARR_FAB: RouteFab = {
-  icon: mdiPlus,
+  icon: msAdd,
   labelKey: 'media.films.actions.add',
   action: 'add',
   index: 'radarr',

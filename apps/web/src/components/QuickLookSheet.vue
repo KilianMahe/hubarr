@@ -6,7 +6,7 @@
 // sortie, plateformes, distribution, synopsis ; action principale « Gérer »
 // (fiche de l'instance exacte) ou « Découvrir » + « Ajouter » ; watchlist et
 // bande-annonce pour un titre TMDB.
-import { mdiOpenInNew, mdiPlay, mdiPlus, mdiStar, mdiStarOutline } from '@mdi/js';
+import { msAdd, msOpenInNew, msPlayArrowFill, msStar, msStarFill } from './symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -121,7 +121,7 @@ function add(): void {
           <div class="flex-grow-1">
             <div class="text-body-medium text-muted">{{ meta }}</div>
             <div class="d-flex flex-wrap ga-1 my-2">
-              <v-chip v-if="d.rating" size="small" :prepend-icon="mdiStar">{{
+              <v-chip v-if="d.rating" size="small" :prepend-icon="msStarFill">{{
                 Math.round(d.rating * 10) / 10
               }}</v-chip>
               <v-chip v-if="d.status" size="small" :color="STATUS_COLOR[d.status]" variant="flat">{{
@@ -172,7 +172,7 @@ function add(): void {
       <template v-if="d">
         <v-btn
           v-if="canWatchlist"
-          :prepend-icon="inWatchlist ? mdiStar : mdiStarOutline"
+          :prepend-icon="inWatchlist ? msStarFill : msStar"
           variant="text"
           :color="inWatchlist ? 'warning' : undefined"
           @click="star"
@@ -186,14 +186,14 @@ function add(): void {
           target="_blank"
           rel="noopener"
           variant="text"
-          :prepend-icon="mdiPlay"
-          :append-icon="mdiOpenInNew"
+          :prepend-icon="msPlayArrowFill"
+          :append-icon="msOpenInNew"
           >{{ t('dashboard.quicklook.trailer') }}</v-btn
         >
         <v-btn
           v-if="canAdd"
           variant="tonal"
-          :prepend-icon="mdiPlus"
+          :prepend-icon="msAdd"
           data-test="quicklook-add"
           @click="add"
           >{{ t('decouverte.action.add') }}</v-btn

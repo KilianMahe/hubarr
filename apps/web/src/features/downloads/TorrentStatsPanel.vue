@@ -12,7 +12,7 @@ import {
   type TorrentStats,
   type TorrentVpn,
 } from '@hubarr/shared';
-import { mdiCircle, mdiShieldLock, mdiTortoise } from '@mdi/js';
+import { msCircleFill, msShieldLock, msSpeed } from '../../components/symbols';
 import { computed } from 'vue';
 import { useDisplay } from 'vuetify';
 import { useFormat } from '../../app/format';
@@ -65,12 +65,12 @@ const location = computed(() =>
 <template>
   <v-card variant="flat" border class="torrent-stats mb-3" data-test="torrent-stats">
     <div class="d-flex align-center ga-3">
-      <v-icon :icon="mdiCircle" size="10" :color="connectionColor" aria-hidden="true" />
+      <v-icon :icon="msCircleFill" size="10" :color="connectionColor" aria-hidden="true" />
       <SpeedIndicator large :down="stats?.dlSpeed ?? 0" :up="stats?.upSpeed ?? 0" />
       <v-spacer />
       <v-btn
         v-if="smAndUp"
-        :prepend-icon="mdiTortoise"
+        :prepend-icon="msSpeed"
         :variant="stats?.altSpeed ? 'flat' : 'tonal'"
         :color="stats?.altSpeed ? 'service' : undefined"
         size="small"
@@ -81,7 +81,7 @@ const location = computed(() =>
       >
       <v-btn
         v-else
-        :icon="mdiTortoise"
+        :icon="msSpeed"
         :variant="stats?.altSpeed ? 'flat' : 'tonal'"
         :color="stats?.altSpeed ? 'service' : undefined"
         size="small"
@@ -120,7 +120,7 @@ const location = computed(() =>
     </MetaLine>
     <MetaLine v-if="caps.vpn && vpn" class="mt-2" data-test="torrent-vpn">
       <span>
-        <v-icon :icon="mdiShieldLock" size="16" :color="vpn.ok ? 'success' : 'error'" />
+        <v-icon :icon="msShieldLock" size="16" :color="vpn.ok ? 'success' : 'error'" />
         <strong>{{ tk('vpn.label') }}</strong>
         {{ dash(vpn.organization) }}
       </span>

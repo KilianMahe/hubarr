@@ -5,7 +5,7 @@
 // d'onglets. Avec des actions, il devient un speed-dial (fiches film et série,
 // D130) : les actions s'empilent au-dessus, libellées. `variant` explicite :
 // la barre basse impose sinon la variante texte à ses boutons.
-import { mdiClose } from '@mdi/js';
+import { msClose } from './symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { FabAction, FabSpec } from '../app/service-chrome';
@@ -31,7 +31,7 @@ function run(action: FabAction): void {
       <template #activator="{ props: activator }">
         <v-btn
           v-bind="activator"
-          :icon="open ? mdiClose : props.fab.icon"
+          :icon="open ? msClose : props.fab.icon"
           color="service"
           variant="flat"
           rounded="lg"

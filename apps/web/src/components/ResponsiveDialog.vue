@@ -1,9 +1,10 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-// Dialogue sur desktop, bottom sheet sur mobile : titre, contenu,
-// actions en pied.
+// Dialogue sur desktop, bottom sheet sur mobile : titre et croix de
+// fermeture, contenu, actions en pied.
 import { useDisplay } from 'vuetify';
 import { VBottomSheet, VDialog } from 'vuetify/components';
+import DialogTitle from './DialogTitle.vue';
 
 const open = defineModel<boolean>({ required: true });
 defineProps<{ title: string; titleColor?: string; maxWidth?: number }>();
@@ -13,9 +14,11 @@ const { smAndDown } = useDisplay();
 <template>
   <component :is="smAndDown ? VBottomSheet : VDialog" v-model="open" :max-width="maxWidth ?? 560">
     <v-card>
-      <v-card-title class="text-title-large pt-4" :class="titleColor ? `text-${titleColor}` : ''">{{
-        title
-      }}</v-card-title>
+      <DialogTitle
+        :title="title"
+        :title-class="titleColor ? `text-${titleColor}` : undefined"
+        @close="open = false"
+      />
       <v-card-text>
         <slot />
       </v-card-text>

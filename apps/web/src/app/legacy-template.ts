@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Messages de l'original à marqueurs `__NOM__` (`confirm_delete_indexer_tpl`,
-// `test_failure_tpl`…), repris tels quels des catalogues (D10) : le JavaScript
-// inline de Prismarr les complétait par `replace('__NAME__', …)`. Les valeurs
+// Messages des catalogues à marqueurs `__NOM__` (`confirm_delete_indexer_tpl`,
+// `test_failure_tpl`…), complétés par `replace('__NAME__', …)`. Les valeurs
 // sont insérées en texte (jamais en HTML).
 
 /** Remplace chaque `__CLÉ__` du message par sa valeur (`{ NAME: 'x' }`). */

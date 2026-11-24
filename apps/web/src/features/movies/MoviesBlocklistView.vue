@@ -3,7 +3,7 @@
 // Liste de blocage de l'instance (`media/films_blocklist.html.twig`) : 50 par
 // page ; supprimer une entrée ou la sélection (cases, « tout cocher »).
 import type { MovieBlocklistItem } from '@hubarr/shared';
-import { mdiDelete, mdiMagnify } from '@mdi/js';
+import { msDelete, msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -83,7 +83,7 @@ const reason = (item: MovieBlocklistItem) =>
       <v-spacer />
       <v-btn
         v-if="selected.length > 0"
-        :prepend-icon="mdiDelete"
+        :prepend-icon="msDelete"
         color="error"
         size="small"
         variant="flat"
@@ -97,7 +97,7 @@ const reason = (item: MovieBlocklistItem) =>
     }}</v-alert>
     <v-filter-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="t('media.arr_lists.search_movie')"
       :aria-label="t('media.arr_lists.search_movie')"
       density="compact"
@@ -201,7 +201,7 @@ const reason = (item: MovieBlocklistItem) =>
             </td>
             <td>
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 size="small"
                 variant="text"
                 color="error"

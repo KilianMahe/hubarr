@@ -10,7 +10,7 @@ import {
   providerTestResponseSchema,
   type Provider,
 } from '@hubarr/shared';
-import { mdiCheck, mdiClose, mdiDelete, mdiFlask, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msCheck, msClose, msDelete, msEdit, msScience } from '../../components/symbols';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api } from '../../app/api/client';
@@ -90,12 +90,12 @@ async function onSaved(): Promise<void> {
 
 const testIcon = (id: number | undefined) =>
   id === undefined
-    ? mdiFlask
+    ? msScience
     : tests.get(id) === 'ok'
-      ? mdiCheck
+      ? msCheck
       : tests.get(id) === 'failed'
-        ? mdiClose
-        : mdiFlask;
+        ? msClose
+        : msScience;
 const syncLabel = (level: unknown) =>
   level === 'disabled'
     ? t('prowlarr.apps.sync_disabled')
@@ -125,7 +125,7 @@ const TRIGGER_BADGES = [
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="provider-add"
         @click="edit(null)"
         >{{ t(`${spec.prefix}.add_btn`) }}</v-btn
@@ -202,7 +202,7 @@ const TRIGGER_BADGES = [
         <v-divider />
         <v-card-actions>
           <v-btn
-            :icon="mdiPencil"
+            :icon="msEdit"
             size="small"
             variant="text"
             :aria-label="t('prowlarr.common.edit')"
@@ -220,7 +220,7 @@ const TRIGGER_BADGES = [
           />
           <v-spacer />
           <v-btn
-            :icon="mdiDelete"
+            :icon="msDelete"
             size="small"
             variant="text"
             color="error"

@@ -4,7 +4,7 @@
 // action en haut à droite (slot `action`), qualité en bas à droite, badges en
 // bas à gauche (slot `badges`), barre de progression facultative ; légende
 // titre + sous-titre sauf en mode `compact`. Coins sans chevauchement (F3).
-import { mdiCheck } from '@mdi/js';
+import { msCheck } from '../symbols';
 import QualityChip from './QualityChip.vue';
 import StatusChip from './StatusChip.vue';
 
@@ -73,7 +73,7 @@ const emit = defineEmits<{ open: []; select: [event: MouseEvent | KeyboardEvent]
           class="poster-card__progress"
         />
         <span v-if="selectMode" class="poster-card__check" aria-hidden="true">
-          <v-icon v-if="selected" :icon="mdiCheck" size="16" />
+          <v-icon v-if="selected" :icon="msCheck" size="16" />
         </span>
       </div>
       <div v-if="!compact" class="poster-card__caption">
@@ -177,6 +177,10 @@ const emit = defineEmits<{ open: []; select: [event: MouseEvent | KeyboardEvent]
   min-width: 0;
 }
 .poster-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: calc(100% - 12px);
   position: absolute;
   left: 6px;
   /* Au-dessus de la légende (2 lignes) : bas gauche de l'affiche. */

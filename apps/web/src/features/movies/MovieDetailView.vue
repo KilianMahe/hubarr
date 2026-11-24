@@ -21,21 +21,21 @@ import type {
   MovieLibraryItem,
 } from '@hubarr/shared';
 import {
-  mdiAlertCircleOutline,
-  mdiBookmark,
-  mdiBookmarkOutline,
-  mdiChevronRight,
-  mdiDeleteOutline,
-  mdiFileDocumentOutline,
-  mdiHistory,
-  mdiInformationOutline,
-  mdiLightningBolt,
-  mdiMagnify,
-  mdiPencil,
-  mdiViewGridOutline,
-  mdiRefresh,
-  mdiStar,
-} from '@mdi/js';
+  msBookmark,
+  msBookmarkFill,
+  msCheckCircle,
+  msChevronRight,
+  msDelete,
+  msDescription,
+  msEdit,
+  msError,
+  msGridView,
+  msHistory,
+  msInfo,
+  msRefresh,
+  msSchedule,
+  msSearch,
+} from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, reactive, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -49,11 +49,16 @@ import EmptyState from '../../components/EmptyState.vue';
 import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import DetailCard from '../../components/ds/DetailCard.vue';
-import DetailHeader from '../../components/ds/DetailHeader.vue';
+import DetailFacts from '../../components/ds/DetailFacts.vue';
+import DetailLayout from '../../components/ds/DetailLayout.vue';
+import DetailState from '../../components/ds/DetailState.vue';
 import ReleaseList from '../../components/ReleaseList.vue';
 import type { GrabState } from '../../components/release-sort';
 import BulkDeleteDialog from '../../components/BulkDeleteDialog.vue';
 import MovieSubtitles from '../bazarr/MovieSubtitles.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
+import { useWatched } from '../activity/watched';
+import DetailSuggestions from '../discover/DetailSuggestions.vue';
 import MovieCredits from './MovieCredits.vue';
 import MovieEditPanel from './MovieEditPanel.vue';
 import MovieFilesPanel from './MovieFilesPanel.vue';
@@ -134,6 +139,12 @@ const detail = useQuery({
   retry: false,
 });
 const movie = computed<MovieDetail | undefined>(() => detail.data.value);
+// « Vu » par l'utilisateur connecté (Tracearr, lot 7).
+const watchedIndex = useWatched();
+const watched = computed(() => {
+  const id = movie.value?.tmdbId;
+  return id !== undefined && id !== null && watchedIndex.value.movies.has(id);
+});
 const notFound = computed(
   () => detail.error.value instanceof ApiError && detail.error.value.status === 404,
 );
@@ -274,6 +285,43 @@ const BADGES: Record<BadgeKind, { color: string; label: string; tip: string }> =
     tip: 'media.films.status.released_not_found',
   },
 };
+/** État principal (disponibilité) ; le suivi passe dans la précision. */
+const mainBadge = computed<BadgeKind>(
+  () => badges.value.find((b) => b !== 'monitored' && b !== 'unmonitored') ?? 'missing',
+);
+const STATE_ICONS: Record<BadgeKind, string> = {
+  monitored: msBookmarkFill,
+  unmonitored: msBookmark,
+  downloaded: msCheckCircle,
+  unavailable: msSchedule,
+  missing: msError,
+};
+const stateDetail = computed(() => {
+  const value = movie.value;
+  if (!value) return '';
+  return [
+    t(value.monitored ? 'media.page.monitored' : 'media.page.unmonitored'),
+    value.quality,
+    value.sizeOnDisk > 0 ? format.bytes(value.sizeOnDisk) : null,
+  ]
+    .filter((part): part is string => typeof part === 'string' && part !== '')
+    .join(' · ');
+});
+/** Chiffres clés de la colonne : notes, qualité, taille. */
+const facts = computed(() => {
+  const value = movie.value;
+  if (!value) return [];
+  return [
+    { key: 'imdb', label: 'IMDb', value: ratings.value.imdb },
+    { key: 'tmdb', label: 'TMDB', value: ratings.value.tmdb },
+    { key: 'quality', label: t('media.page.quality'), value: value.quality },
+    {
+      key: 'size',
+      label: t('media.page.size'),
+      value: value.sizeOnDisk > 0 ? format.bytes(value.sizeOnDisk) : null,
+    },
+  ].filter((fact): fact is { key: string; label: string; value: string } => !!fact.value);
+});
 function badgeLabel(kind: BadgeKind): string {
   if (kind !== 'unavailable') return t(BADGES[kind].label);
   const inCinemas = movie.value?.status === 'inCinemas';
@@ -731,43 +779,18 @@ function setPanel(name: string, value: boolean): void {
 }
 const overviewOpen = ref(false);
 
-// Speed-dial (mobile, D130, P5b.4) : recherches, actualisation et édition,
-// à la place du FAB d'ajout du service ; la rangée d'actions garde le suivi.
+// Mobile (P5b.4) : les actions restent dans la page (rangée d'actions) ;
+// le bouton central de la barre basse ouvre l'édition.
 const { smAndDown } = useDisplay();
 useServiceFab(() =>
   smAndDown.value && movie.value
     ? {
-        icon: mdiLightningBolt,
-        label: t('common.ds.actions'),
-        testId: 'movie-speed-dial',
-        actions: [
-          {
-            icon: mdiMagnify,
-            label: t('media.films.detail.search'),
-            testId: 'movie-search',
-            onClick: () => void runSearch(),
-          },
-          {
-            icon: mdiViewGridOutline,
-            label: t('media.films.detail.interactive_search'),
-            testId: 'movie-interactive',
-            onClick: () => void openReleases(),
-          },
-          {
-            icon: mdiRefresh,
-            label: t('media.films.detail.refresh_scan'),
-            testId: 'movie-refresh',
-            onClick: () => void runRefresh(),
-          },
-          {
-            icon: mdiPencil,
-            label: t('media.films.detail.edit'),
-            testId: 'movie-edit-fab',
-            onClick: () => {
-              setPanel('edit', true);
-            },
-          },
-        ],
+        icon: msEdit,
+        label: t('media.films.detail.edit'),
+        testId: 'movie-edit-fab',
+        onClick: () => {
+          setPanel('edit', true);
+        },
       }
     : null,
 );
@@ -783,7 +806,7 @@ function onFilesChanged(): void {
   <div class="detail-page" data-test="movie-detail">
     <ServiceDownBanner service="radarr" :instance="props.slug" />
     <!-- En-tête : image de fond, affiche, titre, statut, métadonnées -->
-    <DetailHeader
+    <DetailLayout
       :title="title"
       :fanart="fanart"
       :poster="poster"
@@ -794,73 +817,90 @@ function onFilesChanged(): void {
       <template #title
         >{{ title }}<template v-if="year"> ({{ year }})</template></template
       >
-      <div
-        v-if="movie?.originalTitle && movie.originalTitle !== movie.title"
-        class="text-body-small detail-soft"
-      >
-        {{ t('media.films.detail.original_title_prefix') }}{{ movie.originalTitle }}
-      </div>
-      <div v-if="movie" class="d-flex flex-wrap ga-1 my-2" data-test="movie-badges">
-        <v-chip
-          v-for="badge in badges.filter((b) => b !== 'monitored' && b !== 'unmonitored')"
-          :key="badge"
-          size="small"
-          variant="flat"
-          :color="BADGES[badge].color"
-          :title="badgeTip(badge)"
-          >{{ badgeLabel(badge) }}</v-chip
+      <template #meta>
+        <div
+          v-if="movie?.originalTitle && movie.originalTitle !== movie.title"
+          class="text-body-small detail-soft mb-1"
         >
-        <v-chip
-          v-if="movie.quality"
-          size="small"
-          variant="flat"
-          color="info"
-          :title="t('media.films.status.file_quality_tip')"
-          >{{ movie.quality }}</v-chip
-        >
-        <v-chip
-          v-if="movie.sizeOnDisk > 0"
-          size="small"
-          variant="flat"
-          color="surface"
-          :title="t('media.films.status.file_size_tip')"
-          >{{ format.bytes(movie.sizeOnDisk) }}</v-chip
-        >
-      </div>
-      <div v-if="movie" class="d-flex flex-wrap align-center ga-3 text-body-medium detail-soft">
-        <span v-if="movie.runtime">{{ formatRuntime(movie.runtime) }}</span>
-        <v-chip v-if="movie.certification" size="x-small" label variant="outlined">{{
-          movie.certification
-        }}</v-chip>
-        <span v-if="ratings.imdb" class="detail-rating" title="IMDb">
-          <v-icon :icon="mdiStar" size="16" color="#f5c518" />{{ ratings.imdb }}
-        </span>
-        <span v-if="ratings.tmdb" class="detail-rating" title="TMDB">
-          <v-icon :icon="mdiStar" size="16" color="#01d277" />{{ ratings.tmdb }}
-        </span>
-        <a v-if="imdbUrl" :href="imdbUrl" target="_blank" rel="noopener" class="detail-link"
-          >IMDb</a
-        >
-        <a v-if="tmdbUrl" :href="tmdbUrl" target="_blank" rel="noopener" class="detail-link"
-          >TMDB</a
-        >
-      </div>
-      <div v-if="movie && movie.genres.length > 0" class="d-flex flex-wrap ga-1 mt-2">
-        <v-chip v-for="genre in movie.genres" :key="genre" size="x-small" variant="tonal">{{
-          genre
-        }}</v-chip>
-      </div>
-    </DetailHeader>
+          {{ t('media.films.detail.original_title_prefix') }}{{ movie.originalTitle }}
+        </div>
+        <div v-if="movie" class="d-flex flex-wrap align-center ga-2 text-body-medium detail-soft">
+          <WatchedBadge v-if="watched" :progress="{ kind: 'all' }" />
+          <span v-if="movie.runtime">{{ formatRuntime(movie.runtime) }}</span>
+          <v-chip v-if="movie.certification" size="x-small" label variant="outlined">{{
+            movie.certification
+          }}</v-chip>
+          <v-chip v-for="genre in movie.genres" :key="genre" size="x-small" variant="tonal">{{
+            genre
+          }}</v-chip>
+          <a v-if="imdbUrl" :href="imdbUrl" target="_blank" rel="noopener" class="detail-link"
+            >IMDb</a
+          >
+          <a v-if="tmdbUrl" :href="tmdbUrl" target="_blank" rel="noopener" class="detail-link"
+            >TMDB</a
+          >
+        </div>
+      </template>
 
-    <div class="detail-page__body">
-      <EmptyState
-        v-if="notFound"
-        :icon="mdiAlertCircleOutline"
-        :title="t('media.api.movie_not_found')"
-      />
+      <template v-if="movie" #aside>
+        <!-- État : disponibilité, suivi, qualité et taille du fichier -->
+        <DetailState
+          :color="BADGES[mainBadge].color"
+          :icon="STATE_ICONS[mainBadge]"
+          :title="badgeLabel(mainBadge)"
+          :subtitle="stateDetail"
+          :tip="badgeTip(mainBadge)"
+          data-test="movie-badges"
+        />
+        <!-- Actions : recherche en premier, suivi (état explicite, G2), actualisation -->
+        <div class="detail-actions">
+          <v-btn
+            :prepend-icon="msSearch"
+            color="service"
+            variant="flat"
+            :loading="busy.search"
+            data-test="movie-search"
+            @click="runSearch"
+            >{{ t('media.films.detail.search') }}</v-btn
+          >
+          <div class="detail-actions__list">
+            <v-btn
+              :prepend-icon="movie.monitored ? msBookmarkFill : msBookmark"
+              variant="text"
+              :aria-pressed="movie.monitored"
+              :loading="busy.monitor"
+              data-test="movie-monitor"
+              @click="toggleMonitor"
+              >{{
+                t(movie.monitored ? 'media.films.detail.unfollow' : 'media.films.detail.follow')
+              }}</v-btn
+            >
+            <v-btn
+              :prepend-icon="msGridView"
+              variant="text"
+              :loading="releasesPanel.loading"
+              data-test="movie-interactive"
+              @click="openReleases"
+              >{{ t('media.films.detail.interactive_search') }}</v-btn
+            >
+            <v-btn
+              :prepend-icon="msRefresh"
+              variant="text"
+              :loading="busy.refresh"
+              data-test="movie-refresh"
+              @click="runRefresh"
+              >{{ t('media.films.detail.refresh_scan') }}</v-btn
+            >
+          </div>
+        </div>
+
+        <DetailFacts :facts="facts" />
+      </template>
+
+      <EmptyState v-if="notFound" :icon="msError" :title="t('media.api.movie_not_found')" />
       <EmptyState
         v-else-if="detail.isError.value && !movie"
-        :icon="mdiAlertCircleOutline"
+        :icon="msError"
         :title="t('media.films.detail.loading_error_short')"
       >
         <v-btn variant="tonal" @click="detail.refetch()">{{ t('common.action.retry') }}</v-btn>
@@ -869,51 +909,6 @@ function onFilesChanged(): void {
         <v-progress-circular indeterminate color="service" />
       </div>
       <template v-else>
-        <!-- Rangée d'actions : suivi (état explicite, G2), recherches, actualisation -->
-        <div class="detail-page__actions">
-          <v-btn
-            :prepend-icon="movie.monitored ? mdiBookmark : mdiBookmarkOutline"
-            :variant="movie.monitored ? 'tonal' : 'outlined'"
-            :color="movie.monitored ? 'service-text' : undefined"
-            :aria-pressed="movie.monitored"
-            :loading="busy.monitor"
-            data-test="movie-monitor"
-            @click="toggleMonitor"
-            >{{
-              t(movie.monitored ? 'media.films.detail.unfollow' : 'media.films.detail.follow')
-            }}</v-btn
-          >
-          <!-- Mobile : recherches et actualisation dans le speed-dial -->
-          <template v-if="!smAndDown">
-            <v-btn
-              :prepend-icon="mdiMagnify"
-              color="service"
-              variant="flat"
-              :loading="busy.search"
-              data-test="movie-search"
-              @click="runSearch"
-              >{{ t('media.films.detail.search') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiViewGridOutline"
-              color="service-text"
-              variant="tonal"
-              :loading="releasesPanel.loading"
-              data-test="movie-interactive"
-              @click="openReleases"
-              >{{ t('media.films.detail.interactive_search') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiRefresh"
-              variant="text"
-              :loading="busy.refresh"
-              data-test="movie-refresh"
-              @click="runRefresh"
-              >{{ t('media.films.detail.refresh_scan') }}</v-btn
-            >
-          </template>
-        </div>
-
         <v-alert
           v-if="feedback"
           :type="feedback.type"
@@ -954,7 +949,7 @@ function onFilesChanged(): void {
           <!-- Fichier : informations techniques, extras, renommage, gestion -->
           <DetailCard
             :title="t('media.films.detail.file_info')"
-            :icon="mdiFileDocumentOutline"
+            :icon="msDescription"
             data-test="movie-file-card"
           >
             <dl v-if="tech.length > 0" class="movie-page__tech" data-test="movie-techinfo">
@@ -997,7 +992,7 @@ function onFilesChanged(): void {
             <v-btn
               variant="tonal"
               size="small"
-              :append-icon="mdiChevronRight"
+              :append-icon="msChevronRight"
               data-test="panel-files"
               @click="setPanel('files', true)"
               >{{ t('media.films.detail.manage_files') }}</v-btn
@@ -1005,7 +1000,7 @@ function onFilesChanged(): void {
           </DetailCard>
 
           <!-- Détails : titres alternatifs, édition -->
-          <DetailCard :title="t('decouverte.action.details')" :icon="mdiInformationOutline">
+          <DetailCard :title="t('decouverte.action.details')" :icon="msInfo">
             <v-alert
               v-if="editFeedback"
               :type="editFeedback.type"
@@ -1019,7 +1014,7 @@ function onFilesChanged(): void {
               <v-btn
                 variant="tonal"
                 size="small"
-                :prepend-icon="mdiPencil"
+                :prepend-icon="msEdit"
                 data-test="panel-edit"
                 @click="setPanel('edit', true)"
                 >{{ t('media.films.detail.edit_modify') }}</v-btn
@@ -1028,7 +1023,7 @@ function onFilesChanged(): void {
                 v-if="movie.alternateTitles.length > 0"
                 variant="text"
                 size="small"
-                :append-icon="mdiChevronRight"
+                :append-icon="msChevronRight"
                 @click="setPanel('titles', true)"
                 >{{ t('media.films.detail.titles') }}</v-btn
               >
@@ -1038,7 +1033,7 @@ function onFilesChanged(): void {
           <!-- Historique résumé : l'historique complet et la liste de blocage en feuille -->
           <DetailCard
             :title="t('media.films.detail.history')"
-            :icon="mdiHistory"
+            :icon="msHistory"
             data-test="movie-history-card"
           >
             <v-progress-linear v-if="history.isPending.value" indeterminate color="service" />
@@ -1053,7 +1048,7 @@ function onFilesChanged(): void {
               <v-btn
                 variant="text"
                 size="small"
-                :append-icon="mdiChevronRight"
+                :append-icon="msChevronRight"
                 data-test="panel-history"
                 @click="setPanel('history', true)"
                 >{{ t('common.action.view_all') }}</v-btn
@@ -1061,7 +1056,7 @@ function onFilesChanged(): void {
               <v-btn
                 variant="text"
                 size="small"
-                :append-icon="mdiChevronRight"
+                :append-icon="msChevronRight"
                 data-test="panel-blocklist"
                 @click="setPanel('blocklist', true)"
                 >{{ t('media.films_blocklist.title') }}</v-btn
@@ -1089,7 +1084,7 @@ function onFilesChanged(): void {
                 data-test="person-follow"
                 @click="toggleFollow(person)"
               >
-                <v-icon :icon="isFollowed(person) ? mdiBookmark : mdiBookmarkOutline" size="16" />
+                <v-icon :icon="isFollowed(person) ? msBookmarkFill : msBookmark" size="16" />
               </button>
             </template>
           </MovieCredits>
@@ -1108,53 +1103,60 @@ function onFilesChanged(): void {
                   data-test="person-follow"
                   @click="toggleFollow(person)"
                 >
-                  <v-icon :icon="isFollowed(person) ? mdiBookmark : mdiBookmarkOutline" size="16" />
+                  <v-icon :icon="isFollowed(person) ? msBookmarkFill : msBookmark" size="16" />
                 </button>
               </template>
             </MovieCredits>
           </template>
         </DetailCard>
 
-        <!-- Suppression : boutons lisibles en entier (G2) -->
-        <DetailCard
-          :title="t('common.action.delete')"
-          :icon="mdiDeleteOutline"
-          title-color="error"
-          class="mt-4"
-        >
-          <div class="d-flex flex-wrap ga-2">
-            <v-btn
-              color="warning"
-              variant="tonal"
-              size="small"
-              :disabled="busy.delete"
-              data-test="movie-delete-radarr"
-              @click="askDelete('radarr')"
-              >{{ t('media.films.detail.remove_from_radarr') }}</v-btn
-            >
-            <v-btn
-              v-if="movie.hasFile"
-              color="error"
-              variant="tonal"
-              size="small"
-              :disabled="busy.delete"
-              data-test="movie-delete-file"
-              @click="askDelete('file')"
-              >{{ t('media.films.detail.delete_file') }}</v-btn
-            >
-            <v-btn
-              color="error"
-              variant="tonal"
-              size="small"
-              :disabled="busy.delete"
-              data-test="movie-delete-all"
-              @click="askDelete('all')"
-              >{{ t('media.films.detail.delete_all') }}</v-btn
-            >
-          </div>
-        </DetailCard>
+        <!-- Suggestions TMDB : recommandations et similaires -->
+        <DetailSuggestions type="movie" :tmdb-id="movie.tmdbId" class="mt-4" />
+
+        <!-- Suppression : repliée, boutons lisibles en entier (G2) -->
+        <v-expansion-panels variant="accordion" class="mt-4 detail-more">
+          <v-expansion-panel elevation="0" rounded="lg" eager>
+            <v-expansion-panel-title>
+              <span class="d-flex align-center ga-2 text-error"
+                ><v-icon :icon="msDelete" size="18" />{{ t('common.action.delete') }}</span
+              >
+            </v-expansion-panel-title>
+            <v-expansion-panel-text>
+              <div class="d-flex flex-wrap ga-2">
+                <v-btn
+                  color="warning"
+                  variant="tonal"
+                  size="small"
+                  :disabled="busy.delete"
+                  data-test="movie-delete-radarr"
+                  @click="askDelete('radarr')"
+                  >{{ t('media.films.detail.remove_from_radarr') }}</v-btn
+                >
+                <v-btn
+                  v-if="movie.hasFile"
+                  color="error"
+                  variant="tonal"
+                  size="small"
+                  :disabled="busy.delete"
+                  data-test="movie-delete-file"
+                  @click="askDelete('file')"
+                  >{{ t('media.films.detail.delete_file') }}</v-btn
+                >
+                <v-btn
+                  color="error"
+                  variant="tonal"
+                  size="small"
+                  :disabled="busy.delete"
+                  data-test="movie-delete-all"
+                  @click="askDelete('all')"
+                  >{{ t('media.films.detail.delete_all') }}</v-btn
+                >
+              </div>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
       </template>
-    </div>
+    </DetailLayout>
 
     <!-- Feuilles (bottom sheet sur mobile, dialogue sur desktop) -->
     <ResponsiveDialog

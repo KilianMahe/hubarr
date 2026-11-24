@@ -2,18 +2,26 @@
 <script setup lang="ts">
 // Ligne dense à vignette (vue « étendue »), sur `MediaListItem` : affiche,
 // titre, année · durée · taille, puces de statut et de qualité, genres sur
-// grand écran (P5b.1 F2 : plus de synopsis, ~7 films par écran sur mobile).
+// grand écran (P5b.1 F2 : plus de synopsis, ~7 films par écran sur mobile) ;
+// « Vu » (Tracearr, lot 7).
 import type { MovieLibraryItem } from '@hubarr/shared';
-import { mdiBookmark, mdiBookmarkOutline } from '@mdi/js';
+import { msBookmark, msBookmarkFill } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MediaListItem from '../../components/ds/MediaListItem.vue';
 import QualityChip from '../../components/ds/QualityChip.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
 import StatusChip from '../../components/ds/StatusChip.vue';
 import { STATUS_COLORS, displayStatusOf, statusLabelKey } from './library';
 import { posterUrl, sizeText, statusTitle } from './movie-display';
 
-const props = defineProps<{ movie: MovieLibraryItem; selectMode: boolean; selected: boolean }>();
+const props = defineProps<{
+  movie: MovieLibraryItem;
+  selectMode: boolean;
+  selected: boolean;
+  /** Vu par l'utilisateur connecté (Tracearr). */
+  watched?: boolean;
+}>();
 const emit = defineEmits<{
   select: [event: MouseEvent | KeyboardEvent];
   open: [];
@@ -48,6 +56,7 @@ const runtime = computed(() => (props.movie.runtime ? `${props.movie.runtime} mi
         :title="statusTitle(t, movie)"
       />
       <QualityChip v-if="movie.quality" :quality="movie.quality" />
+      <WatchedBadge v-if="watched" dense :progress="{ kind: 'all' }" />
       <v-chip
         v-for="genre in movie.genres.slice(0, 3)"
         :key="genre"
@@ -60,7 +69,7 @@ const runtime = computed(() => (props.movie.runtime ? `${props.movie.runtime} mi
     </template>
     <template #append>
       <v-btn
-        :icon="movie.monitored ? mdiBookmark : mdiBookmarkOutline"
+        :icon="movie.monitored ? msBookmarkFill : msBookmark"
         :color="movie.monitored ? 'service-text' : 'muted'"
         variant="text"
         size="small"

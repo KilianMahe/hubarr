@@ -4,21 +4,20 @@
 // version, pages hors de la barre basse (liste de blocage, cutoff,
 // collections, système), commandes de l'instance (actualiser, RSS,
 // rechercher les manquants) et pages d'administration groupées comme le menu
-// « Paramètres ». Compteurs de la bibliothèque dans la barre du haut (mobile).
+// « Paramètres ». Compteurs de la bibliothèque sous la version.
 import { gbParts } from '../../app/format';
 import { SERVICE_SETTINGS, type ArrKind, type CommandStartedResponse } from '@hubarr/shared';
-import { mdiMagnifyScan, mdiRefresh, mdiRss } from '@mdi/js';
+import { msRefresh, msRssFeed, msTroubleshoot } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import type { ArrPage, BottomNavItem } from '../../app/navigation';
-import { useTopBarStats } from '../../app/service-chrome';
 import { useNotifyStore } from '../../app/stores/notify';
 import { useSessionStore } from '../../app/stores/session';
 import ServerPanel from '../../components/ServerPanel.vue';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
-import type { ServerGroup } from '../../components/server-panel';
+import type { ServerGroup, ServerStat } from '../../components/server-panel';
 import RadarrNav from '../movies/RadarrNav.vue';
 import { moviesApi, moviesKeys } from '../movies/movies-api';
 import { RADARR_BOTTOM_NAV, RADARR_PAGES } from '../movies/radarr-pages';
@@ -59,7 +58,7 @@ const system = useQuery({
 });
 const version = computed(() => system.data.value?.status?.version ?? null);
 
-useTopBarStats(() => {
+const stats = computed<ServerStat[] | null>(() => {
   if (props.kind === 'radarr') {
     const stats = movies.data.value?.stats;
     if (!stats) return null;
@@ -127,19 +126,19 @@ const groups = computed<ServerGroup[]>(() => {
       items: [
         {
           id: 'refresh-all',
-          icon: mdiRefresh,
+          icon: msRefresh,
           label: refreshLabel,
           run: () => command(api.refreshAll, refreshLabel),
         },
         {
           id: 'rss-sync',
-          icon: mdiRss,
+          icon: msRssFeed,
           label: rssLabel,
           run: () => command(api.rssSync, rssLabel),
         },
         {
           id: 'search-missing',
-          icon: mdiMagnifyScan,
+          icon: msTroubleshoot,
           label: missingLabel,
           confirm: t('server.commands.search_missing_confirm'),
           run: () =>
@@ -169,6 +168,7 @@ const groups = computed<ServerGroup[]>(() => {
       :service="kind"
       :title="SERVICE_SETTINGS[kind].label"
       :version="version"
+      :stats="stats"
       :groups="groups"
     />
   </v-container>

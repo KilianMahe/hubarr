@@ -9,14 +9,13 @@
 // (`imported`). Le passage au flux SSE viendra en P5.
 import type { MovieQueueItem } from '@hubarr/shared';
 import {
-  mdiAlert,
-  mdiChevronRight,
-  mdiDelete,
-  mdiDownload,
-  mdiFolderSearchOutline,
-  mdiRefresh,
-  mdiTrayArrowDown,
-} from '@mdi/js';
+  msChevronRight,
+  msDelete,
+  msDownload,
+  msFolderOpen,
+  msRefresh,
+  msWarningFill,
+} from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -279,7 +278,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
     <div v-if="items.length > 0" class="d-flex align-center pa-2 ga-2">
       <v-btn
         v-if="!standalone"
-        :prepend-icon="mdiChevronRight"
+        :prepend-icon="msChevronRight"
         variant="text"
         class="queue-toggle flex-grow-1 justify-start"
         :class="{ 'queue-toggle--open': open }"
@@ -287,7 +286,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
         data-test="queue-toggle"
         @click="open = !open"
       >
-        <v-icon :icon="mdiTrayArrowDown" size="18" class="mr-2" />
+        <v-icon :icon="msDownload" size="18" class="mr-2" />
         {{ t('media.films.queue.title') }}
         <v-chip
           size="x-small"
@@ -300,7 +299,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
       </v-btn>
       <v-btn
         v-if="delayed.length > 1"
-        :prepend-icon="mdiDownload"
+        :prepend-icon="msDownload"
         size="small"
         variant="tonal"
         color="success"
@@ -338,7 +337,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
               :key="index"
               class="text-body-small text-error"
             >
-              <v-icon :icon="mdiAlert" size="12" /> {{ message.messages.join('. ') }}
+              <v-icon :icon="msWarningFill" size="12" /> {{ message.messages.join('. ') }}
             </div>
             <template v-if="runOf(item)">
               <v-progress-linear
@@ -400,7 +399,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
           <div class="queue-item__actions">
             <template v-if="standalone && item.movieId !== null">
               <v-btn
-                :icon="mdiRefresh"
+                :icon="msRefresh"
                 size="small"
                 variant="text"
                 :loading="commandBusy[`refresh${item.movieId}`]"
@@ -410,7 +409,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
                 @click="movieCommand(item.movieId, item.title, 'refresh')"
               />
               <v-btn
-                :icon="mdiFolderSearchOutline"
+                :icon="msFolderOpen"
                 size="small"
                 variant="text"
                 :loading="commandBusy[`rescan${item.movieId}`]"
@@ -422,7 +421,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
             </template>
             <v-btn
               v-if="queueActions(item).import"
-              :icon="mdiTrayArrowDown"
+              :icon="msDownload"
               size="small"
               variant="text"
               color="primary"
@@ -434,7 +433,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
             />
             <v-btn
               v-if="queueActions(item).grab"
-              :icon="mdiDownload"
+              :icon="msDownload"
               size="small"
               variant="text"
               color="success"
@@ -445,7 +444,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
               @click="forceGrab(item)"
             />
             <v-btn
-              :icon="mdiDelete"
+              :icon="msDelete"
               size="small"
               variant="text"
               color="error"

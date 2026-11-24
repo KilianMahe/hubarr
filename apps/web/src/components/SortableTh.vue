@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // En-tête de colonne triable (P5c.5, V5) : bouton dans le `<th>`, flèche du
 // sens courant, `aria-sort` sur la colonne triée.
-import { mdiArrowDown, mdiArrowUp, mdiSwapVertical } from '@mdi/js';
+import { msArrowDownward, msArrowUpward, msSwapVert } from './symbols';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -19,7 +19,7 @@ const ariaSort = computed(() =>
   active.value ? (props.dir === 'asc' ? 'ascending' : 'descending') : 'none',
 );
 const icon = computed(() =>
-  active.value ? (props.dir === 'asc' ? mdiArrowUp : mdiArrowDown) : mdiSwapVertical,
+  active.value ? (props.dir === 'asc' ? msArrowUpward : msArrowDownward) : msSwapVert,
 );
 </script>
 

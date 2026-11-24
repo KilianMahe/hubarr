@@ -5,21 +5,21 @@
 // Hubarr (P5c.4, D140). Source unique des routes Vue et de la navigation.
 
 import {
-  mdiApplicationCogOutline,
-  mdiBackupRestore,
-  mdiBellOutline,
-  mdiCalendarClock,
-  mdiCogOutline,
-  mdiDownload,
-  mdiHistory,
-  mdiInformationOutline,
-  mdiPaletteOutline,
-  mdiPlus,
-  mdiRadar,
-  mdiTagOutline,
-  mdiTextBoxOutline,
-  mdiUpdate,
-} from '@mdi/js';
+  msAdd,
+  msArticle,
+  msDownload,
+  msEventUpcoming,
+  msHistory,
+  msInfo,
+  msNotifications,
+  msPalette,
+  msRadar,
+  msSell,
+  msSettings,
+  msSettingsApplications,
+  msSettingsBackupRestore,
+  msUpdate,
+} from '../../components/symbols';
 import type { RouteRecordSingleView } from 'vue-router';
 import type { ArrPage, BottomNavItem, RouteFab } from '../../app/navigation';
 
@@ -30,8 +30,8 @@ export interface ProwlarrPage extends ArrPage {
 }
 
 export const PROWLARR_PAGES: ArrPage[] = [
-  { name: 'prowlarr', labelKey: 'prowlarr.nav.indexers', icon: mdiRadar },
-  { name: 'prowlarr-history', labelKey: 'prowlarr.nav.history', icon: mdiHistory },
+  { name: 'prowlarr', labelKey: 'prowlarr.nav.indexers', icon: msRadar },
+  { name: 'prowlarr-history', labelKey: 'prowlarr.nav.history', icon: msHistory },
 ];
 
 /**
@@ -47,7 +47,7 @@ export const PROWLARR_BOTTOM_NAV: BottomNavItem[] = PROWLARR_PAGES.map((entry) =
 
 /** FAB (mobile) : ajout d'un indexeur, exécuté par la liste des indexeurs (`?action=add`). */
 export const PROWLARR_FAB: RouteFab = {
-  icon: mdiPlus,
+  icon: msAdd,
   labelKey: 'prowlarr.common.add',
   action: 'add',
   index: 'prowlarr',
@@ -70,7 +70,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/historique',
     'prowlarr.nav.history',
     'prowlarr.history.title',
-    mdiHistory,
+    msHistory,
     () => import('./views/ProwlarrHistoryView.vue'),
   ),
   page(
@@ -78,7 +78,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/apps',
     'prowlarr.nav.apps',
     'prowlarr.apps.title',
-    mdiApplicationCogOutline,
+    msSettingsApplications,
     () => import('./views/ProwlarrAppsView.vue'),
   ),
   page(
@@ -86,7 +86,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/download-clients',
     'prowlarr.nav.download_clients',
     'prowlarr.download_clients.title',
-    mdiDownload,
+    msDownload,
     () => import('./views/ProwlarrDownloadClientsView.vue'),
   ),
   page(
@@ -94,7 +94,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/notifications',
     'prowlarr.nav.notifications',
     'prowlarr.notifications.title',
-    mdiBellOutline,
+    msNotifications,
     () => import('./views/ProwlarrNotificationsView.vue'),
   ),
   page(
@@ -102,7 +102,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/tags-page',
     'prowlarr.nav.tags',
     'prowlarr.tags.title',
-    mdiTagOutline,
+    msSell,
     () => import('./views/ProwlarrTagsView.vue'),
   ),
   page(
@@ -110,7 +110,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/general',
     'prowlarr.nav.general',
     'prowlarr.general.title',
-    mdiCogOutline,
+    msSettings,
     () => import('./views/ProwlarrGeneralView.vue'),
   ),
   page(
@@ -118,7 +118,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/ui',
     'prowlarr.nav.ui',
     'prowlarr.ui.title',
-    mdiPaletteOutline,
+    msPalette,
     () => import('./views/ProwlarrUiView.vue'),
   ),
   page(
@@ -126,7 +126,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/systeme',
     'prowlarr.nav.status',
     'prowlarr.system.title',
-    mdiInformationOutline,
+    msInfo,
     () => import('./views/ProwlarrSystemView.vue'),
   ),
   page(
@@ -134,7 +134,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/tasks',
     'prowlarr.nav.tasks',
     'prowlarr.tasks.title',
-    mdiCalendarClock,
+    msEventUpcoming,
     () => import('./views/ProwlarrTasksView.vue'),
   ),
   page(
@@ -142,7 +142,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/backups',
     'prowlarr.nav.backups',
     'prowlarr.backups.title',
-    mdiBackupRestore,
+    msSettingsBackupRestore,
     () => import('./views/ProwlarrBackupsView.vue'),
   ),
   page(
@@ -150,7 +150,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/updates',
     'prowlarr.nav.updates',
     'prowlarr.updates.title',
-    mdiUpdate,
+    msUpdate,
     () => import('./views/ProwlarrUpdatesView.vue'),
   ),
   page(
@@ -158,7 +158,7 @@ export const PROWLARR_SUBPAGES: ProwlarrPage[] = [
     'prowlarr/logs-page',
     'prowlarr.nav.logs',
     'prowlarr.logs.title',
-    mdiTextBoxOutline,
+    msArticle,
     () => import('./views/ProwlarrLogsView.vue'),
   ),
 ];
@@ -175,7 +175,7 @@ export const PROWLARR_MENUS: ProwlarrMenu[] = [
   {
     id: 'settings',
     labelKey: 'prowlarr.nav.settings',
-    icon: mdiCogOutline,
+    icon: msSettings,
     groups: [
       {
         labelKey: 'prowlarr.nav.integrations',
@@ -190,7 +190,7 @@ export const PROWLARR_MENUS: ProwlarrMenu[] = [
   {
     id: 'system',
     labelKey: 'prowlarr.nav.system',
-    icon: mdiInformationOutline,
+    icon: msInfo,
     groups: [
       {
         labelKey: null,

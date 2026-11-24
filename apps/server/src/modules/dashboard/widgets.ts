@@ -126,6 +126,9 @@ export function recentAdditions(
       downloaded: item.hasFile,
       network: null,
       slug,
+      tmdbId: item.tmdbId,
+      tvdbId: null,
+      episodeCount: 0,
     });
   }
   for (const { item, slug } of series) {
@@ -139,6 +142,9 @@ export function recentAdditions(
       downloaded: false,
       network: item.network,
       slug,
+      tmdbId: item.tmdbId,
+      tvdbId: item.tvdbId,
+      episodeCount: item.episodeCount,
     });
   }
   const epoch = '1970-01-01';

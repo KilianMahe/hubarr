@@ -5,7 +5,7 @@
 // Sur mobile (P5b.4, E3), le compteur, la sortie et « tout sélectionner »
 // passent dans la barre du haut, qui devient la barre contextuelle de la
 // sélection (`useSelectionChrome`) ; la barre ne garde que les actions.
-import { mdiClose } from '@mdi/js';
+import { msClose } from '../symbols';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { useSelectionChrome, type SelectionState } from '../../app/service-chrome';
@@ -43,7 +43,7 @@ useSelectionChrome(() => {
   >
     <template v-if="!smAndDown">
       <v-btn
-        :icon="mdiClose"
+        :icon="msClose"
         size="small"
         variant="text"
         :aria-label="t('common.ds.clear_selection')"

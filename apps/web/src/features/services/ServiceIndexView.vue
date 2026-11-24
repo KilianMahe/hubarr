@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Index provisoire d'un service (P1.4) : bannière s'il est injoignable, puis
 // emplacement en attendant ses écrans (P2 à P4).
-import { mdiTools } from '@mdi/js';
+import { msBuild } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -28,7 +28,7 @@ const title = computed(() =>
   <v-container style="max-width: 1100px">
     <ServiceDownBanner v-if="service" :service="service" :instance="slug" />
     <EmptyState
-      :icon="mdiTools"
+      :icon="msBuild"
       :title="t('service.placeholder.title', { service: title })"
       :text="t('service.placeholder.text')"
     />

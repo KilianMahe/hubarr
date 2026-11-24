@@ -6,7 +6,7 @@
 // importés), suppression confirmée (ni le propriétaire ni un admin), lien
 // vers la fiche.
 import type { SeerrUser } from '@hubarr/shared';
-import { mdiAccountPlus, mdiDelete, mdiImport } from '@mdi/js';
+import { msDelete, msInput, msPersonAdd } from '../../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -91,14 +91,14 @@ async function importUsers(): Promise<void> {
   >
     <template #actions>
       <v-btn
-        :prepend-icon="mdiAccountPlus"
+        :prepend-icon="msPersonAdd"
         variant="tonal"
         data-test="seerr-user-create"
         @click="createOpen = true"
         >{{ t('jellyseerr.users.create_user') }}</v-btn
       >
       <v-btn
-        :prepend-icon="mdiImport"
+        :prepend-icon="msInput"
         variant="tonal"
         data-test="seerr-user-import"
         @click="importOpen = true"
@@ -155,7 +155,7 @@ async function importUsers(): Promise<void> {
             <td class="text-end">
               <v-btn
                 v-if="deletable(user)"
-                :icon="mdiDelete"
+                :icon="msDelete"
                 size="small"
                 variant="text"
                 color="error"

@@ -11,7 +11,7 @@ import {
   providerTestResponseSchema,
   type Provider,
 } from '@hubarr/shared';
-import { mdiArrowLeft } from '@mdi/js';
+import { msArrowBack } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -175,7 +175,7 @@ async function save(): Promise<void> {
     @save="save"
   >
     <template v-if="base" #extra>
-      <v-btn v-if="adding" variant="text" :prepend-icon="mdiArrowLeft" @click="base = null">{{
+      <v-btn v-if="adding" variant="text" :prepend-icon="msArrowBack" @click="base = null">{{
         t('prowlarr.common.back')
       }}</v-btn>
       <v-btn

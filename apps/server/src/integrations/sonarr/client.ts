@@ -31,7 +31,7 @@ import type {
   SonarrTagDetailsResource,
 } from './types';
 
-/** Bibliothèque complète (issue #41 de Prismarr) : `/api/v3/series` dépasse 8 s sur une grosse instance. */
+/** Bibliothèque complète : `/api/v3/series` dépasse 8 s sur une grosse instance. */
 export const LIBRARY_TIMEOUT_MS = 30_000;
 /** Recherche interactive : Sonarr interroge chaque indexeur en direct (60 à 90 s). */
 export const RELEASES_TIMEOUT_MS = 90_000;

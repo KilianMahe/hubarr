@@ -4,13 +4,7 @@
 // par type, recherche, tri (ajout, titre, note, année), note personnelle,
 // retrait après confirmation ; un clic ouvre la fiche (`?detail=…`).
 import type { WatchlistItem } from '@hubarr/shared';
-import {
-  mdiDelete,
-  mdiMovieOpen,
-  mdiNoteEditOutline,
-  mdiStar,
-  mdiTelevisionClassic,
-} from '@mdi/js';
+import { msDelete, msEditNote, msMovie, msStarFill, msTv } from '../../components/symbols';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -153,7 +147,7 @@ const remove = useMutation({
     <v-progress-linear v-if="list.isFetching.value" indeterminate color="primary" class="mb-2" />
     <EmptyState
       v-if="list.data.value && list.data.value.items.length === 0"
-      :icon="mdiStar"
+      :icon="msStarFill"
       :title="t('decouverte.watchlist.empty_title')"
     >
       <v-btn :to="{ name: 'tmdb' }" color="primary" variant="tonal">{{
@@ -172,7 +166,7 @@ const remove = useMutation({
         <v-img :src="item.poster ?? ''" :aspect-ratio="2 / 3" cover class="bg-surface-alt">
           <template #error>
             <div class="d-flex align-center justify-center fill-height">
-              <v-icon :icon="item.type === 'tv' ? mdiTelevisionClassic : mdiMovieOpen" size="32" />
+              <v-icon :icon="item.type === 'tv' ? msTv : msMovie" size="32" />
             </div>
           </template>
           <div class="d-flex pa-1 ga-1">
@@ -181,7 +175,7 @@ const remove = useMutation({
               size="x-small"
               variant="flat"
               color="surface"
-              :prepend-icon="mdiStar"
+              :prepend-icon="msStarFill"
               >{{ item.vote }}</v-chip
             >
             <v-spacer />
@@ -211,7 +205,7 @@ const remove = useMutation({
         </div>
         <v-card-actions class="pt-0">
           <v-btn
-            :icon="mdiNoteEditOutline"
+            :icon="msEditNote"
             size="small"
             variant="text"
             :aria-label="t('decouverte.watchlist.notes_title')"
@@ -220,7 +214,7 @@ const remove = useMutation({
           />
           <v-spacer />
           <v-btn
-            :icon="mdiDelete"
+            :icon="msDelete"
             size="small"
             variant="text"
             color="error"

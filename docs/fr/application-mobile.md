@@ -14,7 +14,15 @@ L'installation exige une connexion **HTTPS** (voir [Reverse proxy](./reverse-pro
 
 ## Ce qui est gardé hors ligne
 
-Le service worker garde la **coquille** de l'application (page, scripts, styles, icônes) pour un démarrage rapide. Les **données** (bibliothèques, téléchargements, activité) ne sont jamais mises en cache : sans réseau, l'application s'ouvre mais ne peut rien afficher de vos services. Une nouvelle version de Hubarr est prise en compte au lancement suivant.
+Le service worker garde la **coquille** de l'application (page, scripts, styles, icônes) pour un démarrage rapide. Une nouvelle version de Hubarr est prise en compte au lancement suivant.
+
+## Affichage immédiat à la réouverture
+
+Le navigateur garde aussi, pendant 24 heures, ce que vous avez consulté en dernier dans le tableau de bord, la découverte, le calendrier, les bibliothèques et les fiches des films et des séries. Quand vous rechargez ou rouvrez Hubarr, ces écrans affichent aussitôt ce contenu, puis le mettent à jour : un fin liseré en haut de l'écran signale la mise à jour en cours.
+
+- Les journaux, les paramètres, votre profil, l'activité et les files de téléchargement ne sont jamais gardés : ils viennent toujours de vos services.
+- Cette copie est propre à votre compte et à la version de Hubarr : elle est effacée à la déconnexion, à la fin de votre session, quand un autre compte se connecte et à chaque mise à jour de Hubarr.
+- Sans réseau, l'application s'ouvre sur ce contenu mais ne peut pas le mettre à jour.
 
 ## Gestes sur mobile
 

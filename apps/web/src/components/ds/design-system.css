@@ -1,21 +1,90 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Classes globales du design system (P5b.3), importées par `app/main.ts` :
-   mise en page des fiches en page (film, série ; corps centré,
-   rangée d'actions, grille de cartes, synopsis repliable) et rangée de tuiles. */
+   mise en page des fiches en page (film, série ; actions de la colonne,
+   grille de cartes, synopsis repliable) et rangée de tuiles. */
 
 .detail-page {
   padding-bottom: 32px;
 }
-.detail-page__body {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px;
-}
-.detail-page__actions {
+/* Actions de la colonne d'une fiche (maquette B du lot 6) : l'action
+   principale (recherche) en bouton plein, puis les autres en liste de
+   réglages (icône dans un carré teinté du service, libellé), comme le
+   formulaire d'ajout. Sur mobile, la liste devient une rangée de tuiles
+   (icône au-dessus, libellé dessous). */
+.detail-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 10px;
+}
+.detail-actions > .v-btn {
+  height: 44px;
+}
+.detail-actions__list {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+}
+.detail-actions__list > .v-btn {
+  justify-content: flex-start;
+  height: auto;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-radius: 0;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.detail-actions__list > .v-btn + .v-btn {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.detail-actions__list > .v-btn .v-btn__prepend {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  margin-inline-end: 12px;
+  place-items: center;
+  border-radius: 10px;
+  color: rgb(var(--v-theme-service-text));
+  background: rgba(var(--v-theme-service), 0.14);
+}
+.detail-actions__list > .v-btn[aria-pressed='true'] .v-btn__prepend {
+  color: rgb(var(--v-theme-on-service));
+  background: rgb(var(--v-theme-service));
+}
+.detail-actions__list > .v-btn .v-btn__content {
+  white-space: normal;
+  text-align: start;
+}
+@media (max-width: 959px) {
+  .detail-actions__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  }
+  .detail-actions__list > .v-btn {
+    flex-direction: column;
+    justify-content: center;
+    min-height: 76px;
+    padding: 8px 4px;
+    font-size: 0.75rem;
+  }
+  .detail-actions__list > .v-btn + .v-btn {
+    border-top: 0;
+    border-inline-start: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+  .detail-actions__list > .v-btn .v-btn__prepend {
+    margin: 0 0 4px;
+  }
+  .detail-actions__list > .v-btn .v-btn__content {
+    text-align: center;
+    line-height: 1.2;
+  }
+}
+/* Sections repliées en fin de fiche (suppression…). */
+.detail-more .v-expansion-panel {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 .detail-page__cards {
   display: grid;
@@ -48,14 +117,10 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-@media (max-width: 959px) {
+/* Colonne de contenu étroite (colonne d'actions + menu latéral) : une carte par ligne. */
+@media (max-width: 1279px) {
   .detail-page__cards {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 599px) {
-  .detail-page__actions .v-btn {
-    flex: 1 1 calc(50% - 8px);
   }
 }
 

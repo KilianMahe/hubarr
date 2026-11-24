@@ -3,7 +3,7 @@
 // Épisodes d'une série dans Bazarr (`bazarr/series_detail.html.twig`, route
 // n° 19) : saison, épisode, titre, langues audio, état des sous-titres et
 // recherche par épisode ; une série non suivie le dit.
-import { mdiArrowLeft, mdiMagnify } from '@mdi/js';
+import { msArrowBack, msSearch } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -33,7 +33,7 @@ const title = computed(
       <v-btn
         variant="text"
         size="small"
-        :prepend-icon="mdiArrowLeft"
+        :prepend-icon="msArrowBack"
         :to="{ name: 'bazarr-series' }"
         >{{ t('bazarr.series_detail.back') }}</v-btn
       >
@@ -72,7 +72,7 @@ const title = computed(
                   size="small"
                   variant="tonal"
                   color="service-text"
-                  :prepend-icon="mdiMagnify"
+                  :prepend-icon="msSearch"
                   data-test="bazarr-episode-search"
                   @click="Object.assign(search, { open: true, id: episode.episodeId })"
                   >{{ t('bazarr.series_detail.search') }}</v-btn

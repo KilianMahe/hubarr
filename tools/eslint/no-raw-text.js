@@ -9,7 +9,6 @@
 /** Noms de produits, sigles et unités qui ne se traduisent pas. */
 const ALLOWED = new Set([
   'Hubarr',
-  'Prismarr',
   'Radarr',
   'Sonarr',
   'Prowlarr',

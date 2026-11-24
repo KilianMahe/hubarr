@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Bascule clair/sombre, proposée en mode classique seulement (un préréglage a
 // une palette fixe), comme dans l'original.
-import { mdiWeatherNight, mdiWhiteBalanceSunny } from '@mdi/js';
+import { msDarkMode, msLightMode } from './symbols';
 import { useI18n } from 'vue-i18n';
 import { useHubarrTheme } from '../app/theme/controller';
 
@@ -13,7 +13,7 @@ const theme = useHubarrTheme();
 <template>
   <v-btn
     v-if="theme.toggleable.value"
-    :icon="theme.dark.value ? mdiWhiteBalanceSunny : mdiWeatherNight"
+    :icon="theme.dark.value ? msLightMode : msDarkMode"
     :aria-label="t('topbar.theme.toggle')"
     :title="theme.dark.value ? t('topbar.theme.label_light') : t('topbar.theme.label_dark')"
     variant="text"

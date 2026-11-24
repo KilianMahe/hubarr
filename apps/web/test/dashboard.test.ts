@@ -9,10 +9,12 @@ import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
+  downloadBars,
   greetingKey,
   moveSection,
   refLocation,
   relativeDate,
+  shortDay,
   upcomingByDay,
   weekdayKey,
 } from '../src/features/dashboard/dashboard-api';
@@ -78,6 +80,19 @@ describe('logique', () => {
     expect(moveSection(layout, 1, -1).map((s) => s.key)).toEqual(['health', 'upcoming']);
     expect(moveSection(layout, 0, -1)).toBe(layout);
   });
+
+  it('graphique des téléchargements : hauteur relative au jour le plus chargé', () => {
+    expect(
+      downloadBars([
+        { day: '2026-11-21', bytes: 0 },
+        { day: '2026-11-22', bytes: 50 },
+        { day: '2026-11-23', bytes: 200 },
+      ]).map((b) => b.ratio),
+    ).toEqual([0, 0.25, 1]);
+    expect(downloadBars([{ day: '2026-11-22', bytes: 0 }])[0]?.ratio).toBe(0);
+    expect(shortDay('2026-11-22', 'en')).toBe('Nov 22');
+    expect(shortDay('2026-11-01', 'fr')).toBe('1 nov.');
+  });
 });
 
 function page(overrides: Partial<DashboardPage> = {}): DashboardPage {
@@ -102,6 +117,7 @@ function page(overrides: Partial<DashboardPage> = {}): DashboardPage {
       transmission: false,
       tracearr: false,
       emby: false,
+      downloads: false,
     },
     watchlist: [{ tmdbId: 1, mediaType: 'tv', title: 'Show', poster: null, year: 2020, vote: 8 }],
     ...overrides,
@@ -134,6 +150,9 @@ function routes(extra: Record<string, FakeHandler> = {}): Record<string, FakeHan
             downloaded: true,
             network: null,
             slug: 'films',
+            tmdbId: 603,
+            tvdbId: null,
+            episodeCount: 0,
           },
         ],
       },
@@ -310,6 +329,111 @@ describe('page', () => {
   });
 });
 
+describe('statistiques (lot 13)', () => {
+  const GIB = 1_073_741_824;
+  const layout = [
+    { key: 'downloads', visible: true },
+    { key: 'disks', visible: true },
+  ] as DashboardPage['layout'];
+  const statsRoutes = (configured: Partial<DashboardPage['configured']> = {}) =>
+    routes({
+      'GET /api/tableau-de-bord': () => ({
+        body: page({
+          layout,
+          configured: { ...page().configured, downloads: true, ...configured },
+        }),
+      }),
+      'GET /api/tableau-de-bord/widget/downloads': () => ({
+        body: {
+          available: true,
+          days: [
+            { day: '2026-11-21', bytes: 2 * GIB },
+            { day: '2026-11-22', bytes: 0 },
+          ],
+          total: 2 * GIB,
+          average: GIB,
+          clients: [
+            { id: 'qbittorrent', ok: true },
+            { id: 'sabnzbd', ok: false },
+          ],
+        },
+      }),
+      'GET /api/tableau-de-bord/widget/disks': () => ({
+        body: {
+          available: true,
+          disks: [
+            {
+              path: '/movies',
+              label: 'movies',
+              freeSpace: 50 * GIB,
+              totalSpace: 1000 * GIB,
+              usedPercent: 95,
+              alert: true,
+              roots: [{ service: 'radarr', instance: 'Films', path: '/movies' }],
+            },
+            {
+              path: '/tv',
+              label: null,
+              freeSpace: 600 * GIB,
+              totalSpace: 2000 * GIB,
+              usedPercent: 70,
+              alert: false,
+              roots: [{ service: 'sonarr', instance: 'Séries', path: '/tv' }],
+            },
+          ],
+          failed: ['Films 4K'],
+        },
+      }),
+    });
+
+  it('admin : total, moyenne, une barre par jour, client sans réponse ; disques et alerte', async () => {
+    fakeFetch(statsRoutes());
+    const { wrapper } = await mountApp('/tableau-de-bord', bootstrapOf({ user: ADMIN, services }));
+    mounted.push(wrapper);
+    await settle();
+    const downloads = wrapper.get('[data-test="card-downloads"]');
+    expect(downloads.get('[data-test="downloads-total"]').text()).toBe('2.0 GB');
+    expect(downloads.get('[data-test="downloads-average"]').text()).toBe('1.0 GB');
+    const bars = downloads.findAll('[data-test="downloads-bar"]');
+    expect(bars).toHaveLength(2);
+    expect(Number(bars[0]?.attributes('height'))).toBeGreaterThan(90);
+    expect(bars[1]?.attributes('height')).toBe('0');
+    expect(bars[0]?.find('title').text()).toBe('Nov 21: 2.0 GB');
+    expect(downloads.get('[data-test="downloads-failed"]').text()).toContain('SABnzbd');
+
+    const disks = wrapper.findAll('[data-test="disk"]');
+    expect(disks).toHaveLength(2);
+    expect(disks[0]?.text()).toContain('/movies');
+    expect(disks[0]?.text()).toContain(t('dashboard.disks.used', { percent: '95' }));
+    expect(disks[0]?.find('[data-test="disk-alert"]').exists()).toBe(true);
+    expect(disks[1]?.find('[data-test="disk-alert"]').exists()).toBe(false);
+    expect(wrapper.get('[data-test="disks-failed"]').text()).toContain('Films 4K');
+  });
+
+  it('sans client de téléchargement : pas de graphique ; utilisateur simple : aucune des deux', async () => {
+    const { calls } = fakeFetch(statsRoutes({ downloads: false }));
+    const { wrapper } = await mountApp('/tableau-de-bord', bootstrapOf({ user: ADMIN, services }));
+    mounted.push(wrapper);
+    await settle();
+    expect(wrapper.find('[data-test="card-downloads"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="card-disks"]').exists()).toBe(true);
+    expect(calls.some((c) => c.url.endsWith('/widget/downloads'))).toBe(false);
+    wrapper.unmount();
+    mounted.pop();
+
+    const user = fakeFetch(statsRoutes());
+    const asUser = await mountApp(
+      '/tableau-de-bord',
+      bootstrapOf({ user: { ...ADMIN, role: 'user' }, services }),
+    );
+    mounted.push(asUser.wrapper);
+    await settle();
+    expect(asUser.wrapper.find('[data-test="card-downloads"]').exists()).toBe(false);
+    expect(asUser.wrapper.find('[data-test="card-disks"]').exists()).toBe(false);
+    expect(user.calls.some((c) => c.url.includes('/widget/d'))).toBe(false);
+  });
+});
+
 describe('surveillance des téléchargements', () => {
   it('passages terminés et en erreur, repli exponentiel plafonné', async () => {
     const { detectTransitions, nextDelay, MAX_DELAY_MS } =
@@ -330,5 +454,56 @@ describe('surveillance des téléchargements', () => {
     expect(nextDelay(2_000, 0)).toBe(2_000);
     expect(nextDelay(2_000, 3)).toBe(8_000);
     expect(nextDelay(10_000, 10)).toBe(MAX_DELAY_MS);
+  });
+
+  it('« Vu » (Tracearr) sur les tendances et les derniers ajouts', async () => {
+    const layout = page().layout.map((section) =>
+      section.key === 'trending' ? { ...section, visible: true } : section,
+    );
+    fakeFetch(
+      routes({
+        'GET /api/tableau-de-bord': () => ({ body: page({ layout }) }),
+        'GET /api/tableau-de-bord/widget/recommendations': () => ({
+          body: {
+            available: true,
+            items: [
+              { id: 603, type: 'movie', title: 'Matrix', year: 1999, poster: null, vote: 8 },
+              { id: 1399, type: 'tv', title: 'Thrones', year: 2011, poster: null, vote: 8 },
+              { id: 5, type: 'movie', title: 'Unseen', year: 2020, poster: null, vote: 6 },
+            ],
+          },
+        }),
+        'GET /api/tracearr/watched': () => ({
+          body: {
+            linked: true,
+            movies: [603],
+            shows: [
+              {
+                tmdbId: 1399,
+                tvdbId: null,
+                episodes: [
+                  [1, 1],
+                  [1, 2],
+                ],
+              },
+            ],
+          },
+        }),
+      }),
+    );
+    const withTracearr: BootstrapServices = {
+      ...services,
+      states: { ...services.states, tracearr: { configured: true, disabled: false } },
+    };
+    const { wrapper } = await mountApp(
+      '/tableau-de-bord',
+      bootstrapOf({ user: ADMIN, services: withTracearr }),
+    );
+    mounted.push(wrapper);
+    await settle();
+    const badges = (card: string) =>
+      wrapper.findAll(`[data-test="${card}"] [data-test="watched-badge"]`).map((b) => b.text());
+    expect(badges('card-trending')).toEqual(['Watched', '2 episodes watched']);
+    expect(badges('card-recent')).toEqual(['Watched']);
   });
 });

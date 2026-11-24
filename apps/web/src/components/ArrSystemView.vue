@@ -6,7 +6,7 @@
 // indépendante : une section que l'instance n'a pas servie l'indique. La
 // navigation de l'instance passe par le slot `nav`.
 import type { ArrSystemResponse } from '@hubarr/shared';
-import { mdiCheckCircle } from '@mdi/js';
+import { msCheckCircleFill } from './symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -103,7 +103,7 @@ const HEALTH_KEYS: Record<string, string> = {
             {{ t('media.arr_system.status.unavailable') }}
           </p>
           <p v-else-if="data.health.length === 0" class="text-success d-flex align-center ga-2">
-            <v-icon :icon="mdiCheckCircle" size="18" /> {{ t('media.arr_system.health.empty') }}
+            <v-icon :icon="msCheckCircleFill" size="18" /> {{ t('media.arr_system.health.empty') }}
           </p>
           <div v-for="(check, index) in data.health ?? []" :key="index" class="d-flex ga-2 mb-2">
             <v-chip

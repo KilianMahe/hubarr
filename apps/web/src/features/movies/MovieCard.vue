@@ -2,13 +2,14 @@
 <script setup lang="ts">
 // Carte d'affiche d'un film (vues grille et mur), sur `PosterCard` : puce de
 // statut en clair, qualité, titre et année (P5b.1 F3) ; badge de sous-titres
-// Bazarr en bas à gauche. Un clic ouvre la fiche ; le marque-page bascule le
+// Bazarr et « Vu » (Tracearr, lot 7) en bas à gauche. Un clic ouvre la fiche ; le marque-page bascule le
 // suivi (`hover-monitor-btn-film`).
 import type { MovieLibraryItem } from '@hubarr/shared';
-import { mdiBookmark, mdiBookmarkOutline } from '@mdi/js';
+import { msBookmark, msBookmarkFill } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import PosterCard from '../../components/ds/PosterCard.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
 import SubtitleBadge from '../bazarr/SubtitleBadge.vue';
 import type { SubtitleBadgeStatus } from '../bazarr/bazarr-api';
 import { STATUS_COLORS, displayStatusOf, statusLabelKey } from './library';
@@ -22,6 +23,8 @@ const props = defineProps<{
   compact?: boolean;
   /** Badge de sous-titres Bazarr (`null` : aucun). */
   subtitle?: SubtitleBadgeStatus;
+  /** Vu par l'utilisateur connecté (Tracearr). */
+  watched?: boolean;
 }>();
 const emit = defineEmits<{
   select: [event: MouseEvent | KeyboardEvent];
@@ -58,8 +61,15 @@ const monitorLabel = computed(() =>
     @open="emit('open')"
     @select="emit('select', $event)"
   >
-    <template v-if="subtitle" #badges>
-      <SubtitleBadge :id="movie.id" kind="movie" :status="subtitle" @search="emit('subtitles')" />
+    <template v-if="subtitle || watched" #badges>
+      <SubtitleBadge
+        v-if="subtitle"
+        :id="movie.id"
+        kind="movie"
+        :status="subtitle"
+        @search="emit('subtitles')"
+      />
+      <WatchedBadge v-if="watched" overlay :progress="{ kind: 'all' }" />
     </template>
     <template #action>
       <component
@@ -72,7 +82,7 @@ const monitorLabel = computed(() =>
         data-test="movie-card-monitor"
         @click="!selectMode && emit('monitor')"
       >
-        <v-icon :icon="movie.monitored ? mdiBookmark : mdiBookmarkOutline" size="20" />
+        <v-icon :icon="movie.monitored ? msBookmarkFill : msBookmark" size="20" />
       </component>
     </template>
   </PosterCard>

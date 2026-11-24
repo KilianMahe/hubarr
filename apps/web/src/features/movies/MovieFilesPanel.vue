@@ -5,7 +5,7 @@
 // modifiables (« Sauvegarder » n'apparaît qu'après une modification), renommer,
 // supprimer du disque. Sans fichier : le chemin attendu.
 import type { MovieDetail, MovieFile } from '@hubarr/shared';
-import { mdiContentSave, mdiDelete, mdiPencil } from '@mdi/js';
+import { msDelete, msEdit, msSave } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -196,7 +196,7 @@ function toggleLanguage(draft: FileDraft, id: number): void {
           <div class="d-flex flex-wrap align-center ga-2 mt-3">
             <v-btn
               v-if="isDirty(file, drafts.get(file.id)!)"
-              :prepend-icon="mdiContentSave"
+              :prepend-icon="msSave"
               color="service"
               variant="flat"
               size="small"
@@ -205,12 +205,12 @@ function toggleLanguage(draft: FileDraft, id: number): void {
               @click="save(file)"
               >{{ t('media.films.detail.save') }}</v-btn
             >
-            <v-btn :prepend-icon="mdiPencil" variant="tonal" size="small" @click="emit('rename')">{{
+            <v-btn :prepend-icon="msEdit" variant="tonal" size="small" @click="emit('rename')">{{
               t('media.films.detail.rename')
             }}</v-btn>
             <v-spacer />
             <v-btn
-              :prepend-icon="mdiDelete"
+              :prepend-icon="msDelete"
               color="error"
               variant="tonal"
               size="small"

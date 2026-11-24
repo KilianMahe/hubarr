@@ -2,7 +2,9 @@
 <script setup lang="ts">
 // Paramètres (`admin/settings.html.twig`), réservés aux admins. Une section par
 // onglet ; l'onglet suit le fragment de l'URL (`#section-services`…), comme les
-// ancres de l'original, pour que l'assistant et les bannières y mènent.
+// ancres de l'original, pour que l'assistant et les bannières y mènent. Sur
+// mobile, les sections sont dans la barre basse et la barre du haut nomme la
+// section affichée (« Paramètres · Sauvegarde »).
 import { useQuery } from '@tanstack/vue-query';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -13,6 +15,7 @@ import AboutSection from './AboutSection.vue';
 import BackupSection from './BackupSection.vue';
 import DisplaySection from './DisplaySection.vue';
 import LanguagesSection from './LanguagesSection.vue';
+import LogsSection from '../logs/LogsSection.vue';
 import ServicesSection from './ServicesSection.vue';
 import { useSessionStore } from '../../app/stores/session';
 import { SETTINGS_KEY, fetchSettings, servicesFromSettings } from './settings-api';
@@ -50,7 +53,8 @@ const section = computed<SettingsSection>({
     <ServiceHeader :title="t('admin.page.title')" :subtitle="t('admin.page.subtitle')" />
 
     <div class="settings-layout" :class="{ 'settings-layout--side': mdAndUp }">
-      <!-- Grand écran : navigation verticale (maquette P0, P5b.1 R1) ; mobile : onglets -->
+      <!-- Grand écran : navigation verticale (maquette P0, P5b.1 R1) ; mobile : barre
+           basse du shell (`SETTINGS_BOTTOM_NAV`). -->
       <nav v-if="mdAndUp" :aria-label="t('admin.nav.aria_label')" class="settings-nav">
         <v-list
           density="compact"
@@ -70,24 +74,6 @@ const section = computed<SettingsSection>({
           />
         </v-list>
       </nav>
-      <v-tabs
-        v-else
-        v-model="section"
-        color="primary"
-        show-arrows
-        class="mb-4"
-        :aria-label="t('admin.nav.aria_label')"
-      >
-        <v-tab
-          v-for="item in SETTINGS_SECTIONS"
-          :key="item.id"
-          :value="item.id"
-          :data-test="`tab-${item.id}`"
-        >
-          {{ t(item.labelKey) }}
-        </v-tab>
-      </v-tabs>
-
       <div class="settings-content">
         <v-progress-linear v-if="settings.isPending.value" indeterminate color="primary" />
         <v-alert v-else-if="settings.isError.value" type="error" variant="tonal">{{
@@ -98,6 +84,7 @@ const section = computed<SettingsSection>({
           <DisplaySection v-else-if="section === 'display'" :settings="settings.data.value" />
           <LanguagesSection v-else-if="section === 'languages'" />
           <BackupSection v-else-if="section === 'backup'" :settings="settings.data.value" />
+          <LogsSection v-else-if="section === 'logs'" />
           <AboutSection v-else-if="section === 'about'" :about="settings.data.value.about" />
         </template>
       </div>

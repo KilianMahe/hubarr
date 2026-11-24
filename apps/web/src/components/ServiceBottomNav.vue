@@ -4,6 +4,8 @@
 // D131) : onglets du service avec leur libellé sous l'icône, indicateur à
 // l'accent du service et, au centre, le bouton d'action
 // principal (FAB, E2). Les vues de service la déclarent par `meta.bottomNav`.
+// Un onglet à menu (groupe des paramètres d'un service) ouvre la liste de ses
+// pages au-dessus de la barre au lieu de naviguer.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -31,21 +33,49 @@ const after = computed(() => (props.fab ? props.items.slice(split.value) : []));
   >
     <template v-for="(group, index) in [before, after]" :key="index">
       <ServiceFab v-if="index === 1 && fab" :fab="fab" class="service-bottom-nav__fab" />
-      <v-btn
-        v-for="item in group"
-        :key="item.labelKey"
-        :to="item.to"
-        :value="item.labelKey"
-        :active="bottomNavActive(item, route)"
-        class="service-bottom-nav__item"
-        :data-test="`bottom-nav-${item.labelKey}`"
-      >
-        <v-badge v-if="item.badge" :content="item.badge" color="error">
-          <v-icon :icon="item.icon" />
-        </v-badge>
-        <v-icon v-else :icon="item.icon" />
-        <span class="service-bottom-nav__label">{{ t(item.labelKey) }}</span>
-      </v-btn>
+      <template v-for="item in group" :key="item.labelKey">
+        <v-menu v-if="item.menu" location="top" max-height="70vh">
+          <template #activator="{ props: activator }">
+            <v-btn
+              v-bind="activator"
+              :value="item.labelKey"
+              :active="bottomNavActive(item, route)"
+              class="service-bottom-nav__item"
+              :data-test="item.testId ?? `bottom-nav-${item.labelKey}`"
+            >
+              <v-icon :icon="item.icon" />
+              <span class="service-bottom-nav__label">{{ t(item.labelKey) }}</span>
+            </v-btn>
+          </template>
+          <v-list density="compact" nav :aria-label="t(item.labelKey)">
+            <v-list-item
+              v-for="entry in item.menu"
+              :key="entry.id"
+              :to="entry.to"
+              :prepend-icon="entry.icon"
+              :title="t(entry.labelKey)"
+              :active="route.name === entry.id"
+              color="service-text"
+              :data-test="`admin-link-${entry.id}`"
+            />
+          </v-list>
+        </v-menu>
+        <v-btn
+          v-else
+          :to="item.to"
+          :replace="item.replace === true"
+          :value="item.labelKey"
+          :active="bottomNavActive(item, route)"
+          class="service-bottom-nav__item"
+          :data-test="item.testId ?? `bottom-nav-${item.labelKey}`"
+        >
+          <v-badge v-if="item.badge" :content="item.badge" color="error">
+            <v-icon :icon="item.icon" />
+          </v-badge>
+          <v-icon v-else :icon="item.icon" />
+          <span class="service-bottom-nav__label">{{ t(item.labelKey) }}</span>
+        </v-btn>
+      </template>
     </template>
   </v-bottom-navigation>
 </template>

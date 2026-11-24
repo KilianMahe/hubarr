@@ -4,7 +4,7 @@
 // indexeurs, applications et notifications (n° 296), création (n° 301),
 // suppression confirmée (n° 286 ; refusée si l'étiquette sert encore).
 import { arrTagItemSchema, prowlarrTagDetailSchema } from '@hubarr/shared';
-import { mdiDelete, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete } from '../../../components/symbols';
 import { ref } from 'vue';
 import { z } from 'zod';
 import { api } from '../../../app/api/client';
@@ -70,7 +70,7 @@ function askDelete(id: number, tag: string): void {
           <v-btn
             type="submit"
             color="service"
-            :prepend-icon="mdiPlus"
+            :prepend-icon="msAdd"
             :loading="creating"
             data-test="tag-add"
             >{{ t('prowlarr.tags.add_btn') }}</v-btn
@@ -101,7 +101,7 @@ function askDelete(id: number, tag: string): void {
               <td class="text-muted">{{ tag.notificationIds.length }}</td>
               <td class="text-end">
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   size="small"
                   variant="text"
                   color="error"

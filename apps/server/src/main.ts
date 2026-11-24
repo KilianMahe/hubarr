@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Démarrage du serveur : environnement validé, base préparée (garde « ancienne
-// base Doctrine », sauvegarde, migrations), puis écoute HTTP.
+// Démarrage du serveur : environnement validé, base préparée (sauvegarde,
+// migrations), puis écoute HTTP.
 
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { buildApp } from './app';
 import { loadEnv } from './config/env';
 import { prepareDatabase } from './db/migrate';
 import { MIGRATIONS_FOLDER } from './db/paths';
+import { LogBuffer, createLogStream, defaultBufferLevel, loggerLevel } from './logs';
 import { setTmdbApiOrigin } from './integrations/tmdb/origin';
 
 async function start() {
@@ -38,8 +39,16 @@ setTmdbApiOrigin(env.HUBARR_TMDB_API_URL);
 const webRoot = existing('./public');
 const docsRoot = existing('./docs');
 
+// Journal : masqué, vers la console et le tampon de la page « Journaux ».
+const logBuffer = new LogBuffer({
+  level: env.HUBARR_LOG_BUFFER_LEVEL ?? defaultBufferLevel(env.HUBARR_LOG_LEVEL),
+});
 const app = buildApp({
-  logger: { level: env.HUBARR_LOG_LEVEL },
+  logger: {
+    level: loggerLevel(env.HUBARR_LOG_LEVEL, logBuffer.level),
+    stream: createLogStream({ consoleLevel: env.HUBARR_LOG_LEVEL, buffer: logBuffer }),
+  },
+  logBuffer,
   trustProxy: env.HUBARR_TRUST_PROXY,
   basePath: env.HUBARR_BASE_PATH,
   frameAncestors: env.HUBARR_FRAME_ANCESTORS,

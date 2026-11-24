@@ -3,7 +3,7 @@
 // Accueil (`home/welcome.html.twig`) : écran de bienvenue quand ni la page
 // d'accueil choisie ni aucun service ne peut être ouvert (la garde du routeur
 // redirige sinon, `app/home.ts`).
-import { mdiDownload, mdiMagnify, mdiMovieOpen, mdiStarFourPoints } from '@mdi/js';
+import { msDownload, msMovie, msSearch, msWandStars } from '../../components/symbols';
 import { useI18n } from 'vue-i18n';
 import { useSessionStore } from '../../app/stores/session';
 import HubarrLogo from '../../components/HubarrLogo.vue';
@@ -12,10 +12,10 @@ const { t } = useI18n();
 const session = useSessionStore();
 
 const CARDS = [
-  { icon: mdiStarFourPoints, key: 'discovery' },
-  { icon: mdiMovieOpen, key: 'managers' },
-  { icon: mdiMagnify, key: 'indexers' },
-  { icon: mdiDownload, key: 'downloads' },
+  { icon: msWandStars, key: 'discovery' },
+  { icon: msMovie, key: 'managers' },
+  { icon: msSearch, key: 'indexers' },
+  { icon: msDownload, key: 'downloads' },
 ];
 </script>
 

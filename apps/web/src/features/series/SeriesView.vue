@@ -21,20 +21,20 @@ import {
   type SeriesLibraryStatus,
 } from '@hubarr/shared';
 import {
-  mdiBookshelf,
-  mdiCheckboxMarkedOutline,
-  mdiClose,
-  mdiFilterVariant,
-  mdiMagnify,
-  mdiDotsVertical,
-  mdiPlus,
-  mdiRefresh,
-  mdiRss,
-  mdiViewGrid,
-  mdiViewList,
-  mdiViewModule,
-  mdiViewSequential,
-} from '@mdi/js';
+  msAdd,
+  msCheckBox,
+  msClose,
+  msFilterList,
+  msGridViewFill,
+  msMoreVert,
+  msRefresh,
+  msRssFeed,
+  msSearch,
+  msShelves,
+  msViewAgenda,
+  msViewList,
+  msViewModule,
+} from '../../components/symbols';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -61,8 +61,9 @@ import {
   type ViewMode,
 } from '../movies/library';
 import { useArrCommand } from '../movies/useArrCommand';
-import AddSeriesDialog from './AddSeriesDialog.vue';
+import AddMediaDialog from '../add-media/AddMediaDialog.vue';
 import SeriesBulkEditDialog from './SeriesBulkEditDialog.vue';
+import { showEpisodes, useWatched, watchedCount } from '../activity/watched';
 import SeriesCard from './SeriesCard.vue';
 import SeriesFilters from './SeriesFilters.vue';
 import SeriesListItem from './SeriesListItem.vue';
@@ -89,6 +90,7 @@ import { useSubtitleStatuses } from '../bazarr/bazarr-api';
 const { t } = useI18n();
 const route = useRoute();
 const subtitles = useSubtitleStatuses('series');
+const watched = useWatched();
 const router = useRouter();
 const session = useSessionStore();
 const queryClient = useQueryClient();
@@ -231,11 +233,11 @@ const viewMode = useViewMode<ViewMode>(
   storage,
 );
 const VIEW_ICONS: Record<ViewMode, string> = {
-  grid: mdiViewGrid,
-  wall: mdiViewModule,
-  extended: mdiViewSequential,
-  table: mdiViewList,
-  shelf: mdiBookshelf,
+  grid: msGridViewFill,
+  wall: msViewModule,
+  extended: msViewAgenda,
+  table: msViewList,
+  shelf: msShelves,
 };
 const viewOptions = computed(() =>
   VIEW_MODES.map((mode) => ({
@@ -585,7 +587,7 @@ void resumeActiveCommands();
     >
       <v-btn
         v-if="mdAndUp"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         color="service"
         variant="flat"
         size="small"
@@ -597,7 +599,7 @@ void resumeActiveCommands();
         <template #activator="{ props: menuProps }">
           <v-btn
             v-bind="menuProps"
-            :icon="mdiDotsVertical"
+            :icon="msMoreVert"
             size="small"
             variant="text"
             :loading="busy.refreshAll || busy.rss"
@@ -607,13 +609,13 @@ void resumeActiveCommands();
         </template>
         <v-list density="compact">
           <v-list-item
-            :prepend-icon="mdiRefresh"
+            :prepend-icon="msRefresh"
             :title="t('media.series.actions.refresh_all_title')"
             data-test="series-refresh-all"
             @click="runInstanceCommand('refreshAll')"
           />
           <v-list-item
-            :prepend-icon="mdiRss"
+            :prepend-icon="msRssFeed"
             :title="t('media.series.actions.rss_sync')"
             @click="runInstanceCommand('rss')"
           />
@@ -690,7 +692,7 @@ void resumeActiveCommands();
         <v-filter-field
           v-if="mdAndUp"
           :model-value="search"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           :placeholder="t('media.series.filters.search_placeholder')"
           :aria-label="t('media.series.filters.search_placeholder')"
           density="compact"
@@ -716,7 +718,7 @@ void resumeActiveCommands();
             color="service"
           >
             <v-btn
-              :icon="mdiFilterVariant"
+              :icon="msFilterList"
               variant="text"
               size="small"
               :aria-label="t('media.series.filters.open')"
@@ -733,7 +735,7 @@ void resumeActiveCommands();
           />
           <v-btn
             v-if="mdAndUp"
-            :prepend-icon="selectMode ? mdiClose : mdiCheckboxMarkedOutline"
+            :prepend-icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'outlined'"
             :color="selectMode ? 'service' : undefined"
@@ -745,7 +747,7 @@ void resumeActiveCommands();
           >
           <v-btn
             v-else
-            :icon="selectMode ? mdiClose : mdiCheckboxMarkedOutline"
+            :icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'text'"
             :color="selectMode ? 'service' : undefined"
@@ -764,7 +766,7 @@ void resumeActiveCommands();
       <div v-if="activeFilter || query.q !== ''" class="d-flex flex-wrap align-center ga-2 mb-2">
         <template v-if="activeFilter">
           <v-btn
-            :prepend-icon="mdiRefresh"
+            :prepend-icon="msRefresh"
             size="small"
             variant="tonal"
             color="service-text"
@@ -775,7 +777,7 @@ void resumeActiveCommands();
             >{{ t('media.series.actions.refresh_filtered') }}</v-btn
           >
           <v-btn
-            :prepend-icon="mdiMagnify"
+            :prepend-icon="msSearch"
             size="small"
             variant="tonal"
             color="warning"
@@ -822,6 +824,7 @@ void resumeActiveCommands();
               :selected="selected.has(entry.id)"
               :compact="viewMode === 'wall'"
               :subtitle="subtitles.statusOf(entry.id)"
+              :watched-episodes="watchedCount(showEpisodes(watched, { tvdbId: entry.tvdbId }))"
               @select="onSelect(entry.id, $event)"
               @open="openSeries(entry.id)"
               @monitor="toggleMonitor(entry.id)"
@@ -835,6 +838,7 @@ void resumeActiveCommands();
               :series="entry"
               :select-mode="selectMode"
               :selected="selected.has(entry.id)"
+              :watched-episodes="watchedCount(showEpisodes(watched, { tvdbId: entry.tvdbId }))"
               @select="onSelect(entry.id, $event)"
               @open="openSeries(entry.id)"
               @monitor="toggleMonitor(entry.id)"
@@ -964,8 +968,9 @@ void resumeActiveCommands();
       @done="onRenamed"
       @failed="showBanner('error', t('media.series.warnings.generic_error'))"
     />
-    <AddSeriesDialog
+    <AddMediaDialog
       v-model="addOpen"
+      kind="series"
       :slug="slug"
       :default-quality-profile-id="data?.defaultQualityProfileId ?? null"
       @added="refreshLibrary"

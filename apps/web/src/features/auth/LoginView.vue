@@ -4,7 +4,7 @@
 // masquable, « Se souvenir de moi » (coché par défaut, comme l'original),
 // erreurs `invalid` / `throttled` / `generic`, indication « mot de passe
 // oublié », bascule de thème. Toujours vers l'accueil après connexion.
-import { mdiAlertCircleOutline } from '@mdi/js';
+import { msError } from '../../components/symbols';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -50,7 +50,7 @@ async function submit(): Promise<void> {
         v-if="error"
         type="error"
         variant="tonal"
-        :icon="mdiAlertCircleOutline"
+        :icon="msError"
         class="mb-4 w-100"
         role="alert"
         data-test="login-error"

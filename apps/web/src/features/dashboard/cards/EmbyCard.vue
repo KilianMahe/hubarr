@@ -3,7 +3,7 @@
 // Lecture en cours sur Emby (`_emby_activity.html.twig`), relue toutes les
 // 10 s (onglet visible).
 import type { ActivitySession } from '@hubarr/shared';
-import { mdiPlayCircleOutline } from '@mdi/js';
+import { msPlayCircle } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../../app/overlays';
@@ -34,7 +34,7 @@ function openSession(item: ActivitySession): void {
   <DashCard
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.emby.title')"
-    :icon="mdiPlayCircleOutline"
+    :icon="msPlayCircle"
     data-test="card-emby"
   >
     <ActivityPanel

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Vulnérabilités acceptées par Trivy (voir `trivy.yaml`). Chaque entrée doit
+# avoir une justification (`statement`) et une date d'expiration
+# (`expired_at`) pour être réexaminée. Exemple :
+#
+# vulnerabilities:
+#   - id: CVE-2026-00000
+#     paths:
+#       - pnpm-lock.yaml
+#     statement: Code vulnérable jamais appelé par Hubarr (…).
+#     expired_at: 2027-01-31
+vulnerabilities: []

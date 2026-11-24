@@ -12,7 +12,7 @@ import {
   type ServiceTestResponse,
   type SettingsResponse,
 } from '@hubarr/shared';
-import { mdiCogOutline, mdiDelete, mdiFlash } from '@mdi/js';
+import { msBolt, msDelete, msSettings } from '../../components/symbols';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -161,7 +161,7 @@ const resultColor = computed(() => (result.value?.ok ? 'success' : 'error'));
               field.clearable &&
               (field.key === 'user' || field.key === 'password')
             "
-            :prepend-icon="mdiDelete"
+            :prepend-icon="msDelete"
             variant="text"
             class="mt-2"
             :disabled="isCleared(field.key)"
@@ -183,7 +183,7 @@ const resultColor = computed(() => (result.value?.ok ? 'success' : 'error'));
         <div class="d-flex flex-wrap align-center ga-2">
           <v-btn
             v-if="spec.testable"
-            :prepend-icon="mdiFlash"
+            :prepend-icon="msBolt"
             variant="tonal"
             :loading="test.isPending.value"
             data-test="service-test"
@@ -202,7 +202,7 @@ const resultColor = computed(() => (result.value?.ok ? 'success' : 'error'));
           <v-btn
             v-if="administered && state.saved"
             :to="serviceSettingsEntry(administered)"
-            :prepend-icon="mdiCogOutline"
+            :prepend-icon="msSettings"
             :title="t('admin.service_admin.hint', { service: spec.label })"
             variant="tonal"
             :data-test="`service-settings-${id}`"
@@ -211,7 +211,7 @@ const resultColor = computed(() => (result.value?.ok ? 'success' : 'error'));
           <v-spacer />
           <v-btn
             v-if="state.saved"
-            :prepend-icon="mdiDelete"
+            :prepend-icon="msDelete"
             color="error"
             variant="text"
             data-test="service-remove"

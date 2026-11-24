@@ -4,7 +4,7 @@
 // suivie jusqu'à la fin (n° 284) puis liste relue, suppression confirmée
 // (n° 285). Pas de lien de téléchargement (adresse de Prowlarr, D103).
 import { arrCommandStartedSchema, backupSchema, type Backup } from '@hubarr/shared';
-import { mdiDelete, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete } from '../../../components/symbols';
 import { ref } from 'vue';
 import { z } from 'zod';
 import { api } from '../../../app/api/client';
@@ -81,7 +81,7 @@ const typeLabel = (type: string | null) =>
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         :loading="creating"
         data-test="backup-create"
         @click="create"
@@ -122,7 +122,7 @@ const typeLabel = (type: string | null) =>
             </td>
             <td class="text-end">
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 size="small"
                 variant="text"
                 color="error"

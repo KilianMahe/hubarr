@@ -5,7 +5,7 @@
 // (onglet visible). Puces compactes « nom + pastille » (état et latence en
 // infobulle et pour les lecteurs d'écran) et résumé « n / total en ligne »
 // (maquette P0, P5b.1 D2).
-import { mdiHeartPulse } from '@mdi/js';
+import { msMonitorHeart } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -48,7 +48,7 @@ const chipLabel = (chip: (typeof chips.value)[number]) =>
 <template>
   <DashCard
     :title="t('dashboard.health.title')"
-    :icon="mdiHeartPulse"
+    :icon="msMonitorHeart"
     :to="session.isAdmin ? { name: 'settings', hash: '#section-services' } : undefined"
     :link-label="t('dashboard.health.settings_cta')"
     :loading="query.isPending.value"

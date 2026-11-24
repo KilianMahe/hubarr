@@ -20,6 +20,24 @@ Un onglet par partie, en haut sur ordinateur et dans la barre du bas sur mobile 
 
 Hubarr utilise l'API v2 de Tracearr quand elle existe et revient à la v1 sinon.
 
+## « Vu »
+
+Hubarr peut marquer les films et les épisodes que vous avez regardés, d'après Tracearr.
+
+1. Ouvrez votre **Profil** (menu sous votre avatar). La carte **Tracearr** liste les comptes Tracearr : choisissez le vôtre. La carte n'apparaît que si Tracearr est configuré.
+2. Hubarr importe vos lectures en arrière-plan (la carte affiche « Import des lectures en cours… », puis la date de la dernière synchronisation et le nombre de lectures), puis les met à jour toutes les 15 minutes.
+3. Ensuite :
+   - un badge **Vu** marque les films que vous avez regardés, sur leur fiche et dans la bibliothèque Radarr (cartes et liste) ;
+   - les séries affichent le nombre d'épisodes vus, par exemple **3/10 vus**, sur leur fiche et dans la bibliothèque Sonarr ; chaque saison affiche son compte et chaque épisode vu est marqué **Vu** ;
+   - sur le tableau de bord, **Tendances de la semaine** et **Ajouts récents à votre bibliothèque** portent les mêmes badges (pour une série en tendance, le nombre d'épisodes vus) ;
+   - la découverte affiche une rangée **D'après ce que tu as regardé**, tirée de vos dernières lectures (voir [Découverte](./decouverte.md#accueil-et-recherche)).
+
+Seules les lectures que Tracearr considère comme terminées comptent. Les épisodes spéciaux sont exclus du compte d'une série. Chaque compte Hubarr choisit son propre compte Tracearr ; choisir **Aucun** (la croix du champ) le dissocie et oublie les lectures importées.
+
+Les administrateurs trouvent sur la carte un bouton **Resynchroniser**, qui réimporte tout l'historique des comptes associés (utile après un changement de bibliothèque dans Tracearr).
+
+Cette fonction demande l'**API v2** de Tracearr : seul son historique porte l'ID TMDB des films et filtre les lectures par utilisateur. Avec un Tracearr plus ancien, la carte le signale. Les films sont reconnus par leur ID TMDB, les séries par leur ID TVDB (celui de Sonarr) ou TMDB. Les lectures sont gardées dans la base de Hubarr (table `tracearr_watch`) ; l'identifiant Tracearr de votre compte n'est jamais envoyé au navigateur.
+
 ## Source de l'activité
 
 Si Tautulli et Tracearr sont tous deux configurés, la préférence **Paramètres → Affichage → Source de l'activité** choisit celle qui alimente le widget d'activité ; un service indisponible cède la place à l'autre.

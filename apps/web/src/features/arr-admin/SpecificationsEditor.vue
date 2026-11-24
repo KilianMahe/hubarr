@@ -6,7 +6,7 @@
 // requis, champs du modèle rendus par `SchemaForm`. Les auto-tags en
 // profitent aussi (l'original y demandait un JSON brut).
 import type { Specification } from '@hubarr/shared';
-import { mdiClose, mdiPlus } from '@mdi/js';
+import { msAdd, msClose } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SchemaForm from './SchemaForm.vue';
@@ -74,7 +74,7 @@ function selectType(draft: SpecificationDraft, index: number | null): void {
         size="small"
         variant="tonal"
         color="service-text"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="spec-add"
         @click="add"
         >{{ labels.add }}</v-btn
@@ -92,7 +92,7 @@ function selectType(draft: SpecificationDraft, index: number | null): void {
         {{ labels.condition(index + 1) }}
         <v-spacer />
         <v-btn
-          :icon="mdiClose"
+          :icon="msClose"
           variant="text"
           size="small"
           color="error"

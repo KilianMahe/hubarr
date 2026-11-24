@@ -22,7 +22,9 @@
       "finish": "Terminer",
       "refresh": "Actualiser",
       "view_all": "Tout voir",
-      "view_more": "Voir plus"
+      "view_more": "Voir plus",
+      "more_actions": "Plus d'actions",
+      "view": "Voir"
     },
     "status": {
       "loading": "Chargement…",
@@ -49,7 +51,8 @@
       "text": "{text}",
       "copy": "Copier",
       "copied": "Copié dans le presse-papiers",
-      "skip_to_content": "Aller au contenu"
+      "skip_to_content": "Aller au contenu",
+      "refreshing_cache": "Mise à jour…"
     },
     "ds": {
       "selected": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
@@ -71,12 +74,6 @@
     "tagline": "Stack médias self-hosted"
   },
   "sidebar": {
-    "section": {
-      "overview": "Vue d'ensemble",
-      "media": "Médias",
-      "discovery": "Explorer",
-      "tools": "Outils"
-    },
     "nav": {
       "dashboard": "Tableau de bord",
       "qbittorrent": "qBittorrent",
@@ -97,7 +94,8 @@
       "collapse": "Réduire la barre latérale",
       "expand": "Développer la barre latérale",
       "settings": "Paramètres",
-      "logout": "Se déconnecter"
+      "logout": "Se déconnecter",
+      "aria_label": "Liens annexes"
     },
     "family": {
       "arrs": "Arrs",
@@ -316,6 +314,9 @@
     }
   },
   "home": {
+    "tabs": {
+      "discover": "Découverte"
+    },
     "welcome": {
       "title": "Bienvenue dans Hubarr",
       "subtitle": "Aucun service n'est encore configuré. Choisissez une section pour commencer.",
@@ -561,6 +562,23 @@
         "downloading": "En cours",
         "other": "En file"
       }
+    },
+    "downloads": {
+      "title": "Téléchargés par jour · 30 jours",
+      "total": "Total",
+      "average": "Moyenne par jour",
+      "bar": "{day} : {size}",
+      "chart_label": "Téléchargés par jour : {total} sur {days} jours",
+      "failed": "Sans réponse, non comptés : {clients}",
+      "hint": "D'après les téléchargements encore présents dans les clients : un élément supprimé n'est plus compté."
+    },
+    "disks": {
+      "title": "Espace disque",
+      "used": "{percent} % utilisés",
+      "free": "{free} libres sur {total}",
+      "alert": "Presque plein",
+      "failed": "Sans réponse : {instances}",
+      "empty": "Aucun disque trouvé pour les dossiers racines."
     }
   },
   "tautulli": {
@@ -753,6 +771,23 @@
       "view_all": "Tout voir →",
       "type_film": "Film",
       "type_tv": "Série"
+    },
+    "tracearr": {
+      "section": "Tracearr",
+      "hint": "Choisissez votre compte Tracearr : les films et épisodes que vous avez regardés sont marqués « Vu » dans les fiches et la bibliothèque.",
+      "account": "Mon compte Tracearr",
+      "none": "Aucun",
+      "unknown_account": "Compte introuvable",
+      "linked": "Compte Tracearr associé : import des lectures en cours",
+      "unlinked": "Compte Tracearr dissocié",
+      "resync": "Resynchroniser",
+      "resynced": "Lectures Tracearr réimportées",
+      "sync_pending": "Import des lectures en cours…",
+      "sync_status": "Synchronisé le {date} · {count, plural, =0 {aucune lecture} one {# lecture} other {# lectures}}",
+      "sync_error": "Dernière synchronisation en échec : Tracearr ne répond pas.",
+      "unavailable_unconfigured": "Tracearr n’est pas configuré ou est désactivé.",
+      "unavailable_unsupported": "Cette version de Tracearr n’a pas l’API v2 : mettez Tracearr à jour pour utiliser « Vu ».",
+      "unavailable_unreachable": "Tracearr ne répond pas : la liste des comptes est indisponible."
     }
   },
   "error": {
@@ -816,6 +851,7 @@
       "services": "Services externes",
       "display": "Affichage",
       "backup": "Sauvegarde",
+      "logs": "Journaux",
       "updates": "Mises à jour",
       "about": "À propos",
       "aria_label": "Sections des paramètres"
@@ -938,11 +974,11 @@
     "languages": {
       "tab_label": "Langues",
       "description": "Centralise les paramètres de langue de Hubarr et des services connectés. Les modifications côté Radarr/Sonarr/Prowlarr/Seerr sont poussées via leurs API.",
-      "prismarr_section": "Hubarr",
-      "prismarr_ui_label": "Langue de l'interface",
-      "prismarr_ui_help": "Langue affichée dans Hubarr. Les utilisateurs ne peuvent pas changer leur propre langue (paramètre admin uniquement).",
-      "prismarr_metadata_label": "Langue des métadonnées TMDb",
-      "prismarr_metadata_help": "Langue des titres, synopsis et fiches récupérées depuis TMDb (pour la page Recherche et les fiches enrichies).",
+      "hubarr_section": "Hubarr",
+      "hubarr_ui_label": "Langue de l'interface",
+      "hubarr_ui_help": "Langue affichée dans Hubarr. Les utilisateurs ne peuvent pas changer leur propre langue (paramètre admin uniquement).",
+      "hubarr_metadata_label": "Langue des métadonnées TMDb",
+      "hubarr_metadata_help": "Langue des titres, synopsis et fiches récupérées depuis TMDb (pour la page Recherche et les fiches enrichies).",
       "services_section": "Services connectés",
       "col_instance": "Instance",
       "radarr_ui_label": "Langue UI",
@@ -976,7 +1012,8 @@
         "description": "Glissez pour réordonner les sections, et choisissez celles à afficher.",
         "reset_hint": "Utilisez « Réinitialiser les préférences d'affichage » ci-dessous pour rétablir la disposition par défaut.",
         "move_up": "Monter",
-        "move_down": "Descendre"
+        "move_down": "Descendre",
+        "drag": "Glisser pour déplacer"
       },
       "switch": {
         "on": "Activées",
@@ -1254,6 +1291,35 @@
       "open": "Paramètres",
       "open_instance": "Paramètres de {name}",
       "groups": "Paramètres de {service}"
+    },
+    "logs": {
+      "title": "Journaux",
+      "subtitle": "{count, plural, =0 {Aucune entrée} one {# entrée} other {# entrées}} · {capacity} dernières gardées · à partir du niveau {level}",
+      "download": "Télécharger (.jsonl)",
+      "auto_refresh": "Actualisation auto",
+      "filter": {
+        "level": "Niveau minimal",
+        "service": "Service",
+        "search": "Rechercher",
+        "no_service": "Aucun service dans les journaux"
+      },
+      "level": {
+        "trace": "Trace",
+        "debug": "Débogage",
+        "info": "Info",
+        "warn": "Alerte",
+        "error": "Erreur",
+        "fatal": "Fatal"
+      },
+      "empty": {
+        "title": "Aucune entrée",
+        "text": "Les avertissements et les erreurs de Hubarr et des services apparaîtront ici. Les journaux sont gardés en mémoire et repartent de zéro à chaque redémarrage.",
+        "filtered": "Aucune entrée ne correspond aux filtres"
+      },
+      "detail": {
+        "title": "Entrée du journal",
+        "context": "Contexte"
+      }
     }
   },
   "decouverte": {
@@ -1269,6 +1335,7 @@
       "type": "Type",
       "movies": "Films",
       "series": "Séries",
+      "anime": "Animés",
       "genre": "Genre",
       "all": "Tous",
       "year_from": "Année de",
@@ -1296,9 +1363,21 @@
     },
     "section": {
       "my_recs": {
-        "title": "Pour toi",
-        "subtitle": "basé sur ta bibliothèque",
+        "title": "D'après votre bibliothèque",
+        "subtitle": "vos derniers ajouts",
         "loading": "Analyse de ta bibliothèque en cours…"
+      },
+      "watched": {
+        "title": "D'après ce que tu as regardé",
+        "subtitle": "tes lectures récentes, via Tracearr"
+      },
+      "folder": {
+        "title": "Pour « {folder} »",
+        "subtitle": "dossier de {instance}"
+      },
+      "by_year": {
+        "title": "Populaires en {year}",
+        "year": "Année"
       },
       "trending": "Tendances cette semaine",
       "popular_movies": "Films populaires",
@@ -1356,6 +1435,7 @@
       "alt_titles": "Titres alternatifs",
       "reviews": "Avis",
       "gallery": "Galerie",
+      "recommendations": "Recommandations",
       "similar": "Similaires",
       "add_to": "Ajouter à {service}",
       "view_in": "Voir dans {section}",
@@ -1473,12 +1553,15 @@
       "back_to_discover": "Recherche",
       "section": {
         "type": "Type",
+        "anime_type": "Format",
         "genre": "Genre",
         "decade": "Décennie",
+        "year": "Année",
         "sort": "Tri",
         "collections": "Collections",
         "by_actor": "Par acteur"
       },
+      "any_year": "Toutes",
       "sort_options": {
         "popular": "Populaires",
         "top_rated": "Mieux notés",
@@ -1541,6 +1624,13 @@
       "search_instead": "Rechercher plutôt « __Q__ »",
       "person_kicker": "Personne",
       "see_filmography": "Voir la filmographie"
+    },
+    "tabs": {
+      "for_you": "Pour vous",
+      "trending": "Tendances",
+      "top_rated": "Les mieux notés",
+      "by_year": "Par année",
+      "for_you_empty": "Rien à suggérer pour l'instant : ajoutez des titres à votre bibliothèque ou liez votre compte Tracearr dans votre profil."
     }
   },
   "media": {
@@ -1623,6 +1713,15 @@
       "parse": "Parser titre",
       "backups": "Sauvegardes",
       "updates": "Mises à jour"
+    },
+    "page": {
+      "monitored": "Suivi",
+      "unmonitored": "Non suivi",
+      "quality": "Qualité",
+      "size": "Taille",
+      "rating": "Note",
+      "episodes": "{files}/{total} épisodes",
+      "seasons": "Saisons"
     },
     "films": {
       "header_count": "{count, plural, one {# film} other {# films}}",
@@ -2592,6 +2691,7 @@
       "episode": {
         "status_downloaded": "Téléchargé",
         "status_missing": "Manquant",
+        "status_upcoming": "À venir",
         "status_unmonitored": "Non suivi",
         "search_episode": "Rechercher cet épisode"
       },
@@ -3949,6 +4049,8 @@
       "blocked_warning": "{count, plural, one {# import bloqué — intervention manuelle nécessaire.} other {# imports bloqués — intervention manuelle nécessaire.}}"
     },
     "add": {
+      "section_library": "Bibliothèque",
+      "section_monitoring": "Suivi",
       "empty_movie_title": "Quel film voulez-vous ajouter ?",
       "empty_series_title": "Quelle série voulez-vous ajouter ?",
       "empty_movie_hint": "Saisissez au moins deux caractères du titre, ou un identifiant comme tmdb:603 ou imdb:tt0133093.",
@@ -6278,9 +6380,11 @@
       "episode": "Épisodes",
       "status": "Statut",
       "status_all": "Tous",
-      "status_monitored": "Suivis",
-      "status_missing": "Non suivis",
-      "status_available": "Disponibles"
+      "status_downloaded": "Téléchargés",
+      "status_downloading": "En cours",
+      "status_missing": "Manquants",
+      "status_upcoming": "À venir",
+      "status_unmonitored": "Non suivis"
     },
     "view": {
       "month": "Mois",
@@ -6354,8 +6458,10 @@
       "cross_month": "Semaine du {start_day} {start_month} au {end_day} {end_month} {year}"
     },
     "status": {
-      "available": "Disponible",
-      "monitored": "Suivi",
+      "downloaded": "Téléchargé",
+      "downloading": "En cours de téléchargement",
+      "missing": "Manquant",
+      "upcoming": "À venir",
       "unmonitored": "Non suivi"
     },
     "day": {
@@ -6435,6 +6541,12 @@
       "progress": "Progression",
       "open_media": "Voir la fiche",
       "codec_change": "{from} → {to}"
+    },
+    "watched": {
+      "all": "Vu",
+      "some": "{watched}/{total} vus",
+      "episodes": "{count, plural, one {# épisode vu} other {# épisodes vus}}",
+      "title": "Vu sur votre compte Tracearr"
     }
   }
 }

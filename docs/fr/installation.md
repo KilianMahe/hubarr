@@ -53,17 +53,18 @@ Pour figer une version, remplacez `latest` par son numéro (`naroner/hubarr:1.0.
 
 ## Variables d'environnement
 
-| Variable                 | Défaut                           | Rôle                                                                                              |
-| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `HUBARR_PORT`            | `7070`                           | Port d'écoute dans le conteneur                                                                   |
-| `HUBARR_DATA_DIR`        | `/data`                          | Dossier des données persistantes                                                                  |
-| `HUBARR_LOG_LEVEL`       | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` ou `trace`                                              |
-| `HUBARR_TRUST_PROXY`     | `loopback,linklocal,uniquelocal` | Proxys inverses de confiance : `true`, `false` ou une liste d'adresses et de plages               |
-| `HUBARR_FRAME_ANCESTORS` | _(vide)_                         | Origines autorisées à intégrer Hubarr dans une iframe, séparées par des espaces                   |
-| `HUBARR_BASE_PATH`       | _(vide)_                         | Préfixe de chemin derrière un reverse proxy (`/hubarr`), voir [Reverse proxy](./reverse-proxy.md) |
-| `HUBARR_HOST`            | `0.0.0.0`                        | Adresse d'écoute dans le conteneur                                                                |
-| `PUID`, `PGID`           | `1000`                           | Utilisateur et groupe propriétaires des fichiers de `/data` (voir ci-dessus)                      |
-| `TZ`                     | `UTC`                            | Fuseau par défaut de l'affichage (si les préférences n'en fixent pas) et des journaux             |
+| Variable                  | Défaut                           | Rôle                                                                                              |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `HUBARR_PORT`             | `7070`                           | Port d'écoute dans le conteneur                                                                   |
+| `HUBARR_DATA_DIR`         | `/data`                          | Dossier des données persistantes                                                                  |
+| `HUBARR_LOG_LEVEL`        | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` ou `trace`                                              |
+| `HUBARR_LOG_BUFFER_LEVEL` | _(celui de `HUBARR_LOG_LEVEL`)_  | Niveau minimal gardé pour la page **Journaux**, voir [Dépannage](./depannage.md#page-journaux)    |
+| `HUBARR_TRUST_PROXY`      | `loopback,linklocal,uniquelocal` | Proxys inverses de confiance : `true`, `false` ou une liste d'adresses et de plages               |
+| `HUBARR_FRAME_ANCESTORS`  | _(vide)_                         | Origines autorisées à intégrer Hubarr dans une iframe, séparées par des espaces                   |
+| `HUBARR_BASE_PATH`        | _(vide)_                         | Préfixe de chemin derrière un reverse proxy (`/hubarr`), voir [Reverse proxy](./reverse-proxy.md) |
+| `HUBARR_HOST`             | `0.0.0.0`                        | Adresse d'écoute dans le conteneur                                                                |
+| `PUID`, `PGID`            | `1000`                           | Utilisateur et groupe propriétaires des fichiers de `/data` (voir ci-dessus)                      |
+| `TZ`                      | `UTC`                            | Fuseau par défaut de l'affichage (si les préférences n'en fixent pas) et des journaux             |
 
 ## Mettre à jour
 
@@ -78,10 +79,6 @@ L'application installée sur un téléphone (PWA) se met à jour d'elle-même au
 Les migrations de la base s'appliquent au démarrage, après une copie de sauvegarde `hubarr.db.bak`.
 
 Avant une mise à jour, une copie du dossier de données est une bonne précaution : voir [Sauvegarder et restaurer](./depannage.md#sauvegarder-et-restaurer).
-
-::: warning Dossier de données
-Hubarr refuse de démarrer sur un dossier qui contient la base d'une autre application (Prismarr notamment) : utilisez un dossier de données neuf.
-:::
 
 ## Construire l'image depuis les sources
 

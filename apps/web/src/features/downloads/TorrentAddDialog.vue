@@ -6,7 +6,7 @@
 // (Hubarr), démarrage ou pause. Fichiers envoyés d'abord, puis les liens ;
 // le dialogue se ferme si tout est parti.
 import { TORRENT_CAPABILITIES, type TorrentClientId } from '@hubarr/shared';
-import { mdiClose, mdiFileUpload } from '@mdi/js';
+import { msClose, msUploadFile } from '../../components/symbols';
 import { computed, ref, watch } from 'vue';
 import { apiErrorText } from '../../app/api/error-text';
 import { useFormat } from '../../app/format';
@@ -120,7 +120,7 @@ async function submit(): Promise<void> {
         @dragleave="dragging = false"
         @drop.prevent="onDrop"
       >
-        <v-icon :icon="mdiFileUpload" size="28" class="mb-1" />
+        <v-icon :icon="msUploadFile" size="28" class="mb-1" />
         <div class="text-body-medium">
           {{ tk('modal_add.drop_text').replace(/<[^>]+>/g, '') }}
         </div>
@@ -147,7 +147,7 @@ async function submit(): Promise<void> {
         >
           <template #append>
             <v-btn
-              :icon="mdiClose"
+              :icon="msClose"
               size="small"
               variant="text"
               :aria-label="tk('modal_add.file_remove_title')"

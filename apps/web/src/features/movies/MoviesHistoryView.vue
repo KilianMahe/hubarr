@@ -11,7 +11,7 @@ import { useI18n } from 'vue-i18n';
 import { useFormat } from '../../app/format';
 import ArrPager from '../../components/ArrPager.vue';
 import SortableTh from '../../components/SortableTh.vue';
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../components/symbols';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import RadarrNav from './RadarrNav.vue';
 import { historyTone } from './movie-detail';
@@ -95,7 +95,7 @@ const source = (item: MovieHistoryItem) =>
     </div>
     <v-filter-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="t('media.arr_lists.search_movie')"
       :aria-label="t('media.arr_lists.search_movie')"
       density="compact"

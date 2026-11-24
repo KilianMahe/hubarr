@@ -9,7 +9,7 @@ import {
   type InstanceType,
   type ServiceInstance,
 } from '@hubarr/shared';
-import { mdiAlert } from '@mdi/js';
+import { msWarningFill } from '../../components/symbols';
 import { useMutation } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -17,6 +17,7 @@ import { useDisplay } from 'vuetify';
 import { VBottomSheet, VDialog } from 'vuetify/components';
 import { z } from 'zod';
 import { ApiError, api } from '../../app/api/client';
+import DialogTitle from '../../components/DialogTitle.vue';
 import PasswordField from '../../components/PasswordField.vue';
 import { instanceActions } from './settings-api';
 
@@ -121,13 +122,14 @@ const submit = useMutation({
 <template>
   <component :is="smAndDown ? VBottomSheet : VDialog" v-model="open" max-width="560" scrollable>
     <v-card :data-test="`instance-dialog-${type}`">
-      <v-card-title class="text-title-large pt-5 px-6">
-        {{
+      <DialogTitle
+        :title="
           instance === null
             ? t('admin.instances.modal.add_title', { service: label })
             : t('admin.instances.modal.edit_title', { name: instance.name })
-        }}
-      </v-card-title>
+        "
+        @close="open = false"
+      />
       <v-card-text>
         <form id="instance-form" autocomplete="off" @submit.prevent="submit.mutate()">
           <v-alert
@@ -195,7 +197,7 @@ const submit = useMutation({
                   spellcheck="false"
                 />
                 <div v-if="instance !== null" class="d-flex ga-2 mt-3 text-body-small text-error">
-                  <v-icon :icon="mdiAlert" size="small" />
+                  <v-icon :icon="msWarningFill" size="small" />
                   <span>{{ t('admin.instances.field.slug_warning') }}</span>
                 </div>
               </v-expansion-panel-text>

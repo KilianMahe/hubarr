@@ -18,8 +18,6 @@ RUN     := $(COMPOSE) run --rm server
 # Version inscrite dans l'image (HUBARR_VERSION) ; `make release` la fixe.
 VERSION ?= 0.0.0-local+$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= hubarr:local
-# Dépôt Prismarr d'origine, source de l'import des traductions (make i18n-import).
-PRISMARR_DIR ?= ../Prismarr
 
 # Points de montage créés d'avance, sinon Docker les crée au nom de root.
 MOUNTS  := data-dev node_modules apps/server/node_modules apps/web/node_modules \
@@ -28,8 +26,8 @@ MOUNTS  := data-dev node_modules apps/server/node_modules apps/web/node_modules 
 
 .PHONY: help dev stack down logs ps image install sh lint lint-files lint-fix \
         format typecheck test test-watch check outdated clean hooks build prod \
-        prod-down prod-logs db-generate db-migrate i18n-import openapi docs e2e \
-        screenshots check-fast release smoke-arm64 publish publish-github github-release dockerhub-description
+        prod-down prod-logs db-generate db-migrate openapi docs e2e \
+        screenshots check-fast scan release smoke-arm64 publish publish-github github-release dockerhub-description
 
 help: ## Affiche cette aide
 	@grep -E '^[a-z][a-z-]+:.*## ' $(MAKEFILE_LIST) \
@@ -106,15 +104,15 @@ screenshots: $(MOUNTS) build ## Captures de présentation (README, doc) dans doc
 check-fast: $(MOUNTS) ## lint + typecheck (hook pre-commit)
 	$(RUN) sh -c 'pnpm lint && pnpm typecheck'
 
-check: $(MOUNTS) ## lint + typecheck + test + licences (à la demande, hook pre-push)
+check: $(MOUNTS) ## lint + typecheck + test + licences (à la demande)
 	$(RUN) pnpm check
 
 outdated: $(MOUNTS) ## Dépendances à mettre à jour
 	$(RUN) pnpm -r outdated
 
-hooks: ## Installe les hooks git (pre-commit : make check-fast ; pre-push : make check)
+hooks: ## Installe le hook git pre-commit (make check-fast)
 	git config core.hooksPath .githooks
-	@echo 'Hooks actifs : .githooks/pre-commit (make check-fast), .githooks/pre-push (make check)'
+	@echo 'Hook actif : .githooks/pre-commit (make check-fast)'
 
 ## --- Base de données ---
 
@@ -124,13 +122,6 @@ db-generate: $(MOUNTS) ## Écrit la migration SQL des changements de src/db/sche
 
 db-migrate: $(MOUNTS) ## Applique les migrations en attente à data-dev/hubarr.db (fait aussi au démarrage)
 	$(RUN) pnpm --filter @hubarr/server db:migrate
-
-## --- Traductions ---
-
-i18n-import: $(MOUNTS) ## Réimporte les traductions YAML de Prismarr (PRISMARR_DIR=../Prismarr) : écrase les JSON, relire le diff
-	@test -d "$(PRISMARR_DIR)/symfony/translations" || { echo "Traductions introuvables : $(PRISMARR_DIR)/symfony/translations"; exit 2; }
-	$(COMPOSE) run --rm -v "$(abspath $(PRISMARR_DIR))/symfony/translations:/prismarr-translations:ro" server \
-	  sh -c 'node tools/convert-translations.js /prismarr-translations packages/shared/src/i18n && pnpm exec prettier --write packages/shared/src/i18n/*.json'
 
 ## --- Types des services (OpenAPI) ---
 
@@ -150,26 +141,42 @@ build: ## Construit l'image de prod hubarr:local (binaires natifs vérifiés pen
 	  --build-arg HUBARR_VERSION=$(VERSION) -t $(IMAGE) .
 	@docker image ls $(IMAGE)
 
+# À garder aligné sur TRIVY_VERSION dans .forgejo/workflows/security.yml.
+TRIVY_VERSION ?= 0.76.2
+TRIVY := docker run --rm -v "$(CURDIR)":/src:ro -w /src -v hubarr-trivy-cache:/root/.cache \
+         -e TRIVY_NO_PROGRESS=true aquasec/trivy:$(TRIVY_VERSION)
+
+scan: build ## Analyse Trivy à la demande (dépendances + image hubarr:local), comme la CI ; jamais lancée automatiquement
+	$(TRIVY) fs --skip-dirs '**/node_modules' --skip-dirs data-dev .
+	docker save -o .trivy-image.tar $(IMAGE)
+	$(TRIVY) image --input .trivy-image.tar; status=$$?; rm -f .trivy-image.tar; exit $$status
+
 smoke-arm64: ## Test de fumée de l'image sur arm64 par émulation (prérequis : binfmt arm64, voir tools/smoke-arm64.sh)
 	./tools/smoke-arm64.sh $(VERSION)
 
 DOCKER_REPO ?= naroner/hubarr
+# Node des scripts de publication : le conteneur de dev en local ; la CI de
+# publication (`.forgejo/workflows/release.yml`) passe `PUBLISH_NODE=node`.
+PUBLISH_NODE ?= $(COMPOSE) run --rm --no-deps -e GITHUB_TOKEN -e DOCKERHUB_TOKEN \
+                -e DOCKERHUB_USERNAME -e DOCKER_REPO -e DRY_RUN server node
 
-publish: ## Pousse l'image d'une version sur Docker Hub (VERSION=x.y.z ; DOCKER_REPO, naroner/hubarr par défaut)
+publish: ## Pousse l'image d'une version sur Docker Hub (VERSION=x.y.z ; DOCKER_REPO, naroner/hubarr par défaut ; pas latest pour une préversion)
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make publish VERSION=1.0.0'; exit 2; }
 	docker push $(DOCKER_REPO):$(VERSION)
-	docker push $(DOCKER_REPO):latest
+	@# Préversion (x.y.z-rc.1) : `latest` reste sur la dernière version stable.
+	@case "$(VERSION)" in *-*) echo "Préversion : $(DOCKER_REPO):latest inchangé." ;; \
+	  *) docker push $(DOCKER_REPO):latest ;; esac
 
-publish-github: ## Publie une version sur GitHub (VERSION=x.y.z) : historique public sans CLAUDE.md, PLAN, MEMOIRE, design/
+publish-github: ## Publie une version sur GitHub (VERSION=x.y.z) : historique public sans CLAUDE.md, PLAN, MEMOIRE, design/ (DRY_RUN=1 : essai)
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make publish-github VERSION=1.0.0'; exit 2; }
 	./tools/publish-github.sh $(VERSION)
 
 github-release: ## Page de release GitHub d'une version (VERSION=x.y.z, jeton dans GITHUB_TOKEN)
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make github-release VERSION=1.0.0'; exit 2; }
-	$(COMPOSE) run --rm --no-deps -e GITHUB_TOKEN server node tools/publish-notes.js github-release $(VERSION)
+	$(PUBLISH_NODE) tools/publish-notes.js github-release $(VERSION)
 
 dockerhub-description: ## Description du dépôt Docker Hub depuis docker/DOCKERHUB.md (jeton dans DOCKERHUB_TOKEN)
-	$(COMPOSE) run --rm --no-deps -e DOCKERHUB_TOKEN -e DOCKERHUB_USERNAME server node tools/publish-notes.js dockerhub
+	$(PUBLISH_NODE) tools/publish-notes.js dockerhub
 
 release: ## Publication locale (VERSION=x.y.z) : contrôles, e2e, CHANGELOG, commit et tag, images hubarr:x.y.z et hubarr:local
 	@test -n "$(filter-out 0.0.0-local+%,$(VERSION))" || { echo 'VERSION est requis, par exemple : make release VERSION=1.0.0'; exit 2; }

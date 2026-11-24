@@ -2,7 +2,8 @@
 <script setup lang="ts">
 // Profil (`profile/index.html.twig`) : avatar (envoi, suppression, initiales à
 // défaut), informations, nom affiché et mot de passe (un seul envoi, tout ou
-// rien : MEMOIRE D45), statistiques et aperçu de la watchlist.
+// rien : MEMOIRE D45), statistiques, aperçu de la watchlist et compte
+// Tracearr (« Vu », lot 7) quand le service est configuré.
 import {
   AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
@@ -10,11 +11,12 @@ import {
   profileResponseSchema,
   type ProfileResponse,
 } from '@hubarr/shared';
-import { mdiCamera, mdiDelete } from '@mdi/js';
+import { msDelete, msPhotoCamera } from '../../components/symbols';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ApiError, api, validationMessages } from '../../app/api/client';
+import { isConfigured } from '../../app/services';
 import { useNotifyStore } from '../../app/stores/notify';
 import { useSessionStore } from '../../app/stores/session';
 import ConfirmDialog from '../../components/ConfirmDialog.vue';
@@ -22,6 +24,7 @@ import EmptyState from '../../components/EmptyState.vue';
 import PasswordField from '../../components/PasswordField.vue';
 import UserAvatar from '../../components/UserAvatar.vue';
 import { avatarProblem, membershipOf } from './membership';
+import TracearrLinkCard from './TracearrLinkCard.vue';
 
 const PROFILE_KEY = ['profile'] as const;
 const TMDB_POSTER = 'https://image.tmdb.org/t/p/w185';
@@ -165,7 +168,7 @@ const dateOf = (iso: string | null) =>
           />
           <div class="d-flex flex-wrap justify-center ga-2">
             <v-btn
-              :prepend-icon="mdiCamera"
+              :prepend-icon="msPhotoCamera"
               :loading="upload.isPending.value"
               color="service-text"
               variant="tonal"
@@ -174,7 +177,7 @@ const dateOf = (iso: string | null) =>
             >
             <v-btn
               v-if="profile.data.value.user.avatarUrl"
-              :prepend-icon="mdiDelete"
+              :prepend-icon="msDelete"
               :loading="removeAvatar.isPending.value"
               color="error"
               variant="text"
@@ -297,6 +300,8 @@ const dateOf = (iso: string | null) =>
             </v-card-actions>
           </v-form>
         </v-card>
+
+        <TracearrLinkCard v-if="isConfigured(session.services, 'tracearr')" class="mt-4" />
 
         <v-card v-if="profile.data.value.watchlist.recent.length" rounded="xl" class="pa-2 mt-4">
           <v-card-title class="text-title-medium">{{

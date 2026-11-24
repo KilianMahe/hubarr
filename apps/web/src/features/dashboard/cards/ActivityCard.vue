@@ -6,7 +6,7 @@
 // toutes les 10 s (onglet visible). Une lecture ouvre l'aperçu TMDB quand il
 // est connu.
 import { resolveActivitySource, type ActivitySession } from '@hubarr/shared';
-import { mdiPlayCircle } from '@mdi/js';
+import { msPlayCircleFill } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -60,7 +60,7 @@ function openSession(item: ActivitySession): void {
   <DashCard
     v-if="query.data.value?.available !== false"
     :title="t(source === 'tracearr' ? 'dashboard.plex.title_tracearr' : 'dashboard.plex.title')"
-    :icon="mdiPlayCircle"
+    :icon="msPlayCircleFill"
     :to="session.isAdmin ? { name: 'settings', hash: '#section-display' } : undefined"
     :link-label="t('dashboard.plex.settings_cta')"
     data-test="card-activity"

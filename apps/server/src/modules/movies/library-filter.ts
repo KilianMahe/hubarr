@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Filtre, tri et pagination de la bibliothèque Radarr normalisée : port de
-// `MovieLibraryFilter` (issue #19 de Prismarr). Fonctions pures.
+// `MovieLibraryFilter`. Fonctions pures.
 //
 // Statut, recherche, qualité, genre et langue gardent la sémantique du JS de
 // l'original, pour que les compteurs restent les mêmes. Les facettes (genres,

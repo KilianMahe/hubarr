@@ -7,7 +7,7 @@
 // à défaut ceux de l'instance). Recherche et filtres (suivie, non suivie, avec
 // films manquants) côté client, portés par l'URL (P5c.5, V6).
 import type { CollectionMovie, MovieCollection } from '@hubarr/shared';
-import { mdiCheck, mdiMagnify, mdiPlus } from '@mdi/js';
+import { msAdd, msCheck, msSearch } from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -192,7 +192,7 @@ async function addMovie(movie: CollectionMovie): Promise<void> {
       <div class="collections-filters mb-3">
         <v-filter-field
           v-model="search"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           :placeholder="t('media.arr_lists.search_movie')"
           :aria-label="t('media.arr_lists.search_movie')"
           density="compact"
@@ -353,13 +353,13 @@ async function addMovie(movie: CollectionMovie): Promise<void> {
                 variant="tonal"
                 color="success"
               >
-                <v-icon :icon="mdiCheck" start size="14" />{{
+                <v-icon :icon="msCheck" start size="14" />{{
                   t('media.films_collections.modal.added')
                 }}
               </v-chip>
               <v-btn
                 v-else
-                :prepend-icon="mdiPlus"
+                :prepend-icon="msAdd"
                 size="small"
                 :color="
                   movie.tmdbId !== null && adds.get(movie.tmdbId) === 'error' ? 'error' : 'service'

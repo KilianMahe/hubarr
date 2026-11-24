@@ -19,14 +19,24 @@ test.beforeEach(async ({ request }) => {
   await request.post(`${MOCKS_URL}/sonarr/__reset`);
 });
 
-test('paramètres de Hubarr vers les indexeurs de l’instance, puis retour', async ({ page }) => {
+test('paramètres de Hubarr vers les indexeurs de l’instance, puis retour', async ({
+  page,
+  isMobile,
+}) => {
   await openServiceAdmin(page, 'radarr', 'instance-settings-films', 'radarr-indexers');
   await expect(page).toHaveURL(/\/medias\/films\/radarr\/indexeurs$/);
   await expect(page.getByTestId('arr-admin-title')).toHaveText('Indexeurs');
   await expect(page.getByTestId('provider-row')).toHaveCount(2);
   await expect(page.locator('body')).not.toContainText('cle-secrete-indexeur');
-  // Ni barre basse, ni onglets : un lien ramène aux paramètres.
-  await expect(page.getByTestId('service-bottom-nav')).toHaveCount(0);
+  // Onglets des groupes et des pages sur desktop ; sur mobile, barre basse des
+  // groupes et page nommée dans la barre du haut (lot 3). Un lien ramène aux paramètres.
+  if (isMobile) {
+    await expect(page.getByTestId('service-settings-groups')).toHaveCount(0);
+    await expect(page.getByTestId('topbar-title')).toHaveText('Radarr · Indexeurs');
+  } else {
+    await expect(page.getByTestId('service-bottom-nav')).toHaveCount(0);
+    await expect(page.getByTestId('admin-link-radarr-indexers')).toHaveClass(/v-tab--selected/);
+  }
   await page.getByTestId('settings-back').click();
   await expect(page).toHaveURL(/\/admin\/settings#section-services$/);
 });

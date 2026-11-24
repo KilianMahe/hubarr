@@ -20,24 +20,24 @@ import type {
   SeriesRelease,
 } from '@hubarr/shared';
 import {
-  mdiAlertCircleOutline,
-  mdiAlertOutline,
-  mdiBookmark,
-  mdiBookmarkOutline,
-  mdiChevronRight,
-  mdiDelete,
-  mdiDownload,
-  mdiFolderOutline,
-  mdiTelevisionClassic,
-  mdiFileDocumentMultipleOutline,
-  mdiFormTextboxPassword,
-  mdiHistory,
-  mdiLightningBolt,
-  mdiMagnify,
-  mdiPencil,
-  mdiRefresh,
-  mdiStar,
-} from '@mdi/js';
+  msBoltFill,
+  msBookmark,
+  msBookmarkFill,
+  msCheckCircle,
+  msChevronRight,
+  msDelete,
+  msDownload,
+  msEdit,
+  msEditSquare,
+  msError,
+  msFileCopy,
+  msFolder,
+  msHistory,
+  msRefresh,
+  msSearch,
+  msTv,
+  msWarning,
+} from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -51,7 +51,12 @@ import EmptyState from '../../components/EmptyState.vue';
 import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import DetailCard from '../../components/ds/DetailCard.vue';
-import DetailHeader from '../../components/ds/DetailHeader.vue';
+import DetailFacts from '../../components/ds/DetailFacts.vue';
+import DetailLayout from '../../components/ds/DetailLayout.vue';
+import DetailState from '../../components/ds/DetailState.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
+import { showEpisodes, useWatched, watchedCount, watchedProgress } from '../activity/watched';
+import DetailSuggestions from '../discover/DetailSuggestions.vue';
 import ReleaseList from '../../components/ReleaseList.vue';
 import type { GrabState } from '../../components/release-sort';
 import { reportedDownloads } from '../movies/library';
@@ -133,6 +138,21 @@ const config = useQuery({
 });
 
 const series = computed<SeriesDetail | undefined>(() => detail.data.value);
+// Épisodes vus par l'utilisateur connecté (Tracearr, lot 7).
+const watchedIndex = useWatched();
+const watchedEpisodes = computed(() =>
+  series.value === undefined
+    ? null
+    : showEpisodes(watchedIndex.value, {
+        tvdbId: series.value.tvdbId,
+        tmdbId: series.value.tmdbId,
+      }),
+);
+const watched = computed(() =>
+  series.value === undefined
+    ? null
+    : watchedProgress(watchedCount(watchedEpisodes.value), series.value.episodeCount),
+);
 const notFound = computed(
   () => detail.error.value instanceof ApiError && detail.error.value.status === 404,
 );
@@ -500,30 +520,50 @@ const progress = computed(() => {
   if (value === undefined) return null;
   return { files: value.episodeFileCount, total: value.episodeCount, percent: value.percent };
 });
-// Speed-dial (mobile, D130, P5b.4) : recherche, actualisation, renommage,
-// fichiers et édition, à la place du FAB d'ajout ; la rangée garde le suivi.
+const stateDetail = computed(() => {
+  const value = series.value;
+  if (!value) return '';
+  const status =
+    value.status === 'continuing'
+      ? t('media.series.status.continuing')
+      : value.status === 'ended'
+        ? t('media.series.status.ended')
+        : null;
+  return [t(value.monitored ? 'media.page.monitored' : 'media.page.unmonitored'), status]
+    .filter((part): part is string => part !== null)
+    .join(' · ');
+});
+/** Chiffres clés de la colonne : note, saisons, taille. */
+const facts = computed(() => {
+  const value = series.value;
+  if (!value) return [];
+  return [
+    {
+      key: 'rating',
+      label: t('media.page.rating'),
+      value: value.ratings && value.ratings > 0 ? value.ratings.toFixed(1) : null,
+    },
+    { key: 'seasons', label: t('media.page.seasons'), value: String(value.seasonCount) },
+    {
+      key: 'size',
+      label: t('media.page.size'),
+      value: (value.sizeGb ?? 0) > 0 ? formatGb(value.sizeGb ?? 0) : null,
+    },
+  ].filter((fact): fact is { key: string; label: string; value: string } => !!fact.value);
+});
+// Speed-dial (mobile, D130, P5b.4) : renommage, fichiers et édition, à la
+// place du FAB d'ajout ; recherche et actualisation restent dans la rangée
+// d'actions, avec le suivi.
 const { smAndDown } = useDisplay();
 useServiceFab(() =>
   smAndDown.value && series.value
     ? {
-        icon: mdiLightningBolt,
+        icon: msBoltFill,
         label: t('common.ds.actions'),
         testId: 'series-speed-dial',
         actions: [
           {
-            icon: mdiMagnify,
-            label: t('media.series.detail.search_monitored'),
-            testId: 'series-search-missing',
-            onClick: () => void searchMissing(),
-          },
-          {
-            icon: mdiRefresh,
-            label: t('media.series.detail.refresh_scan'),
-            testId: 'series-refresh',
-            onClick: () => void refresh(),
-          },
-          {
-            icon: mdiFormTextboxPassword,
+            icon: msEditSquare,
             label: t('media.series.detail.rename_files'),
             testId: 'series-rename-open',
             onClick: () => {
@@ -531,7 +571,7 @@ useServiceFab(() =>
             },
           },
           {
-            icon: mdiFileDocumentMultipleOutline,
+            icon: msFileCopy,
             label: t('media.series.detail.manage_files'),
             testId: 'series-files-open',
             onClick: () => {
@@ -539,7 +579,7 @@ useServiceFab(() =>
             },
           },
           {
-            icon: mdiPencil,
+            icon: msEdit,
             label: t('media.series.detail.modify'),
             testId: 'series-edit-open',
             onClick: () => {
@@ -555,7 +595,7 @@ useServiceFab(() =>
 <template>
   <div class="detail-page" data-test="series-detail">
     <ServiceDownBanner service="sonarr" :instance="props.slug" />
-    <DetailHeader
+    <DetailLayout
       :title="title"
       :fanart="fanart"
       :poster="poster"
@@ -566,52 +606,123 @@ useServiceFab(() =>
       <template #title
         >{{ title }}<template v-if="year"> ({{ year }})</template></template
       >
-      <div v-if="series" class="d-flex flex-wrap ga-1 my-2" data-test="series-badges">
-        <v-chip v-if="series.status === 'continuing'" size="small" variant="flat" color="success">{{
-          t('media.series.status.continuing')
-        }}</v-chip>
-        <v-chip v-else-if="series.status === 'ended'" size="small" variant="flat">{{
-          t('media.series.status.ended')
-        }}</v-chip>
-        <v-chip
-          v-if="series.seriesType === 'anime'"
-          size="small"
-          variant="flat"
-          color="secondary"
-          >{{ t('media.series.status.anime') }}</v-chip
-        >
-        <v-chip size="small" variant="flat" color="surface">{{
-          t('media.series.status.season_tpl', { count: series.seasonCount })
-        }}</v-chip>
-      </div>
-      <div v-if="series" class="d-flex flex-wrap align-center ga-3 text-body-medium detail-soft">
-        <span v-if="series.network">{{ series.network }}</span>
-        <span v-if="series.runtime">{{
-          t('dashboard.quicklook.runtime', { min: series.runtime })
-        }}</span>
-        <v-chip v-if="series.certification" size="x-small" label variant="outlined">{{
-          series.certification
-        }}</v-chip>
-        <span v-if="series.ratings && series.ratings > 0" class="detail-rating">
-          <v-icon :icon="mdiStar" size="16" color="#f5c518" />{{ series.ratings.toFixed(1) }}
-        </span>
-      </div>
-      <div v-if="series && series.genres.length > 0" class="d-flex flex-wrap ga-1 mt-2">
-        <v-chip v-for="genre in series.genres" :key="genre" size="x-small" variant="tonal">{{
-          genre
-        }}</v-chip>
-      </div>
-    </DetailHeader>
+      <template #meta>
+        <div v-if="series" class="d-flex flex-wrap ga-1 my-2" data-test="series-badges">
+          <v-chip
+            v-if="series.status === 'continuing'"
+            size="small"
+            variant="flat"
+            color="success"
+            >{{ t('media.series.status.continuing') }}</v-chip
+          >
+          <v-chip v-else-if="series.status === 'ended'" size="small" variant="flat">{{
+            t('media.series.status.ended')
+          }}</v-chip>
+          <v-chip
+            v-if="series.seriesType === 'anime'"
+            size="small"
+            variant="flat"
+            color="secondary"
+            >{{ t('media.series.status.anime') }}</v-chip
+          >
+          <v-chip size="small" variant="flat" color="surface">{{
+            t('media.series.status.season_tpl', { count: series.seasonCount })
+          }}</v-chip>
+          <WatchedBadge v-if="watched" :progress="watched" />
+        </div>
+        <div v-if="series" class="d-flex flex-wrap align-center ga-3 text-body-medium detail-soft">
+          <span v-if="series.network">{{ series.network }}</span>
+          <span v-if="series.runtime">{{
+            t('dashboard.quicklook.runtime', { min: series.runtime })
+          }}</span>
+          <v-chip v-if="series.certification" size="x-small" label variant="outlined">{{
+            series.certification
+          }}</v-chip>
+        </div>
+        <div v-if="series && series.genres.length > 0" class="d-flex flex-wrap ga-1 mt-2">
+          <v-chip v-for="genre in series.genres" :key="genre" size="x-small" variant="tonal">{{
+            genre
+          }}</v-chip>
+        </div>
+      </template>
 
-    <div class="detail-page__body">
-      <EmptyState
-        v-if="notFound"
-        :icon="mdiAlertCircleOutline"
-        :title="t('media.api.series_not_found')"
-      />
+      <template v-if="series" #aside>
+        <!-- État : épisodes présents, suivi, statut de diffusion, taille -->
+        <DetailState
+          v-if="progress"
+          :color="progress.percent === 100 ? 'success' : 'warning'"
+          :icon="progress.percent === 100 ? msCheckCircle : msError"
+          :title="t('media.page.episodes', { files: progress.files, total: progress.total })"
+          :subtitle="stateDetail"
+        />
+        <!-- Actions : recherche en premier, suivi (état explicite), actualisation, gestion -->
+        <div class="detail-actions">
+          <v-btn
+            :prepend-icon="msSearch"
+            color="service"
+            variant="flat"
+            :loading="busy.search"
+            data-test="series-search-missing"
+            @click="searchMissing"
+            >{{ t('media.series.detail.search_monitored') }}</v-btn
+          >
+          <div class="detail-actions__list">
+            <v-btn
+              :prepend-icon="series.monitored ? msBookmarkFill : msBookmark"
+              variant="text"
+              :aria-pressed="series.monitored"
+              :loading="busy.monitor"
+              data-test="series-monitor"
+              @click="toggleMonitor"
+              >{{
+                t(
+                  series.monitored
+                    ? 'media.series.detail.unmonitor'
+                    : 'media.series.detail.monitor',
+                )
+              }}</v-btn
+            >
+            <v-btn
+              :prepend-icon="msRefresh"
+              variant="text"
+              :loading="busy.refresh"
+              data-test="series-refresh"
+              @click="refresh"
+              >{{ t('media.series.detail.refresh_scan') }}</v-btn
+            >
+            <!-- Mobile : renommage, fichiers et édition dans le speed-dial -->
+            <template v-if="!smAndDown">
+              <v-btn
+                :prepend-icon="msEditSquare"
+                variant="text"
+                data-test="series-rename-open"
+                @click="openPanel({ kind: 'rename', season: null })"
+                >{{ t('media.series.detail.rename_files') }}</v-btn
+              >
+              <v-btn
+                :prepend-icon="msFileCopy"
+                variant="text"
+                data-test="series-files-open"
+                @click="openPanel({ kind: 'files', season: null })"
+                >{{ t('media.series.detail.manage_files') }}</v-btn
+              >
+              <v-btn
+                :prepend-icon="msEdit"
+                variant="text"
+                data-test="series-edit-open"
+                @click="openPanel({ kind: 'edit' })"
+                >{{ t('media.series.detail.modify') }}</v-btn
+              >
+            </template>
+          </div>
+        </div>
+        <DetailFacts :facts="facts" />
+      </template>
+
+      <EmptyState v-if="notFound" :icon="msError" :title="t('media.api.series_not_found')" />
       <EmptyState
         v-else-if="detail.isError.value && !series"
-        :icon="mdiAlertCircleOutline"
+        :icon="msError"
         :title="t('media.series.detail.load_error_short')"
       >
         <v-btn variant="tonal" @click="detail.refetch()">{{ t('common.action.retry') }}</v-btn>
@@ -620,63 +731,6 @@ useServiceFab(() =>
         <v-progress-circular indeterminate color="service" />
       </div>
       <template v-else>
-        <!-- Rangée d'actions : suivi (état explicite), recherche, actualisation, gestion -->
-        <div class="detail-page__actions">
-          <v-btn
-            :prepend-icon="series.monitored ? mdiBookmark : mdiBookmarkOutline"
-            :variant="series.monitored ? 'tonal' : 'outlined'"
-            :color="series.monitored ? 'service-text' : undefined"
-            :aria-pressed="series.monitored"
-            :loading="busy.monitor"
-            data-test="series-monitor"
-            @click="toggleMonitor"
-            >{{
-              t(series.monitored ? 'media.series.detail.unmonitor' : 'media.series.detail.monitor')
-            }}</v-btn
-          >
-          <!-- Mobile : ces actions sont dans le speed-dial -->
-          <template v-if="!smAndDown">
-            <v-btn
-              :prepend-icon="mdiMagnify"
-              color="service"
-              variant="flat"
-              :loading="busy.search"
-              data-test="series-search-missing"
-              @click="searchMissing"
-              >{{ t('media.series.detail.search_monitored') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiRefresh"
-              variant="text"
-              :loading="busy.refresh"
-              data-test="series-refresh"
-              @click="refresh"
-              >{{ t('media.series.detail.refresh_scan') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiFormTextboxPassword"
-              variant="text"
-              data-test="series-rename-open"
-              @click="openPanel({ kind: 'rename', season: null })"
-              >{{ t('media.series.detail.rename_files') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiFileDocumentMultipleOutline"
-              variant="text"
-              data-test="series-files-open"
-              @click="openPanel({ kind: 'files', season: null })"
-              >{{ t('media.series.detail.manage_files') }}</v-btn
-            >
-            <v-btn
-              :prepend-icon="mdiPencil"
-              variant="text"
-              data-test="series-edit-open"
-              @click="openPanel({ kind: 'edit' })"
-              >{{ t('media.series.detail.modify') }}</v-btn
-            >
-          </template>
-        </div>
-
         <v-alert
           v-if="banner"
           :type="banner.type"
@@ -712,24 +766,24 @@ useServiceFab(() =>
           <!-- Saisons : résumé (téléchargés, taille, manquants), puis saisons et épisodes -->
           <DetailCard
             :title="t('media.series.detail.seasons')"
-            :icon="mdiTelevisionClassic"
+            :icon="msTv"
             class="detail-page__wide"
           >
             <div v-if="progress" class="series-summary" data-test="series-progress">
               <div class="series-summary__item">
-                <v-icon :icon="mdiDownload" size="18" color="service-text" />
+                <v-icon :icon="msDownload" size="18" color="service-text" />
                 <span class="text-caption text-muted">{{ t('media.films.stats.downloaded') }}</span>
                 <strong>{{ progress.files }}/{{ progress.total }}</strong>
               </div>
               <div class="series-summary__item">
-                <v-icon :icon="mdiFolderOutline" size="18" color="service-text" />
+                <v-icon :icon="msFolder" size="18" color="service-text" />
                 <span class="text-caption text-muted">{{
                   t('media.series.stats.total_size')
                 }}</span>
                 <strong>{{ formatGb(series.sizeGb ?? 0) }}</strong>
               </div>
               <div class="series-summary__item">
-                <v-icon :icon="mdiAlertOutline" size="18" color="error" />
+                <v-icon :icon="msWarning" size="18" color="error" />
                 <span class="text-caption text-muted">{{
                   t('media.films.filters.status.missing')
                 }}</span>
@@ -752,6 +806,7 @@ useServiceFab(() =>
               :files="files.data.value ?? []"
               :series-monitored="series.monitored"
               :searches="searches"
+              :watched="watchedEpisodes"
               @season-monitor="seasonMonitor"
               @episode-monitor="episodeMonitor"
               @search-episode="searchEpisode"
@@ -769,17 +824,20 @@ useServiceFab(() =>
             />
           </DetailCard>
 
+          <!-- Suggestions TMDB : recommandations et similaires -->
+          <DetailSuggestions type="tv" :tmdb-id="series.tmdbId" class="detail-page__wide" />
+
           <!-- Historique résumé : l'historique complet en feuille -->
           <DetailCard
             :title="t('media.series.detail.history')"
-            :icon="mdiHistory"
+            :icon="msHistory"
             data-test="series-history-card"
           >
             <template #actions>
               <v-btn
                 variant="text"
                 size="small"
-                :append-icon="mdiChevronRight"
+                :append-icon="msChevronRight"
                 data-test="series-history-open"
                 @click="openPanel({ kind: 'history', season: null })"
                 >{{ t('common.action.view_all') }}</v-btn
@@ -793,21 +851,30 @@ useServiceFab(() =>
             />
           </DetailCard>
 
-          <!-- Suppression -->
-          <DetailCard :title="t('common.action.delete')" :icon="mdiDelete" title-color="error">
-            <v-btn
-              :prepend-icon="mdiDelete"
-              variant="tonal"
-              size="small"
-              color="error"
-              data-test="series-delete"
-              @click="deleteOpen = true"
-              >{{ t('media.series.detail.delete_series') }}</v-btn
-            >
-          </DetailCard>
+          <!-- Suppression, repliée -->
+          <v-expansion-panels variant="accordion" class="detail-page__wide detail-more">
+            <v-expansion-panel elevation="0" rounded="lg" eager>
+              <v-expansion-panel-title>
+                <span class="d-flex align-center ga-2 text-error"
+                  ><v-icon :icon="msDelete" size="18" />{{ t('common.action.delete') }}</span
+                >
+              </v-expansion-panel-title>
+              <v-expansion-panel-text>
+                <v-btn
+                  :prepend-icon="msDelete"
+                  variant="tonal"
+                  size="small"
+                  color="error"
+                  data-test="series-delete"
+                  @click="deleteOpen = true"
+                  >{{ t('media.series.detail.delete_series') }}</v-btn
+                >
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
         </div>
       </template>
-    </div>
+    </DetailLayout>
 
     <!-- Feuille de la section ouverte (bottom sheet sur mobile, dialogue sur desktop) -->
     <ResponsiveDialog

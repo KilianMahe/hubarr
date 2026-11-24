@@ -20,11 +20,18 @@ import {
   type DisplayOptionSpec,
   type SettingsResponse,
 } from '@hubarr/shared';
-import { mdiArrowDown, mdiArrowUp, mdiCheck, mdiPalette } from '@mdi/js';
+import {
+  msArrowDownward,
+  msArrowUpward,
+  msCheck,
+  msDragIndicator,
+  msPaletteFill,
+} from '../../components/symbols';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { api } from '../../app/api/client';
+import { moveItem, useSortable } from '../../app/sortable';
 import { useNotifyStore } from '../../app/stores/notify';
 import { useSessionStore } from '../../app/stores/session';
 import { useHubarrTheme } from '../../app/theme/controller';
@@ -83,13 +90,13 @@ const timezoneItems = computed(() => [
 ]);
 
 function move(index: number, delta: number): void {
-  const next = [...layout.value];
   const target = index + delta;
-  const [row] = next.splice(index, 1);
-  if (row === undefined || target < 0 || target > next.length) return;
-  next.splice(target, 0, row);
-  layout.value = next;
+  if (target < 0 || target >= layout.value.length) return;
+  layout.value = moveItem(layout.value, index, target);
 }
+// Glisser-déposer par la poignée de la ligne (souris ou doigt).
+const layoutList = ref<HTMLElement | null>(null);
+const sortable = useSortable(layout, layoutList);
 
 /** Réglages enregistrés : cache de la page, thème, préférences du shell. */
 function received(next: SettingsResponse): void {
@@ -183,9 +190,9 @@ const resetDisplay = useMutation({
                     :variant="item.value === 'theme_default' ? 'outlined' : 'flat'"
                     :icon="
                       values[key] === item.value
-                        ? mdiCheck
+                        ? msCheck
                         : item.value === 'theme_default'
-                          ? mdiPalette
+                          ? msPaletteFill
                           : undefined
                     "
                     :aria-label="
@@ -248,36 +255,51 @@ const resetDisplay = useMutation({
         <v-card-subtitle class="text-wrap">{{
           t('admin.display.dashboard_layout.description')
         }}</v-card-subtitle>
-        <v-list density="compact" class="bg-transparent" data-test="dashboard-layout">
-          <v-list-item v-for="(row, index) in layout" :key="row.key" :data-dashboard-row="row.key">
-            <template #prepend>
-              <v-checkbox-btn
-                v-model="row.visible"
-                :aria-label="t(dashboardSectionLabelKey(row.key))"
-              />
-            </template>
-            <v-list-item-title>{{ t(dashboardSectionLabelKey(row.key)) }}</v-list-item-title>
-            <template #append>
-              <v-btn
-                :icon="mdiArrowUp"
-                :aria-label="t('admin.display.dashboard_layout.move_up')"
-                :disabled="index === 0"
-                variant="text"
-                size="small"
-                data-test="move-up"
-                @click="move(index, -1)"
-              />
-              <v-btn
-                :icon="mdiArrowDown"
-                :aria-label="t('admin.display.dashboard_layout.move_down')"
-                :disabled="index === layout.length - 1"
-                variant="text"
-                size="small"
-                @click="move(index, 1)"
-              />
-            </template>
-          </v-list-item>
-        </v-list>
+        <div ref="layoutList">
+          <v-list density="compact" class="bg-transparent" data-test="dashboard-layout">
+            <v-list-item
+              v-for="(row, index) in layout"
+              :key="row.key"
+              :data-dashboard-row="row.key"
+              data-sortable-item
+              :class="{ 'layout-row--dragging': sortable.dragging.value === index }"
+            >
+              <template #prepend>
+                <v-icon
+                  :icon="msDragIndicator"
+                  class="drag-handle me-1"
+                  :aria-label="t('admin.display.dashboard_layout.drag')"
+                  data-test="layout-drag"
+                  v-on="sortable.handle(index)"
+                />
+                <v-checkbox-btn
+                  v-model="row.visible"
+                  :aria-label="t(dashboardSectionLabelKey(row.key))"
+                />
+              </template>
+              <v-list-item-title>{{ t(dashboardSectionLabelKey(row.key)) }}</v-list-item-title>
+              <template #append>
+                <v-btn
+                  :icon="msArrowUpward"
+                  :aria-label="t('admin.display.dashboard_layout.move_up')"
+                  :disabled="index === 0"
+                  variant="text"
+                  size="small"
+                  data-test="move-up"
+                  @click="move(index, -1)"
+                />
+                <v-btn
+                  :icon="msArrowDownward"
+                  :aria-label="t('admin.display.dashboard_layout.move_down')"
+                  :disabled="index === layout.length - 1"
+                  variant="text"
+                  size="small"
+                  @click="move(index, 1)"
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+        </div>
         <v-card-text class="text-body-small text-muted pt-0">{{
           t('admin.display.dashboard_layout.reset_hint')
         }}</v-card-text>
@@ -319,3 +341,15 @@ const resetDisplay = useMutation({
     />
   </section>
 </template>
+
+<style scoped>
+.drag-handle {
+  cursor: grab;
+  /* Le doigt déplace la ligne au lieu de faire défiler la page. */
+  touch-action: none;
+}
+.layout-row--dragging {
+  background: rgba(var(--v-theme-primary), 0.12);
+  cursor: grabbing;
+}
+</style>

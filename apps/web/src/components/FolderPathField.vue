@@ -4,7 +4,7 @@
 // du serveur Radarr/Sonarr (sous-dossiers, remonter) et mise à jour immédiate
 // du chemin après confirmation (déplacement des fichiers par l'instance).
 import type { FilesystemResponse } from '@hubarr/shared';
-import { mdiArrowLeft, mdiFolder, mdiFolderOpen, mdiSync } from '@mdi/js';
+import { msArrowBack, msFolderFill, msFolderOpen, msSync } from './symbols';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -69,7 +69,7 @@ const confirmOpen = ref(false);
     >
       <template #append-inner>
         <v-btn
-          :icon="browser.open ? mdiFolderOpen : mdiFolder"
+          :icon="browser.open ? msFolderOpen : msFolderFill"
           size="small"
           variant="text"
           :title="t(keys.explorer)"
@@ -77,7 +77,7 @@ const confirmOpen = ref(false);
           @click="toggleBrowser"
         />
         <v-btn
-          :icon="mdiSync"
+          :icon="msSync"
           size="small"
           variant="text"
           :title="t(keys.update)"
@@ -99,14 +99,14 @@ const confirmOpen = ref(false);
       <v-list v-else density="compact" class="py-0">
         <v-list-item
           v-if="browser.path !== '/' && browser.result?.parent"
-          :prepend-icon="mdiArrowLeft"
+          :prepend-icon="msArrowBack"
           title=".."
           @click="choose(browser.result.parent)"
         />
         <v-list-item
           v-for="dir in browser.result?.directories ?? []"
           :key="dir.path"
-          :prepend-icon="mdiFolder"
+          :prepend-icon="msFolderFill"
           :title="dir.name"
           @click="choose(dir.path)"
         />

@@ -17,23 +17,24 @@ Open `http://localhost:5173`. The front end (Vite) and the API (`tsx watch`) hot
 
 ## Commands
 
-| Command                                      | Effect                                                                               |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `make dev`, `make stack`, `make down`        | Development environment (with or without a real stack)                               |
-| `make install`                               | Install dependencies (after a `package.json` change)                                 |
-| `make sh`                                    | Shell in the `server` container                                                      |
-| `make lint`, `make typecheck`, `make test`   | ESLint + Prettier, types, Vitest tests                                               |
-| `make check-fast`                            | Lint + types (pre-commit hook)                                                       |
-| `make check`                                 | Lint + types + tests + licenses (pre-push hook)                                      |
-| `make e2e`                                   | Build the image then run Playwright on desktop and mobile (`GREP=pattern` to filter) |
-| `make screenshots`                           | Regenerate the documentation and README screenshots                                  |
-| `make build`, `make prod`                    | `hubarr:local` image and production-like run                                         |
-| `make db-generate NAME=…`, `make db-migrate` | Drizzle migration from `schema.ts`, apply                                            |
-| `make openapi SERVICE=radarr`                | Regenerate a service's types from its OpenAPI specification                          |
-| `make docs`                                  | Build the documentation                                                              |
-| `make publish VERSION=x.y.z`                 | Push `naroner/hubarr:x.y.z` and `latest` to Docker Hub                               |
-| `make release VERSION=x.y.z`                 | Local release (see below)                                                            |
-| `make help`                                  | Every target                                                                         |
+| Command                                      | Effect                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `make dev`, `make stack`, `make down`        | Development environment (with or without a real stack)                                  |
+| `make install`                               | Install dependencies (after a `package.json` change)                                    |
+| `make sh`                                    | Shell in the `server` container                                                         |
+| `make lint`, `make typecheck`, `make test`   | ESLint + Prettier, types, Vitest tests                                                  |
+| `make check-fast`                            | Lint + types (pre-commit hook)                                                          |
+| `make check`                                 | Lint + types + tests + licenses                                                         |
+| `make scan`                                  | Trivy vulnerability scan of the dependencies and of the `hubarr:local` image, on demand |
+| `make e2e`                                   | Build the image then run Playwright on desktop and mobile (`GREP=pattern` to filter)    |
+| `make screenshots`                           | Regenerate the documentation and README screenshots                                     |
+| `make build`, `make prod`                    | `hubarr:local` image and production-like run                                            |
+| `make db-generate NAME=…`, `make db-migrate` | Drizzle migration from `schema.ts`, apply                                               |
+| `make openapi SERVICE=radarr`                | Regenerate a service's types from its OpenAPI specification                             |
+| `make docs`                                  | Build the documentation                                                                 |
+| `make publish VERSION=x.y.z`                 | Push `naroner/hubarr:x.y.z` and `latest` (not for a pre-release) to Docker Hub          |
+| `make release VERSION=x.y.z`                 | Local release (see below)                                                               |
+| `make help`                                  | Every target                                                                            |
 
 ## Conventions
 
@@ -61,7 +62,8 @@ Open `http://localhost:5173`. The front end (Vite) and the API (`tsx watch`) hot
 
 - **Vitest**: `apps/server/test` (routes via `fastify.inject`, clients against `MockAgent`, cache, in-memory database) and `apps/web/test` (components with `@vue/test-utils`). To run a subset: `docker compose -f compose.dev.yml run --rm server sh -c 'cd apps/server && pnpm exec vitest run test/modules/web'`.
 - **Playwright**: the real production image (`e2e-app`, fresh in-memory database), the same image under a path prefix (`e2e-app-prefix`) and the fake services (`e2e-mocks`). Two projects, desktop (1440 px) and mobile (Pixel 7), plus accessibility checks.
-- There is no CI: git hooks (`make hooks`) are the safety net. Do not bypass them.
+- The git hook (`make hooks`) runs `make check-fast` before each commit. Do not bypass it. Run `make check` before pushing.
+- **Vulnerabilities**: `make scan` runs Trivy on `pnpm-lock.yaml` and on the production image. It fails on a HIGH or CRITICAL vulnerability with a known fix in a production dependency or in the image (`trivy.yaml`); accepted exceptions go in `.trivyignore.yaml`, each with a justification and an expiry date.
 
 ## Releasing
 
@@ -69,5 +71,13 @@ Open `http://localhost:5173`. The front end (Vite) and the API (`tsx watch`) hot
 make release VERSION=1.2.0
 ```
 
-The target checks that the tree is clean, runs `make check` and `make e2e`, moves the "Unreleased" section of `CHANGELOG.md` under the new version, creates the commit and the `v1.2.0` tag, then builds the image and tags it `hubarr:local`, `naroner/hubarr:1.2.0` and `naroner/hubarr:latest`. Then publish with `make publish VERSION=1.2.0` (Docker Hub) and `make publish-github VERSION=1.2.0` (public GitHub repository, one commit per release).
-Finally, `GITHUB_TOKEN=… make github-release VERSION=1.2.0` creates the GitHub release page from the changelog (`DRY_RUN=1` previews it), and `DOCKERHUB_TOKEN=… make dockerhub-description` (token scope "Read, Write, Delete") updates the Docker Hub description from `docker/DOCKERHUB.md`.
+The target checks that the tree is clean, runs `make check` and `make e2e`, moves the "Unreleased" section of `CHANGELOG.md` under the new version, creates the commit (which also includes the Playwright reference screenshots that `make e2e` has just regenerated in `e2e/playwright/screenshots`) and the `v1.2.0` tag, then builds the image and tags it `hubarr:local`, `naroner/hubarr:1.2.0` and `naroner/hubarr:latest`.
+
+Pushing the tag (`git push origin main --follow-tags`) starts the release pipeline of the project's CI, which publishes everything: the Docker Hub image (`1.2.0`, and `latest` unless the version is a pre-release such as `1.2.0-rc.1`), the public GitHub repository, the GitHub release and the Docker Hub description. It first checks that the tag is on `main` and that `package.json` and `CHANGELOG.md` carry the version. Every step can be run again safely: a version already on GitHub is left as is and the release page is updated. A tag containing `dryrun` (for example `v0.0.0-dryrun.1`) runs the same pipeline without publishing anything: it builds the image, checks the Docker Hub login and the write access to GitHub, and prints the release notes.
+
+The same steps can be run by hand:
+
+- `make publish VERSION=1.2.0`: Docker Hub;
+- `make publish-github VERSION=1.2.0`: public GitHub repository, one commit per release (over SSH with the `github` remote, or over HTTPS with `GITHUB_PUSH_TOKEN`; `DRY_RUN=1` checks access without pushing);
+- `GITHUB_TOKEN=… make github-release VERSION=1.2.0`: GitHub release page from the changelog (`DRY_RUN=1` previews it);
+- `DOCKERHUB_TOKEN=… make dockerhub-description` (token scope "Read, Write, Delete"): Docker Hub description from `docker/DOCKERHUB.md`.

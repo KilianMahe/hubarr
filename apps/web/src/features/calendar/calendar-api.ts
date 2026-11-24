@@ -3,7 +3,14 @@
 // hors composants (filtres, grilles du mois et de la semaine, couleurs,
 // titres), portée du JavaScript de `calendrier/index.html.twig`.
 
-import { addDays, calendarResponseSchema, type CalendarEvent } from '@hubarr/shared';
+import {
+  CALENDAR_DOWNLOAD_STATUSES,
+  addDays,
+  calendarResponseSchema,
+  type CalendarDownloadStatus,
+  type CalendarEvent,
+} from '@hubarr/shared';
+import { msAlbum, msHelp, msPlayCircle, msTheaters, msTv } from '../../components/symbols';
 import { api } from '../../app/api/client';
 
 export const calendarApi = {
@@ -16,26 +23,39 @@ export const VIEW_STORAGE_KEY = 'hubarr.calendar-view';
 
 export const TYPE_FILTERS = ['all', 'cinema', 'digital', 'physical', 'episode'] as const;
 export type TypeFilter = (typeof TYPE_FILTERS)[number];
-export const STATUS_FILTERS = ['all', 'monitored', 'missing', 'available'] as const;
+export const STATUS_FILTERS = ['all', ...CALENDAR_DOWNLOAD_STATUSES] as const;
 export type StatusFilter = (typeof STATUS_FILTERS)[number];
 
-/** Couleur d'un type de sortie (pastilles des filtres d'origine). */
-export const RELEASE_COLORS: Record<string, string> = {
-  cinema: '#dc2626',
-  digital: '#a855f7',
-  physical: '#22c55e',
-  episode: '#38bdf8',
-  unknown: '#64748b',
+/**
+ * Couleur d'un statut de téléchargement : couleur du thème Vuetify (suit le
+ * thème clair ou sombre), pour `color=` des composants.
+ */
+export const STATUS_COLORS: Record<CalendarDownloadStatus, string> = {
+  downloaded: 'success',
+  downloading: 'warning',
+  missing: 'error',
+  upcoming: 'info',
+  unmonitored: 'muted',
+};
+
+/** Même couleur en CSS (liserés, pastilles). */
+export const statusCss = (status: CalendarDownloadStatus) =>
+  `rgb(var(--v-theme-${STATUS_COLORS[status]}))`;
+
+/** Icône d'un type de sortie (le type n'a plus de couleur, P5 lot 2). */
+export const RELEASE_ICONS: Record<CalendarEvent['releaseType'], string> = {
+  cinema: msTheaters,
+  digital: msPlayCircle,
+  physical: msAlbum,
+  episode: msTv,
+  unknown: msHelp,
 };
 
 export function matchEvent(ev: CalendarEvent, type: TypeFilter, status: StatusFilter): boolean {
   if (type !== 'all') {
     if (type === 'episode' ? ev.type !== 'episode' : ev.releaseType !== type) return false;
   }
-  if (status === 'monitored' && !ev.monitored) return false;
-  if (status === 'missing' && (ev.hasFile || ev.monitored)) return false;
-  if (status === 'available' && !ev.hasFile) return false;
-  return true;
+  return status === 'all' || ev.downloadStatus === status;
 }
 
 /** Titre court d'un événement : le film, ou « Série S01E02 ». */

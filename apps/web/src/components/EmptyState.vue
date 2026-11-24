@@ -3,7 +3,7 @@
 // État vide ou d'erreur d'un écran : icône, titre, texte et actions. Variante
 // `inline` (P5b.3) pour une liste vide dans une carte : plus compacte, icône
 // « boîte vide » par défaut. Seule forme d'état vide de l'application.
-import { mdiInboxOutline } from '@mdi/js';
+import { msInbox } from './symbols';
 
 defineProps<{ icon?: string; title: string; text?: string; inline?: boolean }>();
 </script>
@@ -14,12 +14,7 @@ defineProps<{ icon?: string; title: string; text?: string; inline?: boolean }>()
     :class="inline ? 'pa-6' : 'pa-8'"
     data-test="empty-state"
   >
-    <v-icon
-      v-if="icon || inline"
-      :icon="icon ?? mdiInboxOutline"
-      :size="inline ? 32 : 48"
-      color="muted"
-    />
+    <v-icon v-if="icon || inline" :icon="icon ?? msInbox" :size="inline ? 32 : 48" color="muted" />
     <component
       :is="inline ? 'p' : 'h2'"
       :class="inline ? 'text-body-large mb-0' : 'text-title-large'"

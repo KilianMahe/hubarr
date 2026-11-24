@@ -10,7 +10,7 @@
 // grille ; semaine en liste verticale, un bloc par jour.
 import { readStoredChoice, storeChoice } from '../../app/view-mode';
 import { addDays, dayInZone, type CalendarEvent } from '@hubarr/shared';
-import { mdiCalendarExport, mdiChevronLeft, mdiChevronRight, mdiContentCopy } from '@mdi/js';
+import { msChevronLeft, msChevronRight, msContentCopy, msIosShare } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -24,7 +24,8 @@ import { useNotifyStore } from '../../app/stores/notify';
 import { useSessionStore } from '../../app/stores/session';
 import {
   CALENDAR_VIEWS,
-  RELEASE_COLORS,
+  RELEASE_ICONS,
+  STATUS_COLORS,
   STATUS_FILTERS,
   TYPE_FILTERS,
   VIEW_STORAGE_KEY,
@@ -34,6 +35,7 @@ import {
   matchEvent,
   monthGrid,
   startOfWeek,
+  statusCss,
   type CalendarView,
   type StatusFilter,
   type TypeFilter,
@@ -128,12 +130,7 @@ function open(ev: CalendarEvent): void {
     id: ev.id,
   });
 }
-const statusKey = (ev: CalendarEvent) =>
-  ev.hasFile
-    ? 'calendar.status.available'
-    : ev.monitored
-      ? 'calendar.status.monitored'
-      : 'calendar.status.unmonitored';
+const statusKey = (ev: CalendarEvent) => `calendar.status.${ev.downloadStatus}`;
 
 const banner = computed(() => {
   const data = query.data.value;
@@ -179,7 +176,7 @@ const MAX_PER_CELL = 3;
 
     <div class="d-flex flex-wrap align-center ga-2 mb-3">
       <v-btn
-        :icon="mdiChevronLeft"
+        :icon="msChevronLeft"
         variant="text"
         :aria-label="t('calendar.nav.prev')"
         @click="shift(-1)"
@@ -188,7 +185,7 @@ const MAX_PER_CELL = 3;
         t('calendar.nav.today')
       }}</v-btn>
       <v-btn
-        :icon="mdiChevronRight"
+        :icon="msChevronRight"
         variant="text"
         :aria-label="t('calendar.nav.next')"
         @click="shift(1)"
@@ -213,7 +210,7 @@ const MAX_PER_CELL = 3;
             v-if="smAndDown"
             v-bind="props"
             variant="text"
-            :icon="mdiCalendarExport"
+            :icon="msIosShare"
             :aria-label="t('calendar.nav.ical_title')"
             :title="t('calendar.nav.ical_title')"
           />
@@ -222,7 +219,7 @@ const MAX_PER_CELL = 3;
             v-bind="props"
             variant="tonal"
             size="small"
-            :prepend-icon="mdiCalendarExport"
+            :prepend-icon="msIosShare"
             :title="t('calendar.nav.ical_title')"
             >{{ t('calendar.nav.ical') }}</v-btn
           >
@@ -238,7 +235,7 @@ const MAX_PER_CELL = 3;
           >
             <template #append-inner>
               <v-btn
-                :icon="mdiContentCopy"
+                :icon="msContentCopy"
                 size="x-small"
                 variant="text"
                 :aria-label="t('common.labels.copy')"
@@ -254,7 +251,7 @@ const MAX_PER_CELL = 3;
       <span class="text-label-medium me-1">{{ t('calendar.filter.media') }}</span>
       <v-chip-group v-model="typeFilter" mandatory selected-class="text-primary">
         <v-chip v-for="f in TYPE_FILTERS" :key="f" :value="f" size="small" filter>
-          <v-badge v-if="f !== 'all'" dot inline :color="RELEASE_COLORS[f]" class="me-1" />
+          <v-icon v-if="f !== 'all'" :icon="RELEASE_ICONS[f]" size="16" class="me-1" />
           {{ t(`calendar.filter.${f}`) }} <span class="text-muted ms-1">{{ countFor(f) }}</span>
         </v-chip>
       </v-chip-group>
@@ -262,9 +259,18 @@ const MAX_PER_CELL = 3;
     <div class="d-flex flex-wrap align-center ga-1 mb-4">
       <span class="text-label-medium me-1">{{ t('calendar.filter.status') }}</span>
       <v-chip-group v-model="statusFilter" mandatory selected-class="text-primary">
-        <v-chip v-for="f in STATUS_FILTERS" :key="f" :value="f" size="small" filter>{{
-          t(`calendar.filter.status_${f}`)
-        }}</v-chip>
+        <!-- Pastilles de couleur : légende du calendrier (une couleur par statut). -->
+        <v-chip
+          v-for="f in STATUS_FILTERS"
+          :key="f"
+          :value="f"
+          size="small"
+          filter
+          :data-test="`calendar-status-${f}`"
+        >
+          <v-badge v-if="f !== 'all'" dot inline :color="STATUS_COLORS[f]" class="me-1" />
+          {{ t(`calendar.filter.status_${f}`) }}
+        </v-chip>
       </v-chip-group>
     </div>
 
@@ -299,7 +305,7 @@ const MAX_PER_CELL = 3;
             v-for="ev in (days.get(cell.day) ?? []).slice(0, MAX_PER_CELL)"
             :key="`${ev.type}-${ev.instanceSlug}-${ev.id}-${ev.releaseType}-${ev.episode}`"
             class="cal-dot"
-            :style="{ background: RELEASE_COLORS[ev.releaseType] }"
+            :style="{ background: statusCss(ev.downloadStatus) }"
           />
           <span
             v-if="(days.get(cell.day)?.length ?? 0) > MAX_PER_CELL"
@@ -308,17 +314,17 @@ const MAX_PER_CELL = 3;
           >
         </div>
         <template v-else>
-          <button
+          <!-- Aperçu seulement : un clic sur la case choisit le jour, la liste
+               du dessous ouvre les sorties. -->
+          <span
             v-for="ev in (days.get(cell.day) ?? []).slice(0, MAX_PER_CELL)"
             :key="`${ev.type}-${ev.instanceSlug}-${ev.id}-${ev.releaseType}-${ev.episode}`"
-            type="button"
             class="cal-block text-truncate"
-            :style="{ borderLeftColor: RELEASE_COLORS[ev.releaseType] }"
+            :style="{ borderLeftColor: statusCss(ev.downloadStatus) }"
             :title="eventTitle(ev)"
-            @click.stop="open(ev)"
           >
             {{ eventTitle(ev) }}
-          </button>
+          </span>
           <div
             v-if="(days.get(cell.day)?.length ?? 0) > MAX_PER_CELL"
             class="text-label-small text-muted"
@@ -382,7 +388,7 @@ const MAX_PER_CELL = 3;
         :key="`${ev.type}-${ev.instanceSlug}-${ev.id}-${ev.releaseType}-${ev.episode}`"
         rounded="lg"
         class="mb-3 d-flex"
-        :style="{ borderLeft: `4px solid ${RELEASE_COLORS[ev.releaseType]}` }"
+        :style="{ borderLeft: `4px solid ${statusCss(ev.downloadStatus)}` }"
         data-test="calendar-event"
         @click="open(ev)"
       >
@@ -397,10 +403,19 @@ const MAX_PER_CELL = 3;
           <div class="text-title-medium">{{ eventTitle(ev) }}</div>
           <div v-if="ev.type === 'episode'" class="text-body-small">{{ ev.title }}</div>
           <div class="d-flex flex-wrap ga-1 my-1">
-            <v-chip size="x-small" :color="RELEASE_COLORS[ev.releaseType]" variant="flat">{{
-              t(`calendar.event.release_${ev.releaseType}`)
-            }}</v-chip>
-            <v-chip size="x-small" variant="tonal">{{ t(statusKey(ev)) }}</v-chip>
+            <v-chip
+              size="x-small"
+              :color="STATUS_COLORS[ev.downloadStatus]"
+              variant="flat"
+              data-test="calendar-event-status"
+              >{{ t(statusKey(ev)) }}</v-chip
+            >
+            <v-chip
+              size="x-small"
+              variant="outlined"
+              :prepend-icon="RELEASE_ICONS[ev.releaseType]"
+              >{{ t(`calendar.event.release_${ev.releaseType}`) }}</v-chip
+            >
             <v-chip v-if="ev.airDateUtc" size="x-small" variant="outlined">{{
               format.time(ev.airDateUtc)
             }}</v-chip>
@@ -466,7 +481,6 @@ const MAX_PER_CELL = 3;
   color: inherit;
   font-size: 0.7rem;
   text-align: start;
-  cursor: pointer;
 }
 .cal-week {
   display: grid;

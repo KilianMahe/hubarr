@@ -6,7 +6,7 @@
 
 import type { Provider, ProviderField, QualityProfile } from '@hubarr/shared';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { setLocale } from '../src/app/plugins/i18n';
+import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
   adminMenu,
   adminRouteName,
@@ -40,6 +40,7 @@ import {
 } from '../src/features/arr-admin/specifications';
 import { settle } from './helpers';
 import { adminApi, cleanupAdmin, click, mountAdmin, type } from './arr-admin-fixtures';
+import { setViewportWidth } from './helpers';
 
 beforeAll(async () => {
   await setLocale('en');
@@ -327,6 +328,38 @@ describe('vues', () => {
     expect(tags?.className).toContain('v-tab--selected');
     // Les pages d'un autre groupe (système) ne sont pas dans la seconde rangée.
     expect(document.querySelector('[data-test="admin-link-radarr-system"]')).toBeNull();
+  });
+
+  it('page de configuration sur mobile : groupes dans la barre basse, page dans la barre du haut', async () => {
+    const desktopWidth = window.innerWidth;
+    setViewportWidth(412);
+    try {
+      await mountAdmin('/medias/radarr/radarr/tags', {
+        'GET /api/medias/radarr/radarr/tags': () => ({ body: [] }),
+      });
+      const t = (key: string) => i18n.global.t(key);
+      const $ = (selector: string) => document.querySelector<HTMLElement>(selector);
+      // Ni onglets de groupes ni onglets de pages : seul le retour reste dans la page.
+      expect($('[data-test="service-settings-groups"]')).toBeNull();
+      expect($('[data-test="settings-back"]')).not.toBeNull();
+      const groups = [
+        ...document.querySelectorAll('[data-test="service-bottom-nav"] [data-test="admin-group"]'),
+      ];
+      expect(groups).toHaveLength(4);
+      expect(groups.filter((tab) => tab.classList.contains('v-btn--active'))).toHaveLength(1);
+      expect($('[data-test="topbar-title"]')?.textContent.trim()).toBe(
+        `Radarr · ${t('media.item.tags')}`,
+      );
+      // Le groupe ouvre la liste de ses pages, la page courante active.
+      click('[data-test="admin-group"]', 2);
+      await settle();
+      expect($('[data-test="admin-link-radarr-tags"]')?.className).toContain('active');
+      expect($('[data-test="admin-link-radarr-tags"]')?.getAttribute('href')).toBe(
+        '/medias/radarr/radarr/tags',
+      );
+    } finally {
+      setViewportWidth(desktopWidth);
+    }
   });
 
   it('page d’usage : menu « Plus » sans les pages de configuration, page active', async () => {

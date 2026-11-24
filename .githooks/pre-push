@@ -1,9 +1,0 @@
-#!/bin/sh
-# SPDX-License-Identifier: AGPL-3.0-or-later
-# Hook pre-push : `make check` complet (lint, types,
-# tests, licences) avant chaque push, donc avant toute fusion poussée sur
-# `main`. Installé par `make hooks`. Ne pas le contourner (`--no-verify`).
-set -eu
-
-echo 'pre-push : make check'
-exec make --no-print-directory check

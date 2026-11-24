@@ -56,11 +56,29 @@ export function initiallyOpenSeason(groups: readonly SeasonGroup[]): number | nu
   return first !== undefined && first.seasonNumber > 0 ? first.seasonNumber : null;
 }
 
-/** Pastille d'un épisode : présent (vert), suivi manquant (orange), non suivi (gris). */
-export function episodeDotColor(episode: Pick<Episode, 'hasFile' | 'monitored'>): string {
-  if (episode.hasFile) return 'success';
-  return episode.monitored ? 'warning' : 'muted';
+export type EpisodeStatus = 'downloaded' | 'missing' | 'upcoming' | 'unmonitored';
+
+/**
+ * État d'un épisode (pastille et libellé de sa ligne) : présent, suivi et
+ * diffusé sans fichier (manquant), suivi et pas encore diffusé (à venir), non
+ * suivi. Sans date de diffusion, un épisode suivi est « à venir ».
+ */
+export function episodeStatus(
+  episode: Pick<Episode, 'hasFile' | 'monitored' | 'airDateUtc'>,
+  now: number = Date.now(),
+): EpisodeStatus {
+  if (episode.hasFile) return 'downloaded';
+  if (!episode.monitored) return 'unmonitored';
+  const aired = episode.airDateUtc === null ? Number.NaN : Date.parse(episode.airDateUtc);
+  return Number.isFinite(aired) && aired <= now ? 'missing' : 'upcoming';
 }
+
+export const EPISODE_STATUS_COLORS: Record<EpisodeStatus, string> = {
+  downloaded: 'success',
+  missing: 'warning',
+  upcoming: 'info',
+  unmonitored: 'muted',
+};
 
 export function seasonLabel(t: Translate, seasonNumber: number): string {
   return seasonNumber === 0

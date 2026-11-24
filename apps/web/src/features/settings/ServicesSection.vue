@@ -10,7 +10,7 @@ import {
   type ServiceId,
   type SettingsResponse,
 } from '@hubarr/shared';
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../components/symbols';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -108,7 +108,7 @@ const flat = (id: ServiceId) => id as FlatServiceId;
 
     <v-text-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="t('admin.services.search_placeholder')"
       :aria-label="t('admin.services.search_placeholder')"
       density="compact"

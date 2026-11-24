@@ -12,7 +12,7 @@
 // à la barre basse et à l'onglet « Serveur » : il ne reste que le sélecteur
 // d'instance et les actions de la page.
 import { SERVICE_SETTINGS, type ArrKind } from '@hubarr/shared';
-import { mdiCheck, mdiChevronDown, mdiDotsHorizontalCircleOutline, mdiServer } from '@mdi/js';
+import { msCheck, msDns, msKeyboardArrowDown, msPending } from './symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -63,8 +63,8 @@ const activeTab = computed(() =>
           <template #activator="{ props: activator }">
             <v-btn
               v-bind="activator"
-              :prepend-icon="mdiServer"
-              :append-icon="mdiChevronDown"
+              :prepend-icon="msDns"
+              :append-icon="msKeyboardArrowDown"
               variant="tonal"
               size="small"
               data-test="arr-instance-menu"
@@ -81,7 +81,7 @@ const activeTab = computed(() =>
               color="service-text"
             >
               <template v-if="row.slug === slug" #append>
-                <v-icon :icon="mdiCheck" size="18" />
+                <v-icon :icon="msCheck" size="18" />
               </template>
             </v-list-item>
           </v-list>
@@ -111,8 +111,8 @@ const activeTab = computed(() =>
         <template #activator="{ props: activator }">
           <v-btn
             v-bind="activator"
-            :prepend-icon="mdiDotsHorizontalCircleOutline"
-            :append-icon="mdiChevronDown"
+            :prepend-icon="msPending"
+            :append-icon="msKeyboardArrowDown"
             :variant="adminActive ? 'tonal' : 'text'"
             :color="adminActive ? 'service-text' : undefined"
             size="small"
@@ -149,7 +149,7 @@ const activeTab = computed(() =>
         <template #activator="{ props: activator }">
           <v-btn
             v-bind="activator"
-            :icon="mdiServer"
+            :icon="msDns"
             variant="text"
             size="small"
             :aria-label="instance?.name ?? slug"
@@ -167,7 +167,7 @@ const activeTab = computed(() =>
             color="service-text"
           >
             <template v-if="row.slug === slug" #append>
-              <v-icon :icon="mdiCheck" size="18" />
+              <v-icon :icon="msCheck" size="18" />
             </template>
           </v-list-item>
         </v-list>

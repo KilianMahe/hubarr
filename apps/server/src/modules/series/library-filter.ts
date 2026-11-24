@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Filtre, tri et pagination de la bibliothèque Sonarr normalisée : port de
-// `SeriesLibraryFilter` (issue #19 de Prismarr). Fonctions pures.
+// `SeriesLibraryFilter`. Fonctions pures.
 //
 // Sémantique propre à Sonarr : « en cours » et « terminées » comparent le
 // statut de l'instance, « animés » le type de série, « manquants » = suivie,

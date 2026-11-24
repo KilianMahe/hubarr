@@ -3,7 +3,7 @@
 //
 // Les messages ne passent pas par le compilateur de vue-i18n (retiré du bundle,
 // voir `vite.config.ts`) mais par `IcuMessageCache` : `t('clé', { count: 3 })`
-// rend les pluriels ICU de Prismarr à l'identique.
+// rend les pluriels ICU des catalogues.
 // Une seule langue est chargée à la fois, à la demande (un chunk par langue) ;
 // FR et EN ont les mêmes clés (test du paquet partagé), d'où l'absence de repli.
 

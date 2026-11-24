@@ -87,6 +87,69 @@ describe('calendrier', () => {
   });
 });
 
+describe('statut de téléchargement', () => {
+  // NOW : 2026-11-22 12:00 UTC.
+  const statusOf = (data: CalendarResponse, title: string) =>
+    data.events.filter((e) => e.title === title).map((e) => e.downloadStatus);
+
+  it('fichier, file, suivi, puis disponibilité au sens de Radarr ou diffusion', async () => {
+    env = await mediaEnv({ role: 'user' });
+    const past = '2026-11-01T00:00:00Z';
+    env.up.radarr.on('GET /api/v3/calendar', {
+      body: [
+        movie(1, { title: 'Fichier', hasFile: true, digitalRelease: past }),
+        movie(2, { title: 'En file', digitalRelease: '2026-11-25T00:00:00Z' }),
+        movie(3, { title: 'Non suivi', monitored: false, digitalRelease: past }),
+        movie(4, { title: 'Sorti', minimumAvailability: 'released', digitalRelease: past }),
+        // En salle seulement : « sorti » 90 jours plus tard.
+        movie(5, { title: 'En salle', minimumAvailability: 'released', inCinemas: past }),
+        movie(6, { title: 'Dès la salle', minimumAvailability: 'inCinemas', inCinemas: past }),
+        movie(7, {
+          title: 'À venir',
+          minimumAvailability: 'released',
+          digitalRelease: '2026-12-01T00:00:00Z',
+        }),
+      ],
+    });
+    env.up.radarr.on('GET /api/v3/queue', { body: { records: [{ id: 50, movieId: 2 }] } });
+    env.up.radarr4k.on('GET /api/v3/calendar', { body: [] });
+    env.up.sonarr.on('GET /api/v3/calendar', {
+      body: [
+        calendarEpisode(1, { title: 'Diffusé', airDateUtc: '2026-11-20T20:00:00Z' }),
+        calendarEpisode(2, { title: 'Demain', airDateUtc: '2026-11-23T20:00:00Z' }),
+        calendarEpisode(3, { title: 'Téléchargé', airDateUtc: '2026-11-20T20:00:00Z' }),
+      ],
+    });
+    env.up.sonarr.on('GET /api/v3/queue', {
+      body: { records: [{ id: 60, seriesId: 1, episodeId: 3 }] },
+    });
+    const data = (await env.browser.get('/api/calendrier')).json<CalendarResponse>();
+    expect(statusOf(data, 'Fichier')).toEqual(['downloaded']);
+    expect(statusOf(data, 'En file')).toEqual(['downloading']);
+    expect(statusOf(data, 'Non suivi')).toEqual(['unmonitored']);
+    expect(statusOf(data, 'Sorti')).toEqual(['missing']);
+    expect(statusOf(data, 'En salle')).toEqual(['upcoming']);
+    expect(statusOf(data, 'Dès la salle')).toEqual(['missing']);
+    expect(statusOf(data, 'À venir')).toEqual(['upcoming']);
+    expect(statusOf(data, 'Diffusé')).toEqual(['missing']);
+    expect(statusOf(data, 'Demain')).toEqual(['upcoming']);
+    expect(statusOf(data, 'Téléchargé')).toEqual(['downloading']);
+  });
+
+  it('une file illisible ne retire que le statut « en cours »', async () => {
+    env = await mediaEnv({ role: 'user' });
+    env.up.radarr.on('GET /api/v3/calendar', {
+      body: [movie(2, { title: 'En file', digitalRelease: '2026-11-01T00:00:00Z' })],
+    });
+    env.up.radarr.on('GET /api/v3/queue', { status: 500, text: 'boom' });
+    env.up.radarr4k.on('GET /api/v3/calendar', { body: [] });
+    env.up.sonarr.on('GET /api/v3/calendar', { body: [] });
+    const data = (await env.browser.get('/api/calendrier')).json<CalendarResponse>();
+    expect(data.radarrFailed).toBe(false);
+    expect(statusOf(data, 'En file')).toEqual(['missing']);
+  });
+});
+
 describe('flux iCal', () => {
   it('CRLF, UID stables entre instances, dédoublonnage, aux deux chemins', async () => {
     env = await mediaEnv();

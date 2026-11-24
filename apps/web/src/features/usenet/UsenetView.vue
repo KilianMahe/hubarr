@@ -8,18 +8,18 @@
 // groupées, fiche d'un téléchargement, historique récent avec « Tout voir ».
 import type { UsenetDownload } from '@hubarr/shared';
 import {
-  mdiArrowDown,
-  mdiClockOutline,
-  mdiDelete,
-  mdiFileUpload,
-  mdiFormatListBulleted,
-  mdiMagnify,
-  mdiPause,
-  mdiPlay,
-  mdiPlus,
-  mdiTable,
-  mdiViewHeadline,
-} from '@mdi/js';
+  msAdd,
+  msArrowDownward,
+  msDelete,
+  msFormatListBulleted,
+  msPauseFill,
+  msPlayArrowFill,
+  msSchedule,
+  msSearch,
+  msTable,
+  msUploadFile,
+  msViewHeadline,
+} from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -68,9 +68,9 @@ const api = computed(() => usenetApi(client.value));
 
 const prefs = reactive(loadUsenetPrefs(client.value));
 const viewOptions = computed<ViewModeOption<typeof prefs.view>[]>(() => [
-  { value: 'list', icon: mdiFormatListBulleted, label: t('usenet.view.list_title') },
-  { value: 'table', icon: mdiTable, label: t('usenet.view.table_title') },
-  { value: 'compact', icon: mdiViewHeadline, label: t('usenet.view.compact_title') },
+  { value: 'list', icon: msFormatListBulleted, label: t('usenet.view.list_title') },
+  { value: 'table', icon: msTable, label: t('usenet.view.table_title') },
+  { value: 'compact', icon: msViewHeadline, label: t('usenet.view.compact_title') },
 ]);
 watch(prefs, () => {
   saveUsenetPrefs(client.value, { ...prefs });
@@ -320,7 +320,7 @@ const statusColor = (item: UsenetDownload) =>
       <v-spacer />
       <v-btn
         v-if="!smAndDown"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         color="service"
         variant="flat"
         data-test="usenet-add-open"
@@ -329,7 +329,7 @@ const statusColor = (item: UsenetDownload) =>
       >
       <v-btn
         v-if="queue.data.value?.paused"
-        :prepend-icon="mdiPlay"
+        :prepend-icon="msPlayArrowFill"
         variant="tonal"
         data-test="usenet-resume-all"
         @click="run(() => api.resumeAll(), 'usenet.toast.resumed')"
@@ -337,7 +337,7 @@ const statusColor = (item: UsenetDownload) =>
       >
       <v-btn
         v-else
-        :prepend-icon="mdiPause"
+        :prepend-icon="msPauseFill"
         variant="tonal"
         data-test="usenet-pause-all"
         @click="run(() => api.pauseAll(), 'usenet.toast.paused')"
@@ -395,7 +395,7 @@ const statusColor = (item: UsenetDownload) =>
         />
         <v-filter-field
           v-model="search"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           :placeholder="t('usenet.filters.search_placeholder')"
           density="compact"
           hide-details
@@ -477,7 +477,7 @@ const statusColor = (item: UsenetDownload) =>
                 <td>{{ t(`usenet.status.${item.status}`) }}</td>
                 <td class="text-end text-no-wrap" @click.stop>
                   <v-btn
-                    :icon="item.status === 'paused' ? mdiPlay : mdiPause"
+                    :icon="item.status === 'paused' ? msPlayArrowFill : msPauseFill"
                     size="small"
                     variant="text"
                     :aria-label="
@@ -486,7 +486,7 @@ const statusColor = (item: UsenetDownload) =>
                     @click="itemAction(item, item.status === 'paused' ? 'resume' : 'pause')"
                   />
                   <v-btn
-                    :icon="mdiDelete"
+                    :icon="msDelete"
                     size="small"
                     variant="text"
                     color="error"
@@ -534,10 +534,12 @@ const statusColor = (item: UsenetDownload) =>
                     {{ format.bytes(item.size) }}</span
                   >
                   <span v-if="item.speed > 0" class="text-info"
-                    ><v-icon :icon="mdiArrowDown" size="12" />{{ format.speed(item.speed) }}</span
+                    ><v-icon :icon="msArrowDownward" size="12" />{{
+                      format.speed(item.speed)
+                    }}</span
                   >
                   <span v-if="item.eta !== null"
-                    ><v-icon :icon="mdiClockOutline" size="12" />{{ formatEta(item.eta) }}</span
+                    ><v-icon :icon="msSchedule" size="12" />{{ formatEta(item.eta) }}</span
                   >
                   <span v-if="item.status === 'fetching' && item.wait !== null">{{
                     t('usenet.wait_tpl').replace('__SECONDS__', String(item.wait))
@@ -552,7 +554,7 @@ const statusColor = (item: UsenetDownload) =>
               </template>
               <template #append>
                 <v-btn
-                  :icon="item.status === 'paused' ? mdiPlay : mdiPause"
+                  :icon="item.status === 'paused' ? msPlayArrowFill : msPauseFill"
                   size="small"
                   variant="text"
                   :aria-label="
@@ -562,7 +564,7 @@ const statusColor = (item: UsenetDownload) =>
                   @click.stop="itemAction(item, item.status === 'paused' ? 'resume' : 'pause')"
                 />
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   size="small"
                   variant="text"
                   color="error"
@@ -709,7 +711,7 @@ const statusColor = (item: UsenetDownload) =>
             addFiles.push(...Array.from(($event as DragEvent).dataTransfer?.files ?? []))
           "
         >
-          <v-icon :icon="mdiFileUpload" size="28" />
+          <v-icon :icon="msUploadFile" size="28" />
           <div class="text-body-medium">{{ t('usenet.modal_add.drop_text') }}</div>
           <div class="text-caption text-muted">{{ t('usenet.modal_add.drop_browse') }}</div>
           <input
@@ -733,7 +735,7 @@ const statusColor = (item: UsenetDownload) =>
           >
             <template #append>
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 size="small"
                 variant="text"
                 :aria-label="t('usenet.modal_add.file_remove_title')"

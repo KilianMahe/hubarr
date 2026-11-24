@@ -82,7 +82,7 @@ export const settingsResponseSchema = z.object({
   sidebar: z.record(z.string(), z.boolean()),
   /** Préférences d'affichage : valeurs enregistrées ou par défaut (fuseau vide possible). */
   display: displayValuesSchema,
-  /** Fuseau du système, proposé quand aucun n'est choisi (issue #12 de Prismarr). */
+  /** Fuseau du système, proposé quand aucun n'est choisi. */
   systemTimezone: z.string(),
   timezones: z.array(z.string()),
   dashboard: dashboardLayoutSchema,

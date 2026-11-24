@@ -5,12 +5,12 @@
 // la page de l'original (le résumé).
 
 import {
-  mdiAccountMultiple,
-  mdiChartBar,
-  mdiHistory,
-  mdiPlayCircleOutline,
-  mdiViewDashboardOutline,
-} from '@mdi/js';
+  msBarChart,
+  msDashboard,
+  msGroup,
+  msHistory,
+  msPlayCircle,
+} from '../../components/symbols';
 import type { BottomNavItem } from '../../app/navigation';
 
 export const TRACEARR_SECTIONS = ['summary', 'now', 'stats', 'history', 'users'] as const;
@@ -25,11 +25,11 @@ export const TRACEARR_ROUTES: Record<TracearrSection, { name: string; path: stri
 };
 
 const ICONS: Record<TracearrSection, string> = {
-  summary: mdiViewDashboardOutline,
-  now: mdiPlayCircleOutline,
-  stats: mdiChartBar,
-  history: mdiHistory,
-  users: mdiAccountMultiple,
+  summary: msDashboard,
+  now: msPlayCircle,
+  stats: msBarChart,
+  history: msHistory,
+  users: msGroup,
 };
 
 /** Fiche d'un utilisateur (P5d.2, V23), rattachée à l'onglet Utilisateurs. */

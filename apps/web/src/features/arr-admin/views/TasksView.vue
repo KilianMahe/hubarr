@@ -3,7 +3,7 @@
 // Tâches planifiées (`radarr/tasks.html.twig`) : nom, intervalle, dernière et
 // prochaine exécution ; lancement d'une tâche (commande de même nom).
 import { arrCommandStartedSchema, systemTaskSchema, type SystemTask } from '@hubarr/shared';
-import { mdiPlay } from '@mdi/js';
+import { msPlayArrowFill } from '../../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -66,7 +66,7 @@ async function launch(task: SystemTask): Promise<void> {
             </td>
             <td class="text-end">
               <v-btn
-                :icon="mdiPlay"
+                :icon="msPlayArrowFill"
                 variant="text"
                 size="small"
                 color="service-text"

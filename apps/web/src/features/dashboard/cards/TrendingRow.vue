@@ -3,8 +3,16 @@
 // Tendances de la semaine (`_recommendations.html.twig`, TMDB) ; masquée sans
 // TMDB ou si vide.
 import { useQuery } from '@tanstack/vue-query';
+import type { DashboardTrending } from '@hubarr/shared';
 import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../../app/overlays';
+import {
+  showEpisodes,
+  useWatched,
+  watchedCount,
+  watchedProgress,
+  type WatchedProgress,
+} from '../../activity/watched';
 import MediaRow from '../../discover/MediaRow.vue';
 import { dashboardApi } from '../dashboard-api';
 import PosterTile from './PosterTile.vue';
@@ -16,6 +24,13 @@ const query = useQuery({
   staleTime: 300_000,
   retry: false,
 });
+// « Vu » (Tracearr) par l'ID TMDB ; le nombre d'épisodes d'une série
+// tendance n'est pas connu : seul le nombre d'épisodes vus s'affiche.
+const watched = useWatched();
+function watchedOf(item: DashboardTrending['items'][number]): WatchedProgress | null {
+  if (item.type === 'movie') return watched.value.movies.has(item.id) ? { kind: 'all' } : null;
+  return watchedProgress(watchedCount(showEpisodes(watched.value, { tmdbId: item.id })), null);
+}
 </script>
 
 <template>
@@ -35,6 +50,7 @@ const query = useQuery({
       :poster="item.poster"
       :tv="item.type === 'tv'"
       :vote="item.vote"
+      :watched="watchedOf(item)"
       @open="openQuickLook({ kind: 'tmdb', type: item.type, id: item.id })"
     />
   </MediaRow>

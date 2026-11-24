@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Ajout de films et suivi de personnes (P2.6) : profil par défaut de
-// l'instance (issue #5 de Prismarr), chemin explicite, listes d'import TMDb.
+// l'instance, chemin explicite, listes d'import TMDb.
 
 import type { Movie } from '@hubarr/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

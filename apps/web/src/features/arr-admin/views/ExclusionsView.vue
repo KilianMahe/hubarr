@@ -5,7 +5,7 @@
 // par l'instance (50, page dans l'URL), cases et « tout cocher », suppression
 // unitaire et groupée confirmées.
 import { exclusionPageSchema, exclusionSchema } from '@hubarr/shared';
-import { mdiDelete, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete } from '../../../components/symbols';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDialog from '../../../components/ConfirmDialog.vue';
@@ -90,7 +90,7 @@ function askBulkDelete(): void {
         color="error"
         variant="tonal"
         size="small"
-        :prepend-icon="mdiDelete"
+        :prepend-icon="msDelete"
         data-test="exclusions-bulk-delete"
         @click="askBulkDelete"
         >{{ t(ctx.key('bulk_delete')) }} ({{ selected.length }})</v-btn
@@ -136,7 +136,7 @@ function askBulkDelete(): void {
           <v-btn
             type="submit"
             color="service"
-            :prepend-icon="mdiPlus"
+            :prepend-icon="msAdd"
             :loading="adding"
             :disabled="form.externalId === ''"
             data-test="exclusion-add"
@@ -171,7 +171,7 @@ function askBulkDelete(): void {
             <td class="text-muted">{{ record.externalId ?? '—' }}</td>
             <td class="text-end">
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 color="error"
                 variant="text"
                 size="small"

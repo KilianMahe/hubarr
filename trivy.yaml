@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Configuration Trivy de la CI Forgejo (`.forgejo/workflows/security.yml`),
+# pour les dépendances (`trivy fs`) comme pour l'image (`trivy image`).
+#
+# Règle bloquante : une vulnérabilité HIGH ou CRITICAL, pour laquelle un
+# correctif existe, dans les dépendances de production (pnpm-lock.yaml) ou dans
+# l'image Docker. Les dépendances de développement et les sévérités plus basses
+# sont affichées dans un rapport non bloquant (options passées en ligne de
+# commande, qui priment sur ce fichier).
+# Exceptions justifiées : `.trivyignore.yaml`.
+severity:
+  - HIGH
+  - CRITICAL
+exit-code: 1
+ignorefile: .trivyignore.yaml
+# Pas de `skip-dirs` sur node_modules : dans l'image, ce sont les dépendances
+# de production livrées.
+scan:
+  scanners:
+    - vuln
+vulnerability:
+  ignore-unfixed: true

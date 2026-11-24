@@ -4,7 +4,7 @@
 // manquantes (malentendants, forcés signalés), recherche manuelle. Rien hors
 // Bazarr, ni pour un film qu'il ne suit pas.
 import type { BazarrLang } from '@hubarr/shared';
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -59,7 +59,7 @@ const titleOf = (lang: BazarrLang) =>
       size="x-small"
       variant="text"
       color="service-text"
-      :prepend-icon="mdiMagnify"
+      :prepend-icon="msSearch"
       data-test="movie-subtitles-search"
       @click="searchOpen = true"
       >{{ t('bazarr.detail.search') }}</v-btn

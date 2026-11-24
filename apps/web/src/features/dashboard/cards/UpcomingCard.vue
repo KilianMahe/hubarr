@@ -4,7 +4,7 @@
 // 7 jours, 3 éléments par jour puis « + n » vers le calendrier ; un élément
 // ouvre l'aperçu rapide de sa bibliothèque.
 import type { UpcomingItem } from '@hubarr/shared';
-import { mdiCalendar, mdiMovieOpen, mdiTelevisionClassic } from '@mdi/js';
+import { msCalendarToday, msMovie, msTv } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -49,7 +49,7 @@ function open(item: UpcomingItem): void {
   <DashCard
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.upcoming.title')"
-    :icon="mdiCalendar"
+    :icon="msCalendarToday"
     :to="{ name: 'calendar' }"
     :link-label="t('dashboard.upcoming.calendar_cta')"
     :loading="query.isFetching.value"
@@ -81,11 +81,7 @@ function open(item: UpcomingItem): void {
         >
           <v-avatar rounded="sm" size="36" color="surface-alt" class="flex-shrink-0">
             <v-img v-if="item.poster" :src="item.poster" cover />
-            <v-icon
-              v-else
-              :icon="item.type === 'movie' ? mdiMovieOpen : mdiTelevisionClassic"
-              size="18"
-            />
+            <v-icon v-else :icon="item.type === 'movie' ? msMovie : msTv" size="18" />
           </v-avatar>
           <span class="overflow-hidden">
             <span class="d-block text-body-small text-truncate font-weight-medium">{{

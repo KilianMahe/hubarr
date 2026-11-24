@@ -412,6 +412,6 @@ describe('faux TMDB', () => {
       url: '/radarr/api/v3/calendar',
       headers: { 'x-api-key': RADARR_API_KEY },
     });
-    expect(calendar.json<unknown[]>()).toHaveLength(2);
+    expect(calendar.json<unknown[]>()).toHaveLength(4);
   });
 });

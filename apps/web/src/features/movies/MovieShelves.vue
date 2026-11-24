@@ -3,9 +3,11 @@
 // Vue étagères : films de la page groupés par statut (téléchargés, manquants,
 // non suivis), en rangées défilantes ; chaque étagère se déplie en grille.
 import type { MovieLibraryItem } from '@hubarr/shared';
-import { mdiAlert, mdiCheck, mdiChevronRight, mdiEye } from '@mdi/js';
+import { msCheck, msChevronRight, msVisibility, msWarningFill } from '../../components/symbols';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useWatched } from '../activity/watched';
+import ScrollRow from '../../components/ScrollRow.vue';
 import MovieCard from './MovieCard.vue';
 import { shelvesOf, type ShelfKey } from './library';
 
@@ -22,15 +24,16 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const shelves = computed(() => shelvesOf(props.movies));
+const watched = useWatched();
 const expanded = reactive<Record<ShelfKey, boolean>>({
   downloaded: false,
   missing: false,
   unmonitored: false,
 });
 const ICONS: Record<ShelfKey, string> = {
-  downloaded: mdiCheck,
-  missing: mdiAlert,
-  unmonitored: mdiEye,
+  downloaded: msCheck,
+  missing: msWarningFill,
+  unmonitored: msVisibility,
 };
 </script>
 
@@ -39,7 +42,7 @@ const ICONS: Record<ShelfKey, string> = {
     <section v-for="shelf in shelves" :key="shelf.key" :data-shelf="shelf.key">
       <h2 class="d-flex align-center ga-2 text-title-medium mb-2">
         <v-btn
-          :icon="mdiChevronRight"
+          :icon="msChevronRight"
           size="small"
           variant="text"
           :class="{ 'shelf-chevron--open': expanded[shelf.key] }"
@@ -52,7 +55,11 @@ const ICONS: Record<ShelfKey, string> = {
         {{ t(`media.films.status.${shelf.key}`) }}
         <span class="text-body-small text-muted">({{ shelf.items.length }})</span>
       </h2>
-      <div :class="expanded[shelf.key] ? 'shelf-grid' : 'shelf-row'">
+      <component
+        :is="expanded[shelf.key] ? 'div' : ScrollRow"
+        :class="{ 'shelf-grid': expanded[shelf.key] }"
+        v-bind="expanded[shelf.key] ? {} : { itemWidth: '120px' }"
+      >
         <MovieCard
           v-for="movie in shelf.items"
           :key="movie.id"
@@ -60,24 +67,17 @@ const ICONS: Record<ShelfKey, string> = {
           :select-mode="selectMode"
           :selected="selected.has(movie.id)"
           compact
+          :watched="movie.tmdbId !== null && watched.movies.has(movie.tmdbId)"
           @select="emit('select', movie.id, $event)"
           @open="emit('open', movie.id)"
           @monitor="emit('monitor', movie.id)"
         />
-      </div>
+      </component>
     </section>
   </div>
 </template>
 
 <style scoped>
-.shelf-row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 120px;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
 .shelf-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

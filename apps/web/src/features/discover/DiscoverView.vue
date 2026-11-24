@@ -8,17 +8,33 @@
 //   correction automatique (lien « chercher plutôt » pour la requête exacte) ;
 //   sans requête mais avec des filtres : exploration paginée (« Charger plus »).
 //   Touche « / » : focus sur la recherche.
-// - Accueil : titres tendance (film et série), « Pour vous » d'après la
-//   bibliothèque, consultés récemment (navigateur), sections TMDB.
+// - Accueil en sous-onglets (lot 12, chips sous la recherche, `?onglet=`) :
+//   « Pour vous » (d'après la bibliothèque, d'après Tracearr, une rangée par
+//   dossier racine Radarr/Sonarr, consultés récemment), « Tendances » (titres
+//   tendance film et série, sections TMDB), « Les mieux notés » (films,
+//   séries), « Par année » (sélecteur d'année, films ou séries). Seules les
+//   requêtes de l'onglet affiché partent ; sans onglet dans l'URL, « Pour
+//   vous », ou « Tendances » s'il n'a rien à montrer.
 // - Fiche par `?detail=movie/603`, filmographie d'une personne.
 import type { SearchPerson, SmartSearch, TmdbCard } from '@hubarr/shared';
-import { mdiCompassOutline, mdiMagnify, mdiStar } from '@mdi/js';
-import { useQuery } from '@tanstack/vue-query';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { msExplore, msSearch, msStarFill } from '../../components/symbols';
+import { keepPreviousData, useQuery } from '@tanstack/vue-query';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import EmptyState from '../../components/EmptyState.vue';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
-import { RECENT_KEY, RECENT_MAX, discoverApi, type SmartSearchParams } from './discover-api';
+import {
+  DISCOVER_TABS,
+  RECENT_KEY,
+  RECENT_MAX,
+  discoverApi,
+  effectiveDiscoverTab,
+  parseDiscoverTab,
+  popularYears,
+  type DiscoverTab,
+  type SmartSearchParams,
+} from './discover-api';
 import MediaCard from './MediaCard.vue';
 import MediaRow from './MediaRow.vue';
 import PersonSheet from './PersonSheet.vue';
@@ -31,30 +47,92 @@ const openCard = (card: TmdbCard) => {
   detail.value = { type: card.type, id: card.id };
 };
 
+// ── Sous-onglets ────────────────────────────────────────────────────────────
+const route = useRoute();
+const router = useRouter();
+const requestedTab = computed(() => parseDiscoverTab(route.query.onglet));
+// Sans onglet dans l'URL, les requêtes de « Pour vous » partent pour savoir
+// s'il a quelque chose à montrer ; la décision est prise une fois par visite,
+// pour qu'un rafraîchissement en arrière-plan ne change pas d'onglet.
+const forYouFallback = ref<boolean | null>(null);
+const tab = computed<DiscoverTab>(() =>
+  effectiveDiscoverTab(requestedTab.value, {
+    settled: forYouFallback.value !== null,
+    empty: forYouFallback.value === true,
+  }),
+);
+function selectTab(value: unknown): void {
+  const next = parseDiscoverTab(value);
+  if (next === null || next === tab.value) return;
+  void router.replace({ query: { ...route.query, onglet: next } });
+}
+const TAB_LABELS: Record<DiscoverTab, string> = {
+  'pour-vous': 'decouverte.tabs.for_you',
+  tendances: 'decouverte.tabs.trending',
+  'mieux-notes': 'decouverte.tabs.top_rated',
+  'par-annee': 'decouverte.tabs.by_year',
+};
+const forYouEnabled = computed(
+  () => requestedTab.value === null || requestedTab.value === 'pour-vous',
+);
+const homeEnabled = computed(() => tab.value === 'tendances' || tab.value === 'mieux-notes');
+
 // ── Accueil ─────────────────────────────────────────────────────────────────
 const home = useQuery({
   queryKey: ['discover', 'home'],
   queryFn: ({ signal }) => discoverApi.home(signal),
   staleTime: 300_000,
   retry: false,
+  enabled: homeEnabled,
 });
 const recs = useQuery({
   queryKey: ['discover', 'my-recs'],
   queryFn: ({ signal }) => discoverApi.myRecommendations(signal),
   staleTime: 600_000,
   retry: false,
+  enabled: forYouEnabled,
 });
 const recsTab = ref<'results' | 'movies' | 'tv'>('results');
 const recsCards = computed(() => recs.data.value?.[recsTab.value] ?? []);
-const SECTIONS = [
+// Lot 8 : lectures récentes (Tracearr), dossiers racine, populaires par année.
+const watched = useQuery({
+  queryKey: ['discover', 'watched'],
+  queryFn: ({ signal }) => discoverApi.watched(signal),
+  staleTime: 600_000,
+  retry: false,
+  enabled: forYouEnabled,
+});
+const folders = useQuery({
+  queryKey: ['discover', 'folders'],
+  queryFn: ({ signal }) => discoverApi.folders(signal),
+  staleTime: 600_000,
+  retry: false,
+  enabled: forYouEnabled,
+});
+const YEARS = popularYears();
+const year = ref(new Date().getFullYear());
+const yearTab = ref<'movies' | 'tv'>('movies');
+const byYear = useQuery({
+  queryKey: computed(() => ['discover', 'year', year.value] as const),
+  queryFn: ({ signal }) => discoverApi.popularByYear(year.value, signal),
+  staleTime: 600_000,
+  retry: false,
+  placeholderData: keepPreviousData,
+  enabled: computed(() => tab.value === 'par-annee'),
+});
+const byYearCards = computed(() => byYear.data.value?.[yearTab.value] ?? []);
+const TRENDING_SECTIONS = [
   ['trending', 'decouverte.section.trending'],
   ['popMovies', 'decouverte.section.popular_movies'],
   ['popTv', 'decouverte.section.popular_tv'],
   ['upcoming', 'decouverte.section.upcoming'],
   ['onAir', 'decouverte.section.on_air'],
+] as const;
+const TOP_SECTIONS = [
   ['topMovies', 'decouverte.section.top_movies'],
   ['topTv', 'decouverte.section.top_tv'],
 ] as const;
+const sections = computed(() => (tab.value === 'mieux-notes' ? TOP_SECTIONS : TRENDING_SECTIONS));
 
 // ── Consultés récemment ─────────────────────────────────────────────────────
 function loadRecent(): TmdbCard[] {
@@ -76,10 +154,25 @@ function clearRecent(): void {
   localStorage.removeItem(RECENT_KEY);
 }
 
+// « Pour vous » vide (requêtes terminées, en erreur comprises) : « Tendances ».
+const forYouEmpty = computed(
+  () =>
+    (recs.data.value?.results.length ?? 0) === 0 &&
+    (watched.data.value?.results.length ?? 0) === 0 &&
+    (folders.data.value?.folders.length ?? 0) === 0 &&
+    recent.value.length === 0,
+);
+watchEffect(() => {
+  if (forYouFallback.value !== null || !forYouEnabled.value) return;
+  if ([recs, watched, folders].every((q) => !q.isPending.value))
+    forYouFallback.value = forYouEmpty.value;
+});
+
 // ── Recherche ───────────────────────────────────────────────────────────────
 interface SearchState {
   q: string | null;
-  type: 'all' | 'movie' | 'tv';
+  /** `anime` : animés, films et séries (genre Animation, japonais). */
+  type: 'all' | 'movie' | 'tv' | 'anime';
   genre: number;
   vote: number;
   sort: NonNullable<SmartSearchParams['sort']>;
@@ -122,7 +215,8 @@ async function run(append = false): Promise<void> {
     const data = await discoverApi.smartSearch(
       {
         q: (search.q ?? '').trim(),
-        type: search.type,
+        type: search.type === 'anime' ? 'all' : search.type,
+        anime: search.type === 'anime',
         sort: search.sort,
         genre: search.genre || undefined,
         vote_min: search.vote || undefined,
@@ -180,7 +274,8 @@ const moreAvailable = computed(
 const genres = useQuery({
   queryKey: computed(() => ['discover', 'genres', search.type] as const),
   queryFn: async ({ signal }) => {
-    const types = search.type === 'all' ? (['movie', 'tv'] as const) : [search.type];
+    const types =
+      search.type === 'all' || search.type === 'anime' ? (['movie', 'tv'] as const) : [search.type];
     const lists = await Promise.all(types.map((type) => discoverApi.genres(type, signal)));
     const seen = new Map<number, string>();
     for (const list of lists)
@@ -249,7 +344,7 @@ const initials = (name: string) =>
         ref="input"
         v-model="search.q"
         :placeholder="t('decouverte.srch.placeholder')"
-        :prepend-inner-icon="mdiMagnify"
+        :prepend-inner-icon="msSearch"
         :hint="t('decouverte.srch.shortcut')"
         variant="solo-filled"
         flat
@@ -262,10 +357,10 @@ const initials = (name: string) =>
         @update:model-value="schedule"
         @keydown.enter="run()"
       />
-      <v-btn :to="{ name: 'tmdb-watchlist' }" variant="tonal" :prepend-icon="mdiStar">{{
+      <v-btn :to="{ name: 'tmdb-watchlist' }" variant="tonal" :prepend-icon="msStarFill">{{
         t('decouverte.actions.watchlist')
       }}</v-btn>
-      <v-btn :to="{ name: 'tmdb-explorer' }" variant="tonal" :prepend-icon="mdiCompassOutline">{{
+      <v-btn :to="{ name: 'tmdb-explorer' }" variant="tonal" :prepend-icon="msExplore">{{
         t('decouverte.actions.explorer')
       }}</v-btn>
     </div>
@@ -274,6 +369,9 @@ const initials = (name: string) =>
         <v-btn value="all">{{ t('decouverte.filters.all') }}</v-btn>
         <v-btn value="movie">{{ t('decouverte.filters.movies') }}</v-btn>
         <v-btn value="tv">{{ t('decouverte.filters.series') }}</v-btn>
+        <v-btn value="anime" data-test="discover-type-anime">{{
+          t('decouverte.filters.anime')
+        }}</v-btn>
       </v-btn-toggle>
       <v-filter-select
         v-model="search.genre"
@@ -421,7 +519,7 @@ const initials = (name: string) =>
         </div>
         <EmptyState
           v-if="!searching && result.results.length === 0 && !result.best && !result.bestPerson"
-          :icon="mdiMagnify"
+          :icon="msSearch"
           :title="
             t(
               filtersActive
@@ -438,13 +536,39 @@ const initials = (name: string) =>
       </template>
     </template>
 
-    <!-- Accueil -->
+    <!-- Accueil, en sous-onglets -->
     <template v-else>
-      <v-alert v-if="home.data.value?.error" type="warning" variant="tonal" class="mb-4">{{
-        t('decouverte.search.search_error')
-      }}</v-alert>
+      <v-chip-group
+        :model-value="tab"
+        mandatory
+        selected-class="text-primary"
+        class="mb-2"
+        data-test="discover-tabs"
+        @update:model-value="selectTab"
+      >
+        <v-chip
+          v-for="value in DISCOVER_TABS"
+          :key="value"
+          :value="value"
+          filter
+          :data-test="`discover-tab-${value}`"
+          >{{ t(TAB_LABELS[value]) }}</v-chip
+        >
+      </v-chip-group>
+
+      <v-alert
+        v-if="homeEnabled && home.data.value?.error"
+        type="warning"
+        variant="tonal"
+        class="mb-4"
+        >{{ t('decouverte.search.search_error') }}</v-alert
+      >
       <v-row
-        v-if="home.data.value && (home.data.value.heroMovie || home.data.value.heroTv)"
+        v-if="
+          tab === 'tendances' &&
+          home.data.value &&
+          (home.data.value.heroMovie || home.data.value.heroTv)
+        "
         class="mb-2"
       >
         <v-col
@@ -473,55 +597,133 @@ const initials = (name: string) =>
         </v-col>
       </v-row>
 
-      <MediaRow
-        v-if="recs.isFetching.value || recsCards.length"
-        :title="t('decouverte.section.my_recs.title')"
-        :subtitle="t('decouverte.section.my_recs.subtitle')"
-        :loading="recs.isFetching.value && !recs.data.value"
-      >
-        <MediaCard
-          v-for="card in recsCards"
-          :key="`${card.type}-${card.id}`"
-          :card="card"
-          width="150"
-          @open="openCard"
-        />
-      </MediaRow>
-      <v-btn-toggle
-        v-if="recs.data.value?.seeds"
-        v-model="recsTab"
-        mandatory
-        density="compact"
-        variant="text"
-        class="mt-n4 mb-4"
-      >
-        <v-btn value="results" size="small">{{ t('decouverte.filters.all') }}</v-btn>
-        <v-btn value="movies" size="small">{{ t('decouverte.filters.movies') }}</v-btn>
-        <v-btn value="tv" size="small">{{ t('decouverte.filters.series') }}</v-btn>
-      </v-btn-toggle>
-
-      <section v-if="recent.length" class="mb-2">
-        <MediaRow :title="t('decouverte.recent.title')">
+      <template v-if="tab === 'pour-vous'">
+        <MediaRow
+          v-if="recs.isFetching.value || recsCards.length"
+          :title="t('decouverte.section.my_recs.title')"
+          :subtitle="t('decouverte.section.my_recs.subtitle')"
+          :loading="recs.isFetching.value && !recs.data.value"
+        >
           <MediaCard
-            v-for="card in recent"
+            v-for="card in recsCards"
             :key="`${card.type}-${card.id}`"
             :card="card"
             width="150"
             @open="openCard"
           />
         </MediaRow>
-        <v-btn
+        <v-btn-toggle
+          v-if="recs.data.value?.seeds"
+          v-model="recsTab"
+          mandatory
+          density="compact"
           variant="text"
-          size="small"
           class="mt-n4 mb-4"
-          :title="t('decouverte.recent.clear_title')"
-          @click="clearRecent"
-          >{{ t('decouverte.recent.clear') }}</v-btn
         >
-      </section>
+          <v-btn value="results" size="small">{{ t('decouverte.filters.all') }}</v-btn>
+          <v-btn value="movies" size="small">{{ t('decouverte.filters.movies') }}</v-btn>
+          <v-btn value="tv" size="small">{{ t('decouverte.filters.series') }}</v-btn>
+        </v-btn-toggle>
+
+        <MediaRow
+          v-if="
+            (watched.isFetching.value && !watched.data.value) ||
+            (watched.data.value?.results.length ?? 0) > 0
+          "
+          :title="t('decouverte.section.watched.title')"
+          :subtitle="t('decouverte.section.watched.subtitle')"
+          :loading="watched.isFetching.value && !watched.data.value"
+          data-test="discover-watched"
+        >
+          <MediaCard
+            v-for="card in watched.data.value?.results ?? []"
+            :key="`${card.type}-${card.id}`"
+            :card="card"
+            width="150"
+            @open="openCard"
+          />
+        </MediaRow>
+
+        <MediaRow
+          v-for="folder in folders.data.value?.folders ?? []"
+          :key="folder.key"
+          :title="t('decouverte.section.folder.title', { folder: folder.label })"
+          :subtitle="t('decouverte.section.folder.subtitle', { instance: folder.instance })"
+          data-test="discover-folder"
+        >
+          <MediaCard
+            v-for="card in folder.results"
+            :key="`${card.type}-${card.id}`"
+            :card="card"
+            width="150"
+            @open="openCard"
+          />
+        </MediaRow>
+
+        <section v-if="recent.length" class="mb-2">
+          <MediaRow :title="t('decouverte.recent.title')">
+            <MediaCard
+              v-for="card in recent"
+              :key="`${card.type}-${card.id}`"
+              :card="card"
+              width="150"
+              @open="openCard"
+            />
+          </MediaRow>
+          <v-btn
+            variant="text"
+            size="small"
+            class="mt-n4 mb-4"
+            :title="t('decouverte.recent.clear_title')"
+            @click="clearRecent"
+            >{{ t('decouverte.recent.clear') }}</v-btn
+          >
+        </section>
+        <EmptyState
+          v-if="forYouEmpty && [recs, watched, folders].every((q) => !q.isFetching.value)"
+          :icon="msExplore"
+          :title="t('decouverte.tabs.for_you_empty')"
+          data-test="discover-for-you-empty"
+        />
+      </template>
 
       <MediaRow
-        v-for="[key, title] in SECTIONS"
+        v-if="tab === 'par-annee'"
+        :title="t('decouverte.section.by_year.title', { year })"
+        :loading="byYear.isFetching.value && !byYear.data.value"
+        data-test="discover-by-year"
+      >
+        <template #actions>
+          <v-btn-toggle v-model="yearTab" mandatory density="compact" variant="text">
+            <v-btn value="movies" size="small" data-test="by-year-movies">{{
+              t('decouverte.filters.movies')
+            }}</v-btn>
+            <v-btn value="tv" size="small" data-test="by-year-tv">{{
+              t('decouverte.filters.series')
+            }}</v-btn>
+          </v-btn-toggle>
+          <v-filter-select
+            v-model="year"
+            :items="YEARS"
+            :label="t('decouverte.section.by_year.year')"
+            density="compact"
+            hide-details
+            variant="outlined"
+            style="max-width: 120px"
+            data-test="by-year-select"
+          />
+        </template>
+        <MediaCard
+          v-for="card in byYearCards"
+          :key="`${card.type}-${card.id}`"
+          :card="card"
+          width="150"
+          @open="openCard"
+        />
+      </MediaRow>
+
+      <MediaRow
+        v-for="[key, title] in homeEnabled ? sections : []"
         v-show="home.isFetching.value || (home.data.value?.[key].length ?? 0) > 0"
         :key="key"
         :title="t(title)"

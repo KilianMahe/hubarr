@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 // Champ de mot de passe avec affichage masquable (connexion, assistant, profil).
-import { mdiEye, mdiEyeOff } from '@mdi/js';
+import { msVisibility, msVisibilityOff } from './symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -21,7 +21,7 @@ const visible = ref(false);
   >
     <template #append-inner>
       <v-btn
-        :icon="visible ? mdiEyeOff : mdiEye"
+        :icon="visible ? msVisibilityOff : msVisibility"
         :aria-label="t('setup.step.admin.toggle_visibility')"
         :aria-pressed="visible"
         size="small"

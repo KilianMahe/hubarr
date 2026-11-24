@@ -4,7 +4,7 @@
 // 113) : en lecture seule comme l'original (bibliothèques, adresse, TLS, URL
 // de base et externe, identifiant du serveur ; clé masquée par le serveur),
 // et analyse manuelle des bibliothèques.
-import { mdiRefresh } from '@mdi/js';
+import { msRefresh } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -109,7 +109,7 @@ async function sync(): Promise<void> {
               {{ t('jellyseerr.settings.jellyfin.manual_scan_desc') }}
             </div>
             <v-btn
-              :prepend-icon="mdiRefresh"
+              :prepend-icon="msRefresh"
               variant="tonal"
               :loading="syncing"
               data-test="seerr-jellyfin-sync"

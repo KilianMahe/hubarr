@@ -1,31 +1,39 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-// Saisons et épisodes de la fiche série (`#modal-serie-episodes`) : une saison
-// ouverte à la fois (la plus récente au départ, hors spéciaux) ; en-tête de
-// saison (suivi, progression, recherche, recherche interactive, fichiers,
-// renommage, historique) ; ligne d'épisode (suivi, Maj+clic pour une plage,
-// pastille, numéro, titre, date, qualité, score, infos média, recherche,
-// recherche interactive, suppression du fichier). Le suivi d'une saison ou
+// Saisons et épisodes de la fiche série (maquette B du lot 6) : une saison
+// ouverte à la fois (la plus récente au départ, hors spéciaux). En-tête de
+// saison en ligne de réglage : pastille « S2 » à la couleur du service,
+// libellé, épisodes présents et progression, suivi, recherche, puis les autres
+// actions dans un menu (recherche interactive, fichiers, renommage,
+// historique). Ligne d'épisode : suivi (Maj+clic pour une plage), pastille
+// « E06 » à la couleur de son état (présent, manquant, à venir, non suivi),
+// titre, puis date, état, qualité et score ; infos média, recherche,
+// recherche interactive, suppression du fichier. Le suivi d'une saison ou
 // d'un épisode est désactivé quand la série n'est pas suivie (comme l'original).
+// Avec Tracearr (lot 7) : « x/y vus » par saison et marque « Vu » par épisode.
 import type { Episode, EpisodeFile } from '@hubarr/shared';
-import {
-  mdiBookmark,
-  mdiBookmarkOutline,
-  mdiCheck,
-  mdiChevronRight,
-  mdiDelete,
-  mdiFileDocumentMultipleOutline,
-  mdiFormTextboxPassword,
-  mdiHistory,
-  mdiInformationOutline,
-  mdiMagnify,
-  mdiViewGridOutline,
-} from '@mdi/js';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import {
+  msBookmark,
+  msBookmarkFill,
+  msCheck,
+  msCheckCircleFill,
+  msDelete,
+  msEditSquare,
+  msFileCopy,
+  msHistory,
+  msInfo,
+  msKeyboardArrowDown,
+  msManageSearch,
+  msMoreVert,
+  msSearch,
+} from '../../components/symbols';
+import { episodeKey, watchedCount, type WatchedEpisodes } from '../activity/watched';
 import { seriesSize } from './library';
 import {
-  episodeDotColor,
+  EPISODE_STATUS_COLORS,
+  episodeStatus,
   initiallyOpenSeason,
   mediaInfoLines,
   monitorRange,
@@ -40,6 +48,8 @@ const props = defineProps<{
   seriesMonitored: boolean;
   /** État des recherches en cours (clé : `e<id>` ou `s<numéro>`). */
   searches: Record<string, SearchState>;
+  /** Épisodes vus par l'utilisateur connecté (Tracearr), `null` : aucun. */
+  watched?: WatchedEpisodes | null;
 }>();
 const emit = defineEmits<{
   seasonMonitor: [season: number, monitored: boolean];
@@ -96,9 +106,18 @@ function infoTip(episode: Episode): string {
 function monitorTitle(monitored: boolean): string {
   return t(monitored ? 'media.series.detail.unmonitor' : 'media.series.detail.monitor');
 }
-function searchIcon(key: string): string {
-  return props.searches[key] === 'done' ? mdiCheck : mdiMagnify;
+const now = Date.now();
+function statusOf(episode: Episode) {
+  const status = episodeStatus(episode, now);
+  return {
+    color: EPISODE_STATUS_COLORS[status],
+    label: t(`media.series_detail.episode.status_${status}`),
+  };
 }
+const pad = (value: number) => String(value).padStart(2, '0');
+const seasonWatched = (season: number) => watchedCount(props.watched ?? null, season);
+const isWatched = (episode: Episode) =>
+  props.watched?.has(episodeKey(episode.seasonNumber, episode.episodeNumber)) === true;
 </script>
 
 <template>
@@ -106,16 +125,55 @@ function searchIcon(key: string): string {
     <p v-if="groups.length === 0" class="text-muted text-center py-4">
       {{ t('media.series.detail.no_episodes') }}
     </p>
-    <v-card
+    <section
       v-for="group in groups"
       :key="group.seasonNumber"
-      variant="outlined"
-      class="mb-2"
+      class="season"
+      :class="{ 'season--open': openSeason === group.seasonNumber }"
       :data-season="group.seasonNumber"
     >
-      <div class="series-seasons__header">
+      <div class="season__head">
+        <button
+          type="button"
+          class="season__toggle"
+          :aria-expanded="openSeason === group.seasonNumber"
+          @click="toggleSeason(group.seasonNumber)"
+        >
+          <span class="season__badge">{{
+            group.seasonNumber === 0 ? 'SP' : `S${group.seasonNumber}`
+          }}</span>
+          <span class="season__text">
+            <span class="season__label">{{ seasonLabel(t, group.seasonNumber) }}</span>
+            <span class="season__sub">
+              <span>{{
+                t('media.series_detail.season.episode_count_tpl', {
+                  files: group.files,
+                  total: group.total,
+                })
+              }}</span>
+              <span
+                v-if="seasonWatched(group.seasonNumber) > 0"
+                class="episode__watched text-success"
+                data-test="season-watched"
+                ><v-icon :icon="msCheckCircleFill" size="14" />{{
+                  t('activity.watched.some', {
+                    watched: Math.min(seasonWatched(group.seasonNumber), group.total),
+                    total: group.total,
+                  })
+                }}</span
+              >
+              <span class="season__bar">
+                <span
+                  class="season__bar-fill"
+                  :class="group.percent === 100 ? 'bg-success' : 'bg-service'"
+                  :style="{ width: `${group.percent}%` }"
+                />
+              </span>
+            </span>
+          </span>
+        </button>
         <v-btn
-          :icon="group.monitored ? mdiBookmark : mdiBookmarkOutline"
+          :icon="group.monitored ? msBookmarkFill : msBookmark"
           :color="group.monitored ? 'service-text' : 'muted'"
           variant="text"
           size="small"
@@ -126,89 +184,77 @@ function searchIcon(key: string): string {
           data-test="season-monitor"
           @click="emit('seasonMonitor', group.seasonNumber, !group.monitored)"
         />
-        <button
-          type="button"
-          class="series-seasons__toggle"
-          :aria-expanded="openSeason === group.seasonNumber"
-          @click="toggleSeason(group.seasonNumber)"
-        >
-          <v-icon
-            :icon="mdiChevronRight"
-            size="18"
-            class="series-seasons__chevron"
-            :class="{ 'series-seasons__chevron--open': openSeason === group.seasonNumber }"
-          />
-          <span class="font-weight-medium series-seasons__label">{{
-            seasonLabel(t, group.seasonNumber)
-          }}</span>
-          <span class="series-seasons__bar">
-            <span
-              class="series-seasons__bar-fill"
-              :class="group.percent === 100 ? 'bg-success' : 'bg-service'"
-              :style="{ width: `${group.percent}%` }"
+        <v-btn
+          :icon="searches[`s${group.seasonNumber}`] === 'done' ? msCheck : msSearch"
+          :loading="searches[`s${group.seasonNumber}`] === 'running'"
+          variant="tonal"
+          rounded="lg"
+          size="small"
+          color="service-text"
+          :aria-label="t('media.series.detail.search_season_title')"
+          :title="t('media.series.detail.search_season_title')"
+          data-test="season-search"
+          @click="emit('searchSeason', group.seasonNumber)"
+        />
+        <v-menu location="bottom end">
+          <template #activator="{ props: menu }">
+            <v-btn
+              v-bind="menu"
+              :icon="msMoreVert"
+              variant="text"
+              size="small"
+              :aria-label="t('common.action.more_actions')"
+              :title="t('common.action.more_actions')"
+              data-test="season-menu"
             />
-          </span>
-          <span class="text-body-small text-muted">{{ group.files }}/{{ group.total }}</span>
-        </button>
-        <div class="series-seasons__actions">
-          <v-btn
-            :icon="searchIcon(`s${group.seasonNumber}`)"
-            :loading="searches[`s${group.seasonNumber}`] === 'running'"
-            variant="text"
-            size="small"
-            color="service-text"
-            :aria-label="t('media.series.detail.search_season_title')"
-            :title="t('media.series.detail.search_season_title')"
-            data-test="season-search"
-            @click="emit('searchSeason', group.seasonNumber)"
-          />
-          <v-btn
-            :icon="mdiViewGridOutline"
-            variant="text"
-            size="small"
-            :aria-label="t('media.series.detail.season_interactive_search')"
-            :title="t('media.series.detail.season_interactive_search')"
-            data-test="season-interactive"
-            @click="emit('interactiveSeason', group.seasonNumber)"
-          />
-          <v-btn
-            :icon="mdiFileDocumentMultipleOutline"
-            variant="text"
-            size="small"
-            :aria-label="t('media.series.detail.manage_files')"
-            :title="t('media.series.detail.manage_files')"
-            data-test="season-files"
-            @click="emit('seasonFiles', group.seasonNumber)"
-          />
-          <v-btn
-            :icon="mdiFormTextboxPassword"
-            variant="text"
-            size="small"
-            :aria-label="t('media.series.detail.rename_files')"
-            :title="t('media.series.detail.rename_files')"
-            data-test="season-rename"
-            @click="emit('seasonRename', group.seasonNumber)"
-          />
-          <v-btn
-            :icon="mdiHistory"
-            variant="text"
-            size="small"
-            :aria-label="t('media.series.detail.history')"
-            :title="t('media.series.detail.history')"
-            data-test="season-history"
-            @click="emit('seasonHistory', group.seasonNumber)"
-          />
-        </div>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              :prepend-icon="msManageSearch"
+              :title="t('media.series.detail.season_interactive_search')"
+              data-test="season-interactive"
+              @click="emit('interactiveSeason', group.seasonNumber)"
+            />
+            <v-list-item
+              :prepend-icon="msFileCopy"
+              :title="t('media.series.detail.manage_files')"
+              data-test="season-files"
+              @click="emit('seasonFiles', group.seasonNumber)"
+            />
+            <v-list-item
+              :prepend-icon="msEditSquare"
+              :title="t('media.series.detail.rename_files')"
+              data-test="season-rename"
+              @click="emit('seasonRename', group.seasonNumber)"
+            />
+            <v-list-item
+              :prepend-icon="msHistory"
+              :title="t('media.series.detail.history')"
+              data-test="season-history"
+              @click="emit('seasonHistory', group.seasonNumber)"
+            />
+          </v-list>
+        </v-menu>
+        <v-btn
+          :icon="msKeyboardArrowDown"
+          variant="text"
+          size="small"
+          class="season__chevron"
+          :aria-label="seasonLabel(t, group.seasonNumber)"
+          :aria-expanded="openSeason === group.seasonNumber"
+          tabindex="-1"
+          @click="toggleSeason(group.seasonNumber)"
+        />
       </div>
-      <div v-if="openSeason === group.seasonNumber" class="series-seasons__episodes">
+      <div v-if="openSeason === group.seasonNumber" class="season__episodes">
         <div
           v-for="episode in group.episodes"
           :key="episode.id"
-          class="series-seasons__episode"
+          class="episode"
           data-test="episode-row"
         >
           <v-btn
-            :icon="episode.monitored ? mdiBookmark : mdiBookmarkOutline"
+            :icon="episode.monitored ? msBookmarkFill : msBookmark"
             :color="episode.monitored ? 'service-text' : 'muted'"
             variant="text"
             size="x-small"
@@ -219,162 +265,267 @@ function searchIcon(key: string): string {
             data-test="episode-monitor"
             @click="onEpisodeMonitor(episode, $event)"
           />
-          <span class="series-seasons__dot" :class="`bg-${episodeDotColor(episode)}`" />
-          <span class="series-seasons__number"
-            >E{{ String(episode.episodeNumber).padStart(2, '0') }}</span
+          <span
+            class="episode__badge"
+            :class="`text-${statusOf(episode).color}`"
+            :title="statusOf(episode).label"
+            >E{{ pad(episode.episodeNumber) }}</span
           >
-          <span class="series-seasons__title">{{ episode.title ?? '—' }}</span>
-          <span class="series-seasons__date text-muted">{{ episode.airDate ?? '—' }}</span>
-          <template v-if="fileOf(episode)">
-            <v-chip
-              v-if="fileOf(episode)?.quality"
-              size="x-small"
-              label
-              variant="tonal"
-              color="info"
-              :title="t('media.series.detail.ep_quality_label')"
-              >{{ fileOf(episode)?.quality?.name }}</v-chip
-            >
-            <span
-              v-if="fileOf(episode)?.customFormatScore"
-              class="text-body-small font-weight-medium"
-              :class="(fileOf(episode)?.customFormatScore ?? 0) > 0 ? 'text-success' : 'text-error'"
-              :title="t('media.series.detail.ep_cf_score_label')"
-              >{{ (fileOf(episode)?.customFormatScore ?? 0) > 0 ? '+' : ''
-              }}{{ fileOf(episode)?.customFormatScore }}</span
-            >
-          </template>
-          <v-icon
-            v-if="episode.hasFile"
-            :icon="mdiInformationOutline"
-            size="16"
-            class="series-seasons__info"
-            :title="infoTip(episode)"
-          />
-          <v-btn
-            :icon="searchIcon(`e${episode.id}`)"
-            :loading="searches[`e${episode.id}`] === 'running'"
-            variant="text"
-            size="x-small"
-            color="service-text"
-            :aria-label="t('media.series.detail.search_bookmark')"
-            :title="t('media.series.detail.search_bookmark')"
-            data-test="episode-search"
-            @click="emit('searchEpisode', episode)"
-          />
-          <v-btn
-            :icon="mdiViewGridOutline"
-            variant="text"
-            size="x-small"
-            :aria-label="t('media.series.detail.interactive_search')"
-            :title="t('media.series.detail.interactive_search')"
-            data-test="episode-interactive"
-            @click="emit('interactiveEpisode', episode)"
-          />
-          <v-btn
-            v-if="episode.hasFile"
-            :icon="mdiDelete"
-            variant="text"
-            size="x-small"
-            color="error"
-            :aria-label="t('media.series.detail.delete_file')"
-            :title="t('media.series.detail.delete_file')"
-            data-test="episode-delete-file"
-            @click="emit('deleteFile', episode.episodeFileId)"
-          />
+          <div class="episode__main">
+            <div class="episode__title">{{ episode.title ?? '—' }}</div>
+            <div class="episode__meta">
+              <span
+                v-if="isWatched(episode)"
+                class="episode__watched text-success"
+                :title="t('activity.watched.title')"
+                data-test="episode-watched"
+                ><v-icon :icon="msCheckCircleFill" size="16" />{{ t('activity.watched.all') }}</span
+              >
+              <span v-if="episode.airDate">{{ episode.airDate }}</span>
+              <span class="episode__status" :class="`text-${statusOf(episode).color}`">{{
+                statusOf(episode).label
+              }}</span>
+              <template v-if="fileOf(episode)">
+                <v-chip
+                  v-if="fileOf(episode)?.quality"
+                  size="x-small"
+                  label
+                  variant="tonal"
+                  color="info"
+                  :title="t('media.series.detail.ep_quality_label')"
+                  >{{ fileOf(episode)?.quality?.name }}</v-chip
+                >
+                <span
+                  v-if="fileOf(episode)?.customFormatScore"
+                  class="episode__score font-weight-medium"
+                  :class="
+                    (fileOf(episode)?.customFormatScore ?? 0) > 0 ? 'text-success' : 'text-error'
+                  "
+                  :title="t('media.series.detail.ep_cf_score_label')"
+                  >{{ (fileOf(episode)?.customFormatScore ?? 0) > 0 ? '+' : ''
+                  }}{{ fileOf(episode)?.customFormatScore }}</span
+                >
+              </template>
+            </div>
+          </div>
+          <div class="episode__actions">
+            <v-icon
+              v-if="episode.hasFile"
+              :icon="msInfo"
+              size="16"
+              class="episode__info"
+              :title="infoTip(episode)"
+            />
+            <v-btn
+              :icon="searches[`e${episode.id}`] === 'done' ? msCheck : msSearch"
+              :loading="searches[`e${episode.id}`] === 'running'"
+              variant="text"
+              class="episode__action"
+              size="small"
+              :aria-label="t('media.series.detail.search_bookmark')"
+              :title="t('media.series.detail.search_bookmark')"
+              data-test="episode-search"
+              @click="emit('searchEpisode', episode)"
+            />
+            <v-btn
+              :icon="msManageSearch"
+              variant="text"
+              class="episode__action"
+              size="small"
+              :aria-label="t('media.series.detail.interactive_search')"
+              :title="t('media.series.detail.interactive_search')"
+              data-test="episode-interactive"
+              @click="emit('interactiveEpisode', episode)"
+            />
+            <v-btn
+              v-if="episode.hasFile"
+              :icon="msDelete"
+              variant="text"
+              class="episode__action episode__action--danger"
+              size="small"
+              :aria-label="t('media.series.detail.delete_file')"
+              :title="t('media.series.detail.delete_file')"
+              data-test="episode-delete-file"
+              @click="emit('deleteFile', episode.episodeFileId)"
+            />
+          </div>
         </div>
       </div>
-    </v-card>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.series-seasons__header {
+.series-seasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.season {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 12px;
+  overflow: hidden;
+}
+.season--open {
+  border-color: rgba(var(--v-theme-service), 0.5);
+}
+.season__head {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px 6px 6px 10px;
 }
-.series-seasons__toggle {
-  flex: 1 1 220px;
+.season--open .season__head {
+  background: linear-gradient(90deg, rgba(var(--v-theme-service), 0.12), transparent);
+}
+.season__toggle {
+  flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 4px 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
-  cursor: pointer;
   text-align: left;
-  padding: 6px 0;
+  cursor: pointer;
 }
-.series-seasons__chevron {
-  transition: transform 0.2s;
+.season__badge,
+.episode__badge {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 600;
 }
-.series-seasons__chevron--open {
-  transform: rotate(90deg);
+.season__badge {
+  width: 40px;
+  height: 40px;
+  color: rgb(var(--v-theme-service-text));
+  background: rgba(var(--v-theme-service), 0.16);
 }
-.series-seasons__label {
-  min-width: 90px;
-}
-.series-seasons__bar {
+.season__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   flex: 1;
-  max-width: 200px;
-  height: 5px;
-  border-radius: 3px;
+}
+.season__label {
+  font-weight: 500;
+}
+.season__sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.season__bar {
+  flex: 1;
+  max-width: 180px;
+  height: 4px;
+  border-radius: 2px;
   overflow: hidden;
   background: rgba(var(--v-theme-on-surface), 0.12);
 }
-.series-seasons__bar-fill {
+.season__bar-fill {
   display: block;
   height: 100%;
 }
-.series-seasons__actions {
-  display: flex;
-  margin-left: auto;
+.season__chevron :deep(.v-icon) {
+  transition: transform 0.2s;
 }
-.series-seasons__episodes {
+.season--open .season__chevron :deep(.v-icon) {
+  transform: rotate(180deg);
+}
+.season__episodes {
   border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
-.series-seasons__episode {
+.episode {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 12px;
-  font-size: 0.85rem;
-  border-top: 1px solid rgba(var(--v-border-color), 0.05);
+  gap: 8px;
+  padding: 6px 6px 6px 8px;
 }
-.series-seasons__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.episode + .episode {
+  border-top: 1px solid rgba(var(--v-border-color), 0.06);
 }
-.series-seasons__number {
-  min-width: 36px;
-  font-weight: 600;
-  opacity: 0.7;
+.episode__badge {
+  position: relative;
+  width: 40px;
+  height: 32px;
+  font-size: 0.78rem;
+  overflow: hidden;
 }
-.series-seasons__title {
+.episode__badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.16;
+}
+.episode__main {
   flex: 1;
   min-width: 0;
+}
+.episode__title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.series-seasons__date {
-  min-width: 80px;
-  text-align: right;
+.episode__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
   font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.7);
 }
-.series-seasons__info {
+.episode__watched {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+}
+.episode__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+/* Actions d'un épisode : icônes Material Symbols sans fond, grises au repos,
+   à la couleur du service au survol (rouge pour la suppression). */
+.episode__action {
+  color: rgba(var(--v-theme-on-surface), 0.62);
+}
+.episode__action:hover,
+.episode__action:focus-visible {
+  color: rgb(var(--v-theme-service-text));
+}
+.episode__action--danger:hover,
+.episode__action--danger:focus-visible {
+  color: rgb(var(--v-theme-error));
+}
+.episode__info {
+  margin-inline: 4px;
   cursor: help;
   opacity: 0.7;
 }
 @media (max-width: 599px) {
-  .series-seasons__date {
+  .season__bar {
+    max-width: 80px;
+  }
+  /* Une seule ligne sous le titre : l'état est porté par la couleur de la pastille. */
+  .episode__meta {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .episode__info,
+  .episode__status,
+  .episode__score {
     display: none;
   }
 }

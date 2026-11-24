@@ -309,8 +309,8 @@ describe('import', () => {
       'admin.import.invalid_json',
     ],
     [
-      'export de Prismarr',
-      JSON.stringify({ prismarr_export_version: 2, settings: {} }),
+      'export d’un autre format',
+      JSON.stringify({ other_export_version: 2, settings: {} }),
       'admin.import.unknown_format',
     ],
     [

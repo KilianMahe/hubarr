@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Demandes Seerr en attente (`_requests.html.twig`) : 5 au plus, titre et
 // affiche, demandeur et date relative ; lien vers la gestion (admins).
-import { mdiInboxArrowDown } from '@mdi/js';
+import { msMoveToInbox } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../../app/overlays';
@@ -28,7 +28,7 @@ const ago = (iso: string | null) => {
   <DashCard
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.requests.title')"
-    :icon="mdiInboxArrowDown"
+    :icon="msMoveToInbox"
     :to="session.isAdmin ? { name: 'seerr' } : undefined"
     :link-label="t('dashboard.requests.manage_cta')"
     :loading="query.isFetching.value"

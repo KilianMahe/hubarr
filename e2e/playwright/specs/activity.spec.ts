@@ -2,9 +2,10 @@
 // Parcours d'activité (P3e.4), en desktop et en mobile, contre les faux
 // Tautulli et Tracearr : lecture en cours avec affiche proxifiée,
 // statistiques, graphiques, historique (« Charger plus »), métadonnées ;
-// proxy d'images d'Emby.
+// proxy d'images d'Emby ; « Vu » via Tracearr (lot 7).
 
 import { expect, test } from '@playwright/test';
+import { LIBRARY, SERIES_LIBRARY } from './env';
 
 test('Tautulli : en cours, statistiques, graphiques, historique et métadonnées', async ({
   page,
@@ -75,6 +76,59 @@ test('Tracearr : onglets (résumé, en cours, statistiques, historique, utilisat
     ).toHaveClass(/active/);
   await page.getByTestId('tracearr-user-back').click();
   await expect(page).toHaveURL(/\/tracearr\/utilisateurs$/);
+});
+
+test('Tracearr : « Vu » après association du compte dans le profil', async ({ page }) => {
+  await page.goto('/profil');
+  const card = page.getByTestId('profile-tracearr');
+  await card.getByTestId('profile-tracearr-account').click();
+  await page.getByRole('option', { name: 'alice' }).click();
+  // Premier import en arrière-plan : la carte se relit jusqu'à sa fin.
+  await expect(card.getByTestId('profile-tracearr-sync')).toContainText('3 lectures');
+
+  try {
+    // Film vu : badge dans la bibliothèque (carte sur desktop, ligne de la
+    // vue liste sur mobile) et sur la fiche.
+    await page.goto(LIBRARY);
+    const movie = page
+      .locator('[data-test="poster-card"], .movie-row')
+      .filter({ has: page.getByText('Orbite Basse', { exact: true }) });
+    await expect(movie.getByTestId('watched-badge')).toHaveText('Vu');
+    await page.goto(`${LIBRARY}/1`);
+    await expect(page.getByTestId('movie-detail').getByTestId('watched-badge')).toHaveText('Vu');
+
+    // Série : épisodes vus sur la carte, la fiche, la saison et les épisodes.
+    await page.goto(SERIES_LIBRARY);
+    const series = page
+      .locator('[data-test="poster-card"], .series-row')
+      .filter({ has: page.getByText('Les Veilleurs', { exact: true }) });
+    await expect(series.getByTestId('watched-badge')).toHaveText(/^2\/\d+ vus$/);
+    await page.goto(`${SERIES_LIBRARY}/1`);
+    await expect(page.getByTestId('series-badges').getByTestId('watched-badge')).toHaveText(
+      /^2\/\d+ vus$/,
+    );
+    const season = page.locator('[data-season="1"]');
+    await expect(season.getByTestId('season-watched')).toHaveText(/^2\/\d+ vus$/);
+    if ((await season.getByTestId('episode-row').count()) === 0)
+      await season.locator('.season__toggle').click();
+    await expect(season.getByTestId('episode-watched')).toHaveCount(2);
+
+    // Tableau de bord : tendances TMDB et derniers ajouts.
+    await page.goto('/tableau-de-bord');
+    const tile = (card: string, title: string) =>
+      page
+        .getByTestId(card)
+        .locator('.v-card')
+        .filter({ has: page.getByText(title, { exact: true }) })
+        .getByTestId('watched-badge');
+    await expect(tile('card-trending', 'Orbite Basse')).toHaveText('Vu');
+    await expect(tile('card-recent', 'Les Veilleurs')).toHaveText(/^2\/\d+ vus$/);
+  } finally {
+    // Dissociation : les autres parcours voient la bibliothèque sans badge.
+    await page.goto('/profil');
+    await page.getByTestId('profile-tracearr-account').locator('.v-field__clearable').click();
+    await expect(page.getByTestId('profile-tracearr-sync')).toHaveCount(0);
+  }
 });
 
 test('Emby : activité et proxy d’images', async ({ request }) => {

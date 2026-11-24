@@ -6,7 +6,7 @@
 // (suivi, disponibilité ou type, dossiers de saison, profil) et communes à
 // toutes, import des lignes cochées avec leur état.
 import { libraryImportPageSchema, libraryImportScanSchema } from '@hubarr/shared';
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../../components/symbols';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { mapLimit } from '../../movies/library';
@@ -222,7 +222,7 @@ const statusText = (row: ImportRow) =>
           <v-btn
             type="submit"
             color="service"
-            :prepend-icon="mdiMagnify"
+            :prepend-icon="msSearch"
             :loading="scanning"
             data-test="import-scan"
             >{{ t(key('btn_scan')) }}</v-btn

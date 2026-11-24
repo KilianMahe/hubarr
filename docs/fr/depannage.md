@@ -2,6 +2,23 @@
 
 ## Lire les journaux
 
+### Page « Journaux » {#page-journaux}
+
+Les administrateurs trouvent les 1 000 dernières entrées du journal dans la section **Journaux** des [Paramètres](./parametres.md#journaux) (`/admin/settings#section-logs` ; l'ancienne adresse `/admin/logs` y mène), sans ouvrir de terminal :
+
+- filtres par niveau minimal, par service et par texte (message et détails) ;
+- un clic sur une entrée affiche son détail, et **Copier** la copie en JSON pour la joindre à un rapport de bug ;
+- **Télécharger** enregistre les entrées filtrées dans un fichier `.jsonl` (une entrée JSON par ligne) ;
+- la liste se rafraîchit toutes les 5 secondes tant que **Actualisation auto** est active.
+
+Quand un appel à un service échoue, l'entrée nomme le service et l'instance, la méthode et le chemin appelés, le statut HTTP ou le code de l'erreur réseau (`ECONNREFUSED`, `ENOTFOUND`, délai dépassé…), la durée, et indique si Hubarr considère désormais le service injoignable (`circuit: open` : les appels sont suspendus 10 secondes).
+
+Les secrets sont masqués avant toute écriture, sur la page comme dans la sortie du conteneur : clés d'API, jetons, mots de passe, en-têtes `Authorization`, cookies, identifiants dans les URL et paramètres d'URL sensibles (`apikey=`, `token=`…) sont remplacés par `[redacted]`.
+
+Les entrées sont gardées en mémoire : elles repartent de zéro à chaque redémarrage. Par défaut, la page garde le même niveau que la console (`HUBARR_LOG_LEVEL`, `warn`). Pour garder plus de détail sur la page sans rendre la console plus bavarde, définissez `HUBARR_LOG_BUFFER_LEVEL=info`.
+
+### Sortie du conteneur
+
 ```sh
 docker logs -f hubarr
 ```
@@ -36,7 +53,6 @@ Après 5 échecs en 15 minutes, la connexion est bloquée pour ce compte et cett
 | `variables d'environnement invalides` | Une variable a une valeur incorrecte : le message la nomme                                                                                        |
 | `EACCES` sur `/data`                  | Le conteneur tourne sous `user:` sans droit d'écriture sur le dossier : retirez `user:` et réglez `PUID`/`PGID`, ou `chown -R <uid>:<gid> ./data` |
 | Base plus récente que l'application   | Vous êtes revenu à une version antérieure : réinstallez la version récente, ou restaurez `hubarr.db.bak`                                          |
-| Base d'une autre application          | Le dossier contient une base de Prismarr ou d'une autre application : montez un dossier neuf                                                      |
 
 ## Sauvegarder et restaurer
 
@@ -64,7 +80,3 @@ L'installation d'une PWA exige le HTTPS. Voir [Application mobile](./application
 ## Le calendrier iCal ne se synchronise pas dans mon agenda
 
 Le flux `/calendrier.ics` exige une session Hubarr : il fonctionne dans un navigateur connecté, mais pas encore dans les applications d'agenda qui ne transmettent pas le cookie de session.
-
-## Je venais de Prismarr
-
-Hubarr est une application distincte : il n'importe ni la base ni les exports de Prismarr. Installez-le dans un dossier de données neuf, refaites l'assistant, puis reconnectez vos services.

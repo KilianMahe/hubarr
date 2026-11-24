@@ -18,4 +18,6 @@ export { default as StatTile } from './StatTile.vue';
 export { default as StatusChip } from './StatusChip.vue';
 export { pullDistance, PULL_THRESHOLD } from './pull';
 export { default as DetailCard } from './DetailCard.vue';
-export { default as DetailHeader } from './DetailHeader.vue';
+export { default as DetailFacts } from './DetailFacts.vue';
+export { default as DetailLayout } from './DetailLayout.vue';
+export { default as DetailState } from './DetailState.vue';

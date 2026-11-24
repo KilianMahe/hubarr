@@ -23,7 +23,7 @@ The **Series** page shows statistics (total, continuing, ended, size), the **dow
 - **Search and filters**: status (monitored, continuing, ended, anime, unmonitored, missing episodes), genre, network, sort (including progress). The criteria are kept in the page address.
 - **Views**: grid, poster wall, detailed list, table or shelves (continuing, anime, ended, upcoming, unmonitored). A poster's dot shows its state: complete, up to date, missing episodes, upcoming or unmonitored; the bar shows episode progress. The **Display** menu (the same on computer and mobile) switches views; the choice is remembered on the device.
 - **Bookmark** on a poster: monitor or unmonitor the series without opening it.
-- **Add**: search a series by title, quality profile, root folder, type (standard, daily, anime), episodes to monitor, season folders, search for missing episodes and tags. Before you type, the window suggests this week's trending series (when TMDB is configured): a click searches the title and preselects it.
+- **Add**: search a series by title. Each result offers **View** (its TMDB page, or its Hubarr page when the series is already in Sonarr) and **Add**, which opens the form, in two groups: **Library** (root folder, quality profile, type: standard, daily, anime) and **Monitoring** (episodes to monitor, season folders, search for missing episodes, tags). The result of the addition stays in view, with **View** to open the series page. **Back** returns to the results with your search kept; the cross closes the window. Before you type, the window suggests this week's trending series (when TMDB is configured): a click searches the title and opens its form. The **Add** button of a TMDB page opened with **View** also leads to the form.
 - **Selection mode**: edit (monitoring, profile, type, root folder, season folders), tag, rename files or delete several series at once. On desktop, Shift+click selects a range.
 - **Filter actions**: refresh the filtered series, or search the missing episodes of the filtered series.
 - **Refresh all** and **RSS sync**, tracked until they finish.
@@ -43,15 +43,16 @@ Each download shows the series and episode, its progress, its state and Sonarr's
 
 ## Series page
 
-Clicking a series opens its **page**, at `/medias/<slug>/series/<id>` (older `?open=<id>` addresses still lead there): a header with the backdrop, poster and status, then cards (overview, seasons with downloaded episodes, size and missing count, history). Interactive search, renaming, files, edit and full history open in a panel, from the bottom on mobile.
+Clicking a series opens its **page**, at `/medias/<slug>/series/<id>` (older `?open=<id>` addresses still lead there). On a computer, a column on the left stays in view while you scroll: poster, status (episodes present, monitoring, airing status), actions and key figures (rating, seasons, size). On the right: title, network, genres, then cards (overview, seasons with downloaded episodes, size and missing count, suggestions, history); deleting is folded at the bottom. On mobile, the poster and title share the first row, followed by the status, actions and figures. Interactive search, renaming, files, edit and full history open in a panel, from the bottom on mobile.
 
 - **Search missing**: monitored episodes already aired without a file; a season missing entirely is searched as a pack.
-- **Seasons and episodes**: the latest season is open, and within each season the latest episode comes first. For each season: monitoring, progress, search, interactive search, file management, renaming and history. For each episode: monitoring (Shift+click for a range), quality, score, technical details, search, interactive search and file deletion.
+- **Seasons and episodes**: the latest season is open, and within each season the latest episode comes first. Each season shows its episodes present and progress, with monitoring and search at hand; interactive search, file management, renaming and history are in its **⋮** menu. Each episode's number takes the colour of its status: downloaded (green), missing (orange), upcoming (blue), not monitored (grey). For each episode: monitoring (Shift+click for a range), quality, score, technical details, search, interactive search and file deletion.
 - **Interactive search** for an episode or a season: sortable releases, with the season or episodes they cover and the TVDB numbering when it differs.
 - **Rename files**: current and new names, to tick.
 - **Manage files**: season and episode (reassign a file), quality, languages, group, release type and indexer flags, editable row by row or for a selection.
 - **Edit**: monitoring, new seasons, season folders, profile, type, path (with a browser of the Sonarr server folders) and tags.
 - **History**, **refresh and scan**, **delete** (with or without files).
+- **Recommendations** and **Similar** (when TMDB is configured): two rows of TMDB series, with those already in a library marked. A series you own opens its Hubarr page; another one opens its TMDB page, from which you can add it.
 
 ## Instance pages
 

@@ -282,7 +282,8 @@ export class TmdbClient {
         : null;
     } catch (error) {
       if (!(error instanceof UpstreamError)) throw error;
-      this.#logger?.warn({ path, kind: error.kind }, 'TMDB : appel en échec');
+      // Le client HTTP a déjà journalisé le détail de l'échec.
+      this.#logger?.debug?.({ service: 'tmdb', path, kind: error.kind }, 'TMDB : appel en échec');
       return null;
     }
   }

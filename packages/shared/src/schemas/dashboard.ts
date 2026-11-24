@@ -8,7 +8,8 @@
 import { z } from 'zod';
 import { activitySchema, quickLookSchema } from './activity';
 import { dashboardLayoutSchema } from './preferences';
-import { torrentSchema, torrentStatsSchema } from './torrents';
+import { TORRENT_CLIENTS, torrentSchema, torrentStatsSchema } from './torrents';
+import { USENET_CLIENTS } from './usenet';
 
 const nullableString = z.string().nullable();
 const nullableNumber = z.number().nullable();
@@ -40,6 +41,8 @@ export const dashboardPageSchema = z.object({
     transmission: z.boolean(),
     tracearr: z.boolean(),
     emby: z.boolean(),
+    /** Au moins un client de téléchargement (torrent ou Usenet) configuré. */
+    downloads: z.boolean(),
   }),
   watchlist: z.array(
     z.object({
@@ -185,6 +188,10 @@ export const dashboardRecentSchema = z.object({
       downloaded: z.boolean(),
       network: nullableString,
       slug: z.string(),
+      /** Correspondance avec les titres vus (Tracearr) : TMDB, TVDB, épisodes. */
+      tmdbId: nullableNumber,
+      tvdbId: nullableNumber,
+      episodeCount: z.number(),
     }),
   ),
 });
@@ -248,3 +255,60 @@ export const quickLookDetailSchema = z.object({
   releaseDates: z.array(releaseChipSchema),
 });
 export type QuickLookDetail = z.infer<typeof quickLookDetailSchema>;
+
+// ── Statistiques (lot 13, admins) ────────────────────────────────────────────
+
+/** Jours couverts par le graphique des téléchargements, aujourd'hui compris. */
+export const DOWNLOAD_STATS_DAYS = 30;
+/** Occupation d'un disque (en %) au-delà de laquelle la carte alerte. */
+export const DISK_ALERT_PERCENT = 90;
+
+export const downloadClientIdSchema = z.enum([...TORRENT_CLIENTS, ...USENET_CLIENTS]);
+export type DownloadClientId = z.infer<typeof downloadClientIdSchema>;
+
+/**
+ * Octets téléchargés par jour de fin (fuseau d'affichage), d'après la liste
+ * **actuelle** des clients : rien n'est stocké, un élément retiré d'un client
+ * disparaît du graphique.
+ */
+export const dashboardDownloadsSchema = z.object({
+  available: z.boolean(),
+  /** `DOWNLOAD_STATS_DAYS` jours, du plus ancien à aujourd'hui (`YYYY-MM-DD`). */
+  days: z.array(z.object({ day: z.string(), bytes: z.number() })),
+  total: z.number(),
+  /** Moyenne par jour sur la période. */
+  average: z.number(),
+  /** Clients lus ; `ok: false` s'il n'a pas répondu (absent du total). */
+  clients: z.array(z.object({ id: downloadClientIdSchema, ok: z.boolean() })),
+});
+export type DashboardDownloads = z.infer<typeof dashboardDownloadsSchema>;
+
+export const diskRootSchema = z.object({
+  service: z.enum(['radarr', 'sonarr']),
+  instance: z.string(),
+  path: z.string(),
+});
+
+/**
+ * Disques portant les dossiers racines de Radarr et Sonarr, dédoublonnés
+ * (même point de montage vu par plusieurs instances).
+ */
+export const dashboardDisksSchema = z.object({
+  available: z.boolean(),
+  disks: z.array(
+    z.object({
+      path: z.string(),
+      label: nullableString,
+      freeSpace: z.number(),
+      totalSpace: z.number(),
+      /** 0 à 100, une décimale. */
+      usedPercent: z.number(),
+      /** Occupation au-delà de `DISK_ALERT_PERCENT`. */
+      alert: z.boolean(),
+      roots: z.array(diskRootSchema),
+    }),
+  ),
+  /** Instances qui n'ont pas répondu (noms). */
+  failed: z.array(z.string()),
+});
+export type DashboardDisks = z.infer<typeof dashboardDisksSchema>;

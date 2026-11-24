@@ -2,7 +2,7 @@
 <script setup lang="ts" generic="T extends string">
 // Sélecteur du mode d'affichage (P5c.2, V14) : le même menu sur mobile et sur
 // desktop ; sur desktop, le bouton porte aussi le libellé du mode courant.
-import { mdiCheck, mdiMenuDown } from '@mdi/js';
+import { msArrowDropDown, msCheck } from '../symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
@@ -36,7 +36,7 @@ const current = computed(
         v-if="mdAndUp"
         v-bind="menuProps"
         :prepend-icon="current?.icon"
-        :append-icon="mdiMenuDown"
+        :append-icon="msArrowDropDown"
         variant="tonal"
         rounded="pill"
         size="small"
@@ -67,7 +67,7 @@ const current = computed(
         @click="choose(option)"
       >
         <template v-if="option.value === model" #append>
-          <v-icon :icon="mdiCheck" size="small" />
+          <v-icon :icon="msCheck" size="small" />
         </template>
       </v-list-item>
     </v-list>

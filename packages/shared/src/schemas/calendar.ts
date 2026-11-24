@@ -17,6 +17,20 @@ export const CALENDAR_RELEASE_TYPES = [
 ] as const;
 export type CalendarReleaseType = (typeof CALENDAR_RELEASE_TYPES)[number];
 
+/**
+ * Statut de téléchargement d'une sortie, qui donne sa couleur dans le
+ * calendrier : fichier présent, dans la file de l'instance, manquant (sorti et
+ * suivi, sans fichier), à venir, ou non suivi.
+ */
+export const CALENDAR_DOWNLOAD_STATUSES = [
+  'downloaded',
+  'downloading',
+  'missing',
+  'upcoming',
+  'unmonitored',
+] as const;
+export type CalendarDownloadStatus = (typeof CALENDAR_DOWNLOAD_STATUSES)[number];
+
 export const calendarEventSchema = z.object({
   type: z.enum(['film', 'episode']),
   releaseType: z.enum(CALENDAR_RELEASE_TYPES),
@@ -36,6 +50,7 @@ export const calendarEventSchema = z.object({
   status: nullableString,
   hasFile: z.boolean(),
   monitored: z.boolean(),
+  downloadStatus: z.enum(CALENDAR_DOWNLOAD_STATUSES),
   /** Id du film (Radarr) ou de la série (Sonarr) dans l'instance. */
   id: nullableNumber,
   runtime: nullableNumber,

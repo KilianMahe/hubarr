@@ -5,7 +5,7 @@
 //
 // Écarts assumés : dates en ISO 8601 au lieu d'objets
 // `DateTimeImmutable` (comme D83) ; le calendrier garde la date locale de
-// diffusion (`airDate`, « AAAA-MM-JJ », issue #26 de Prismarr) **et** l'instant
+// diffusion (`airDate`, « AAAA-MM-JJ ») **et** l'instant
 // (`airDateUtc`) ; images : `remoteUrl` seulement, jamais l'URL de l'instance.
 
 import { z } from 'zod';

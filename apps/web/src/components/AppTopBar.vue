@@ -4,31 +4,59 @@
 // santé des services ; le compte est dans le menu latéral seulement (P5d.4, V34). Teintée par l'accent du service affiché
 // ; recherche globale (P4.5, admins).
 // Sur mobile, dans une vue de service (P5b.4, E4, D131), elle devient une
-// « pilule » sur un dégradé teinté par le service : menu, puis la recherche
-// locale de la page, ses compteurs ou son titre ; pendant une sélection
-// multiple (E3), elle laisse place à la barre contextuelle de la sélection.
-import { mdiClose, mdiMagnify, mdiSelectAll } from '@mdi/js';
+// « pilule » sur un dégradé teinté par le service : menu, titre de l'écran
+// (« Radarr · Films »), puis la loupe : recherche globale, ou recherche locale
+// de la page (bibliothèques) qui s'ouvre dans la pilule à la place du titre ;
+// pendant une sélection multiple (E3), elle laisse place à la barre
+// contextuelle de la sélection.
+import { msClose, msSearch, msSelectAll } from './symbols';
+import { nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { SelectionState, TopBarSearch, TopBarStat } from '../app/service-chrome';
+import type { SelectionState, TopBarSearch } from '../app/service-chrome';
 import { useSessionStore } from '../app/stores/session';
 import GlobalSearch from './GlobalSearch.vue';
 import HealthMenu from './HealthMenu.vue';
 import ThemeToggle from './ThemeToggle.vue';
 
-defineProps<{
+const props = defineProps<{
   title: string;
   subtitle?: string | null;
   showNavToggle: boolean;
   /** Barre « pilule » (mobile, vue de service). */
   pill?: boolean;
   search?: TopBarSearch | null;
-  stats?: TopBarStat[] | null;
   /** Sélection multiple en cours (mobile) : barre contextuelle. */
   selection?: SelectionState | null;
 }>();
 const emit = defineEmits<{ 'toggle-nav': [] }>();
 const { t } = useI18n();
 const session = useSessionStore();
+// Recherche locale ouverte dans la pilule : d'office tant qu'un texte est saisi
+// (retour sur la page, lien partagé), sinon par la loupe.
+const searchOpen = ref(false);
+const searchInput = ref<HTMLInputElement | null>(null);
+watch(
+  () => props.search?.value ?? '',
+  (value) => {
+    if (value !== '') searchOpen.value = true;
+  },
+  { immediate: true },
+);
+watch(
+  () => props.search,
+  (search) => {
+    if (!search) searchOpen.value = false;
+  },
+);
+async function openSearch(): Promise<void> {
+  searchOpen.value = true;
+  await nextTick();
+  searchInput.value?.focus();
+}
+function closeSearch(): void {
+  if (props.search?.value) props.search.onInput('');
+  searchOpen.value = false;
+}
 </script>
 
 <template>
@@ -42,7 +70,7 @@ const session = useSessionStore();
   >
     <template #prepend>
       <v-btn
-        :icon="mdiClose"
+        :icon="msClose"
         :aria-label="t('common.ds.clear_selection')"
         data-test="selection-bar-clear"
         @click="selection.clear()"
@@ -56,7 +84,7 @@ const session = useSessionStore();
     <template #append>
       <v-btn
         v-if="selection.selectAll"
-        :icon="mdiSelectAll"
+        :icon="msSelectAll"
         :aria-label="selection.selectAllLabel ?? t('common.ds.select_all')"
         :title="selection.selectAllLabel ?? t('common.ds.select_all')"
         data-test="selection-bar-all"
@@ -76,45 +104,52 @@ const session = useSessionStore();
         data-test="nav-toggle"
         @click="emit('toggle-nav')"
       />
-      <!-- Recherche locale de la page -->
-      <input
-        v-if="search"
-        :value="search.value"
-        :placeholder="search.placeholder"
-        :aria-label="search.placeholder"
-        type="search"
-        enterkeyhint="search"
-        class="topbar-pill__search"
-        data-test="topbar-search"
-        @input="search.onInput(($event.target as HTMLInputElement).value)"
-      />
-      <!-- Compteurs du service -->
-      <div
-        v-else-if="stats && stats.length > 0"
-        class="topbar-pill__stats"
-        data-test="topbar-stats"
-      >
-        <div v-for="stat in stats" :key="stat.label" class="topbar-pill__stat">
-          <strong class="text-title-medium"
-            >{{ stat.value
-            }}<small v-if="stat.unit" class="topbar-pill__unit">{{ stat.unit }}</small></strong
+      <!-- Recherche locale de la page, ouverte par la loupe -->
+      <template v-if="search && searchOpen">
+        <input
+          ref="searchInput"
+          :value="search.value"
+          :placeholder="search.placeholder"
+          :aria-label="search.placeholder"
+          type="search"
+          enterkeyhint="search"
+          class="topbar-pill__search"
+          data-test="topbar-search"
+          @input="search.onInput(($event.target as HTMLInputElement).value)"
+          @keydown.esc="closeSearch"
+        />
+        <v-btn
+          :icon="msClose"
+          variant="text"
+          :aria-label="t('topbar.search.clear')"
+          class="me-1"
+          data-test="topbar-search-close"
+          @click="closeSearch"
+        />
+      </template>
+      <template v-else>
+        <div class="topbar-pill__title">
+          <span class="d-block text-title-medium text-truncate" data-test="topbar-title">{{
+            title
+          }}</span>
+          <span
+            v-if="subtitle"
+            class="d-block text-body-small text-truncate topbar-subtitle"
+            data-test="topbar-subtitle"
+            >{{ subtitle }}</span
           >
-          <span class="text-body-small text-muted text-truncate">{{ stat.label }}</span>
         </div>
-      </div>
-      <div v-else class="topbar-pill__title">
-        <span class="d-block text-title-medium text-truncate" data-test="topbar-title">{{
-          title
-        }}</span>
-        <span
-          v-if="subtitle"
-          class="d-block text-body-small text-truncate topbar-subtitle"
-          data-test="topbar-subtitle"
-          >{{ subtitle }}</span
-        >
-      </div>
-      <v-icon v-if="search && !search.value" :icon="mdiMagnify" class="me-3 text-muted" />
-      <GlobalSearch v-if="session.user && !search" class="me-1" />
+        <v-btn
+          v-if="search"
+          :icon="msSearch"
+          variant="text"
+          :aria-label="search.placeholder"
+          class="me-1"
+          data-test="topbar-search-open"
+          @click="openSearch"
+        />
+        <GlobalSearch v-else-if="session.user" class="me-1" />
+      </template>
     </div>
   </v-app-bar>
 
@@ -188,27 +223,6 @@ const session = useSessionStore();
 }
 .topbar-pill__search:focus-visible {
   box-shadow: inset 0 -2px 0 rgb(var(--v-theme-service-text));
-}
-.topbar-pill__stats {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.topbar-pill__stat {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  line-height: 1.15;
-}
-.topbar-pill__stat + .topbar-pill__stat {
-  border-left: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-}
-.topbar-pill__unit {
-  margin-left: 2px;
-  color: rgb(var(--v-theme-service-text));
-  font-size: 0.7em;
 }
 .topbar-pill__title {
   flex: 1 1 auto;

@@ -5,7 +5,7 @@
 // (l'instance redémarre), suppression confirmée. Écart : les sauvegardes ne se
 // téléchargent pas (leur lien est une URL de l'instance).
 import { arrCommandStartedSchema, backupSchema, type Backup } from '@hubarr/shared';
-import { mdiBackupRestore, mdiDelete, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msSettingsBackupRestore } from '../../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -90,7 +90,7 @@ function askDelete(backup: Backup): void {
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         :loading="creating"
         data-test="backup-create"
         @click="create"
@@ -131,7 +131,7 @@ function askDelete(backup: Backup): void {
             </td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiBackupRestore"
+                :icon="msSettingsBackupRestore"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('restore'))"
@@ -140,7 +140,7 @@ function askDelete(backup: Backup): void {
                 @click="askRestore(backup)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

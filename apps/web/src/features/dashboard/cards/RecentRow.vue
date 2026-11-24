@@ -3,8 +3,16 @@
 // Derniers ajouts aux bibliothèques (`_recent_additions.html.twig`) : 16
 // titres, toutes instances, date relative, badge « Téléchargé » ou chaîne.
 import { useQuery } from '@tanstack/vue-query';
+import type { DashboardRecent } from '@hubarr/shared';
 import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../../app/overlays';
+import {
+  showEpisodes,
+  useWatched,
+  watchedCount,
+  watchedProgress,
+  type WatchedProgress,
+} from '../../activity/watched';
 import MediaRow from '../../discover/MediaRow.vue';
 import { dashboardApi, relativeDate } from '../dashboard-api';
 import PosterTile from './PosterTile.vue';
@@ -16,6 +24,14 @@ const query = useQuery({
   staleTime: 45_000,
   retry: false,
 });
+const watched = useWatched();
+function watchedOf(item: DashboardRecent['items'][number]): WatchedProgress | null {
+  if (item.type === 'movie') {
+    return item.tmdbId !== null && watched.value.movies.has(item.tmdbId) ? { kind: 'all' } : null;
+  }
+  const episodes = showEpisodes(watched.value, { tvdbId: item.tvdbId, tmdbId: item.tmdbId });
+  return watchedProgress(watchedCount(episodes), item.episodeCount);
+}
 const ago = (iso: string | null) => {
   const rel = relativeDate(iso, new Date());
   return rel ? t(rel.key, rel.count === undefined ? {} : { count: rel.count }) : '';
@@ -38,6 +54,7 @@ const ago = (iso: string | null) => {
       :tv="item.type === 'series'"
       :badge="item.downloaded ? t('dashboard.lib_badge.downloaded') : item.network"
       :badge-color="item.downloaded ? 'success' : undefined"
+      :watched="watchedOf(item)"
       @open="openQuickLook({ kind: 'library', type: item.type, slug: item.slug, id: item.id })"
     />
   </MediaRow>

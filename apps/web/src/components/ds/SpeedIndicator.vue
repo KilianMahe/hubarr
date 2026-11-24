@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Vitesses ↓ / ↑ (clients de téléchargement, tableau de bord) : flèches en
 // icônes, valeurs formatées ; `large` pour l'en-tête d'un client.
-import { mdiArrowDown, mdiArrowUp } from '@mdi/js';
+import { msArrowDownward, msArrowUpward } from '../symbols';
 import { useI18n } from 'vue-i18n';
 import { useFormat } from '../../app/format';
 
@@ -16,14 +16,14 @@ const { t } = useI18n();
 <template>
   <span class="speed" :class="{ 'speed--large': large }" data-test="speed-indicator">
     <span class="speed__item text-info" :title="t('dashboard.transmission.dl_speed')">
-      <v-icon :icon="mdiArrowDown" :size="large ? 22 : 14" />{{ format.speed(down) }}
+      <v-icon :icon="msArrowDownward" :size="large ? 22 : 14" />{{ format.speed(down) }}
     </span>
     <span
       v-if="up !== null"
       class="speed__item text-success"
       :title="t('dashboard.transmission.up_speed')"
     >
-      <v-icon :icon="mdiArrowUp" :size="large ? 22 : 14" />{{ format.speed(up) }}
+      <v-icon :icon="msArrowUpward" :size="large ? 22 : 14" />{{ format.speed(up) }}
     </span>
   </span>
 </template>

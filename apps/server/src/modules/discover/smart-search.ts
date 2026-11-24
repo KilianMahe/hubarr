@@ -22,6 +22,7 @@ import {
 } from '../../integrations/tmdb/client';
 import type { LibraryIndex } from '../media/library';
 import {
+  animeDiscoverParams,
   labelsOf,
   matches,
   normalize,
@@ -217,6 +218,7 @@ export async function smartSearch(
     year_min: plausibleYear(q.year_min),
     year_max: plausibleYear(q.year_max),
     vote_min: Math.max(0, Math.min(10, q.vote_min)),
+    anime: truthy(q.anime),
   };
   const hideOwned = truthy(q.hide_owned);
   // Plafonnée : une requête peut se démultiplier en appels (en cache) avec la correction.
@@ -279,6 +281,7 @@ export async function smartSearch(
   for (const t of q.type === 'all' ? (['movie', 'tv'] as const) : [q.type]) {
     const params: Record<string, string | number> = { page, sort_by: discoverSort(q.sort, t) };
     if (filters.genre) params.with_genres = filters.genre;
+    if (filters.anime === true) Object.assign(params, animeDiscoverParams(filters.genre));
     const field = t === 'movie' ? 'primary_release_date' : 'first_air_date';
     if (filters.year_min) params[`${field}.gte`] = `${filters.year_min}-01-01`;
     if (filters.year_max) params[`${field}.lte`] = `${filters.year_max}-12-31`;

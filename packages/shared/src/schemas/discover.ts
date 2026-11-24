@@ -94,6 +94,68 @@ export const myRecommendationsSchema = z.object({
 });
 export type MyRecommendations = z.infer<typeof myRecommendationsSchema>;
 
+/**
+ * Suggestions par dossier racine (`GET /api/decouverte/dossiers`, lot 8) :
+ * une rangée par dossier racine Radarr/Sonarr, recommandations TMDB agrégées
+ * à partir des titres du dossier, sans les titres déjà en bibliothèque.
+ */
+export const folderSuggestionsSchema = z.object({
+  folders: z.array(
+    z.object({
+      /** Identifiant stable de la rangée (`<service>:<slug>:<chemin>`). */
+      key: z.string(),
+      service: z.enum(['radarr', 'sonarr']),
+      /** Nom de l'instance qui porte le dossier. */
+      instance: z.string(),
+      /** Dernier segment du chemin (« Films enfants »). */
+      label: z.string(),
+      path: z.string(),
+      results: z.array(tmdbCardSchema),
+    }),
+  ),
+});
+export type FolderSuggestions = z.infer<typeof folderSuggestionsSchema>;
+
+/**
+ * « D'après ce que vous avez regardé » (`GET /api/decouverte/regardes`,
+ * lot 8) : recommandations TMDB à partir des lectures récentes Tracearr de
+ * l'utilisateur connecté, sans les titres déjà vus.
+ */
+export const watchedSuggestionsSchema = z.object({
+  /** Un compte Tracearr est associé à l'utilisateur connecté. */
+  linked: z.boolean(),
+  /** Titres regardés qui ont servi de point de départ. */
+  seeds: z.number().int().nonnegative(),
+  results: z.array(tmdbCardSchema),
+});
+export type WatchedSuggestions = z.infer<typeof watchedSuggestionsSchema>;
+
+/** Bornes du sélecteur « Populaires en [année] ». */
+export const POPULAR_YEAR_MIN = 1920;
+export const popularYearParamsSchema = z.object({
+  year: z.coerce
+    .number()
+    .int()
+    .min(POPULAR_YEAR_MIN)
+    .refine((year) => year <= new Date().getUTCFullYear() + 1),
+});
+
+/** « Populaires en [année] » (`GET /api/decouverte/annee/:year`, lot 8). */
+export const popularByYearSchema = z.object({
+  year: z.number().int(),
+  movies: z.array(tmdbCardSchema),
+  tv: z.array(tmdbCardSchema),
+});
+export type PopularByYear = z.infer<typeof popularByYearSchema>;
+
+/**
+ * Animés : TMDB n'a pas de type dédié. Hubarr retient le genre Animation (16)
+ * avec le japonais comme langue originale.
+ */
+export const ANIME_GENRE_ID = 16;
+export const ANIME_ORIGINAL_LANGUAGE = 'ja';
+const flagSchema = z.enum(['1', '0', 'true', 'false', 'on']).optional().catch(undefined);
+
 export const discoverFilterQuerySchema = z.object({
   type: z.enum(TMDB_MEDIA_TYPES).catch('movie'),
   genres: z.string().max(200).optional(),
@@ -107,6 +169,8 @@ export const discoverFilterQuerySchema = z.object({
     .optional()
     .catch(undefined),
   page: z.coerce.number().int().min(1).max(500).catch(1),
+  /** Animés seulement (genre Animation, langue originale japonaise). */
+  anime: flagSchema,
 });
 export type DiscoverFilterQuery = z.input<typeof discoverFilterQuerySchema>;
 
@@ -259,6 +323,17 @@ export const tmdbDetailSchema = z.object({
 });
 export type TmdbDetail = z.infer<typeof tmdbDetailSchema>;
 
+/**
+ * Suggestions d'un titre pour sa fiche Hubarr : recommandations et titres
+ * similaires TMDB, marqués s'ils sont en bibliothèque, sans le titre lui-même
+ * ni doublon entre les deux rangées.
+ */
+export const tmdbSuggestionsSchema = z.object({
+  recommendations: z.array(tmdbCardSchema),
+  similar: z.array(tmdbCardSchema),
+});
+export type TmdbSuggestions = z.infer<typeof tmdbSuggestionsSchema>;
+
 export const textQuerySchema = z.object({
   q: z.string().max(200).catch(''),
   page: z.coerce.number().int().min(1).max(500).catch(1),
@@ -321,6 +396,8 @@ export const smartSearchQuerySchema = z.object({
   vote_min: z.coerce.number().catch(0),
   hide_owned: z.enum(['1', '0', 'true', 'false', 'on']).optional().catch(undefined),
   exact: z.enum(['1', '0', 'true', 'false', 'on']).optional().catch(undefined),
+  /** Animés seulement, films et séries. */
+  anime: flagSchema,
   page: z.coerce.number().int().catch(1),
 });
 export type SmartSearchQuery = z.input<typeof smartSearchQuerySchema>;

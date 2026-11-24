@@ -275,13 +275,17 @@ export const radarrMock: FastifyPluginAsync = async (app) => {
     state.movies = state.movies.filter((movie) => !movieIds.includes(movie.id));
     return {};
   });
-  // Calendrier : deux sorties à venir, datées par rapport au jour de l'exécution.
+  // Calendrier, daté par rapport au jour de l'exécution : deux sorties à venir,
+  // un film déjà téléchargé et un film dans la file (Cartographes), pour
+  // montrer les statuts de téléchargement.
   app.get('/api/v3/calendar', async () => {
     const day = (offset: number) =>
       `${new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`;
     return state.movies.flatMap((movie): Record<string, unknown>[] => {
+      if (movie.id === 1) return [{ ...movie, digitalRelease: day(-3) }];
       if (movie.id === 3) return [{ ...movie, digitalRelease: day(2) }];
       if (movie.id === 10) return [{ ...movie, physicalRelease: day(4) }];
+      if (movie.title === 'Cartographes') return [{ ...movie, digitalRelease: day(-1) }];
       return [];
     });
   });

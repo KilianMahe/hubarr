@@ -2,7 +2,8 @@
 // Entrées de service du tiroir (barre latérale de `base.html.twig`) : services
 // configurés, visibles dans le menu (`sidebar_hide_*`), et réservés aux admins
 // quand leur contrôleur l'était. Radarr/Sonarr : une entrée par instance active
-// s'il y en a plusieurs. Regroupés par famille.
+// s'il y en a plusieurs. Regroupés par famille. Découverte et Calendrier sont
+// des onglets du groupe « Accueil » (lot 11, `home-tabs.ts`), hors de ces sections.
 
 import {
   SERVICES,
@@ -23,7 +24,7 @@ import {
 
 export interface DrawerServiceItem {
   key: string;
-  service: ServiceId | null;
+  service: ServiceId;
   /** Texte affiché (nom du service ou de l'instance) ; sinon `labelKey`. */
   label?: string;
   labelKey?: string;
@@ -86,29 +87,7 @@ export function buildDrawerSections(
     isVisibleInSidebar(services, id) &&
     (isAdmin || SERVICE_PAGES[id]?.adminOnly !== true);
 
-  const explore: DrawerServiceItem[] = [];
-  if (shown('tmdb')) {
-    explore.push({
-      key: 'tmdb',
-      service: 'tmdb',
-      labelKey: 'sidebar.nav.discovery',
-      to: { name: 'tmdb' },
-    });
-  }
-  if (
-    (isConfigured(services, 'radarr') || isConfigured(services, 'sonarr')) &&
-    isVisibleInSidebar(services, 'calendar')
-  ) {
-    explore.push({
-      key: 'calendar',
-      service: null,
-      labelKey: 'sidebar.nav.calendar',
-      to: { name: 'calendar' },
-    });
-  }
-
   const sections: DrawerServiceSection[] = [];
-  if (explore.length > 0) sections.push({ titleKey: 'sidebar.section.discovery', items: explore });
   for (const family of SERVICE_FAMILIES) {
     const items = FAMILY_ORDER[family]
       .filter((id) => id !== 'tmdb' && shown(id))
@@ -124,7 +103,7 @@ export function healthColor(
   health: ServicesHealthResponse | undefined,
   item: Pick<DrawerServiceItem, 'service' | 'instance'>,
 ): string | null {
-  if (health === undefined || item.service === null) return null;
+  if (health === undefined) return null;
   let state: boolean | null | undefined;
   if ((item.service === 'radarr' || item.service === 'sonarr') && item.instance !== undefined) {
     state = health.instances[item.service].find((row) => row.slug === item.instance)?.state;

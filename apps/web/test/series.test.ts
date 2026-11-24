@@ -272,7 +272,7 @@ describe('SeriesView', () => {
       await vi.advanceTimersByTimeAsync(450);
       await settle();
       expect(fetch.calls.some((call) => call.url.includes('/lookup?term=dark'))).toBe(true);
-      clickIn('[data-test="add-series-result-item"]');
+      clickIn('[data-test="add-series-result-item"] [data-test="add-series-pick"]');
       await settle();
       clickIn('[data-test="add-series-confirm"]');
       await settle();

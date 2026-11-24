@@ -5,7 +5,7 @@
 // bouton d'ajout (admins, titre absent des bibliothèques). Un clic ouvre la
 // fiche.
 import type { TmdbCard } from '@hubarr/shared';
-import { mdiMovieOpen, mdiPlus, mdiStar, mdiStarOutline, mdiTelevisionClassic } from '@mdi/js';
+import { msAdd, msMovie, msStar, msStarFill, msTv } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openQuickAdd } from '../../app/overlays';
@@ -48,12 +48,12 @@ function star(): void {
     <v-img :src="card.poster ?? ''" :aspect-ratio="2 / 3" cover class="bg-surface-alt">
       <template #placeholder>
         <div class="d-flex align-center justify-center fill-height">
-          <v-icon :icon="card.type === 'tv' ? mdiTelevisionClassic : mdiMovieOpen" size="32" />
+          <v-icon :icon="card.type === 'tv' ? msTv : msMovie" size="32" />
         </div>
       </template>
       <template #error>
         <div class="d-flex align-center justify-center fill-height">
-          <v-icon :icon="card.type === 'tv' ? mdiTelevisionClassic : mdiMovieOpen" size="32" />
+          <v-icon :icon="card.type === 'tv' ? msTv : msMovie" size="32" />
         </div>
       </template>
       <div class="media-card__top d-flex justify-space-between pa-1">
@@ -62,7 +62,7 @@ function star(): void {
           size="x-small"
           variant="flat"
           color="surface"
-          :prepend-icon="mdiStar"
+          :prepend-icon="msStarFill"
           :aria-label="t('decouverte.card.rating', { value: card.vote })"
           >{{ card.vote }}</v-chip
         >
@@ -83,7 +83,7 @@ function star(): void {
         <v-spacer />
         <v-btn
           v-if="watchlist.enabled.value"
-          :icon="inWatchlist ? mdiStar : mdiStarOutline"
+          :icon="inWatchlist ? msStarFill : msStar"
           size="x-small"
           variant="flat"
           :color="inWatchlist ? 'warning' : 'surface'"
@@ -95,7 +95,7 @@ function star(): void {
         />
         <v-btn
           v-if="session.isAdmin && !card.inLibrary"
-          :icon="mdiPlus"
+          :icon="msAdd"
           size="x-small"
           variant="flat"
           color="primary"

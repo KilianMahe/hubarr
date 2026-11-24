@@ -77,7 +77,12 @@ ARG HUBARR_VERSION=0.0.0-local
 # `hubarr <commande>` : CLI d'administration (`docker exec -it hubarr hubarr user:reset-password <email>`),
 # exécutée sous PUID:PGID comme le serveur pour ne pas créer de fichiers root dans /data.
 # su-exec : abandon des droits root au démarrage (PUID/PGID, docker/entrypoint.sh).
-RUN apk add --no-cache tini tzdata su-exec \
+# npm, npx, yarn et corepack de l'image de base sont retirés : le serveur ne les
+# utilise pas, et leurs dépendances embarquées remontaient des failles (Trivy).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+      /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-* \
+ && apk add --no-cache tini tzdata su-exec \
  && mkdir -p /data && chown node:node /data \
  && printf '#!/bin/sh\nif [ "$(id -u)" = 0 ]; then exec su-exec "${PUID:-1000}:${PGID:-1000}" node /app/cli.js "$@"; fi\nexec node /app/cli.js "$@"\n' > /usr/local/bin/hubarr \
  && chmod 755 /usr/local/bin/hubarr

@@ -3,7 +3,7 @@
 // Liste de blocage de l'instance (`media/series_blocklist.html.twig`) : série,
 // source, qualité, date ; supprimer une entrée ou la sélection (cases, « tout
 // cocher »), avec confirmation ; 50 par page.
-import { mdiDelete, mdiMagnify } from '@mdi/js';
+import { msDelete, msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -79,7 +79,7 @@ async function remove(): Promise<void> {
       <v-spacer />
       <v-btn
         v-if="selected.length > 0"
-        :prepend-icon="mdiDelete"
+        :prepend-icon="msDelete"
         color="error"
         variant="tonal"
         size="small"
@@ -93,7 +93,7 @@ async function remove(): Promise<void> {
     }}</v-alert>
     <v-filter-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="t('media.arr_lists.search_series')"
       :aria-label="t('media.arr_lists.search_series')"
       density="compact"
@@ -161,7 +161,7 @@ async function remove(): Promise<void> {
             </td>
             <td class="text-end">
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 color="error"
                 variant="text"
                 size="small"

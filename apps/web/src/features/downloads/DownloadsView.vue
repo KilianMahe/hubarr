@@ -12,7 +12,7 @@ import {
   usenetPollSummarySchema,
   type ServiceId,
 } from '@hubarr/shared';
-import { mdiArrowDownBold } from '@mdi/js';
+import { msArrowDownwardAlt } from '../../components/symbols';
 import { useQueries, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -100,7 +100,7 @@ const queries = useQueries({
               v-if="queries[index]?.data"
               size="small"
               :color="(queries[index]?.data?.active ?? 0) > 0 ? 'info' : undefined"
-              :prepend-icon="mdiArrowDownBold"
+              :prepend-icon="msArrowDownwardAlt"
               >{{ queries[index]?.data?.active ?? 0 }}</v-chip
             >
           </v-card-title>

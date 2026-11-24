@@ -5,6 +5,7 @@
 // (Annuler et Enregistrer, plus les actions propres au formulaire).
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
+import DialogTitle from '../../components/DialogTitle.vue';
 
 const open = defineModel<boolean>({ required: true });
 withDefaults(
@@ -32,7 +33,7 @@ const { smAndDown } = useDisplay();
     scrollable
   >
     <v-card data-test="arr-admin-dialog">
-      <v-card-title class="text-title-large pt-4 text-wrap">{{ title }}</v-card-title>
+      <DialogTitle :title="title" @close="open = false" />
       <v-card-text>
         <v-alert
           v-if="error"

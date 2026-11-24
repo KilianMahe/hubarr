@@ -7,7 +7,6 @@ import type { ResolvedTheme } from '@hubarr/shared';
 import { inject, type InjectionKey, type Plugin } from 'vue';
 import { createVuetify } from 'vuetify';
 import { VAutocomplete, VSelect, VTextField } from 'vuetify/components';
-import { aliases, mdi } from 'vuetify/iconsets/mdi-svg';
 import {
   THEME_CONTROLLER,
   createThemeController,
@@ -15,6 +14,8 @@ import {
   type ThemeControllerOptions,
 } from '../theme/controller';
 import { THEME_NAMES } from '../theme/vuetify-theme';
+import { symbolAliases } from '../../components/symbols';
+import { materialSymbols } from './material-symbols';
 
 export type UiDensity = 'comfortable' | 'compact';
 
@@ -40,8 +41,10 @@ export function createHubarrVuetify(
   options: ThemeControllerOptions = {},
 ): HubarrVuetify {
   const vuetify = createVuetify({
-    // Icônes en SVG (`@mdi/js`, importées une à une) : pas de police d'icônes.
-    icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
+    // Icônes Material Symbols (Rounded) en SVG, tracés importés un à un depuis
+    // `components/symbols.ts` : pas de police d'icônes. Les icônes internes de
+    // Vuetify (cases à cocher, tri…) suivent le même style.
+    icons: { defaultSet: 'ms', aliases: symbolAliases, sets: { ms: materialSymbols } },
     // Champs de recherche, de filtre et de tri (P5c.2, V13) : arrondis en pilule,
     // sans message d'aide. Les champs de formulaire gardent `v-text-field`/`v-select`.
     aliases: {

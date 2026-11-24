@@ -12,6 +12,8 @@ export const TAUTULLI_API_KEY = 'e2e-tautulli-key';
 export const TRACEARR_API_KEY = 'trr_pub_e2e';
 export const EMBY_API_KEY = 'e2e-emby-key';
 export const TRACEARR_SERVER = '11111111-2222-3333-4444-555555555555';
+/** Série « Les Veilleurs » côté Tracearr (fiche v2 `/media/:id`). */
+export const TRACEARR_SHOW = '22222222-3333-4444-5555-666666666666';
 
 /** PNG transparent d'un pixel. */
 const PIXEL = Buffer.from(
@@ -189,6 +191,31 @@ export const tautulliMock: FastifyPluginAsync = async (app) => {
   });
 };
 
+function watchedHistory(user: string) {
+  if (user !== 'u1') return [];
+  return [
+    {
+      id: 'w1',
+      media_type: 'movie',
+      media_title: 'Orbite Basse',
+      tmdb_id: 9001,
+      started_at: '2026-11-20T20:00:00Z',
+      percent_complete: 97,
+      watched: true,
+    },
+    ...[1, 2].map((episode) => ({
+      id: `w-e${episode}`,
+      media_type: 'episode',
+      show_media_id: TRACEARR_SHOW,
+      season_number: 1,
+      episode_number: episode,
+      started_at: `2026-11-1${episode}T20:00:00Z`,
+      percent_complete: 100,
+      watched: true,
+    })),
+  ];
+}
+
 export const tracearrMock: FastifyPluginAsync = async (app) => {
   app.post('/__reset', async () => ({ ok: true }));
   app.addHook('onRequest', async (request, reply) => {
@@ -273,37 +300,64 @@ export const tracearrMock: FastifyPluginAsync = async (app) => {
       transcodePercent: 33,
     },
   }));
-  app.get<{ Querystring: { cursor?: string } }>('/api/v2/public/history', async (request) => {
-    const second = request.query.cursor === 'page2';
-    return {
-      // Une ligne sur trois est un épisode vu par bob (fiche utilisateur, P5d.2).
-      data: Array.from({ length: second ? 4 : 24 }, (_, i) => ({
-        ...(i % 3 === 2
-          ? {
-              mediaType: 'episode',
-              mediaTitle: `Épisode ${i + 1}`,
-              showTitle: 'Les Veilleurs',
-              seasonNumber: 1,
-              episodeNumber: i + 1,
-              user: { id: 'u2', username: 'bob' },
-              platform: 'Android TV',
-            }
-          : {
-              mediaType: 'movie',
-              mediaTitle: `${second ? 'Suite' : 'Lecture'} ${i + 1}`,
-              tmdbId: 1000 + i,
-              user: { id: 'u1', username: 'alice' },
-              platform: 'Plex Web',
-            }),
-        startedAt: new Date(Date.UTC(2026, 10, 20, 20) - i * 3_600_000).toISOString(),
-        durationMs: 3_600_000,
-        totalDurationMs: 3_600_000,
-        progressMs: 3_600_000,
-        watched: true,
-      })),
-      meta: { nextCursor: second ? null : 'page2' },
-    };
-  });
+  // « Vu » (lot 7) : identités v2, fiche d'une série et historique filtré par
+  // identité (`watchedHistory`). alice a vu « Orbite Basse » (Radarr, TMDB 9001) et deux
+  // épisodes des « Veilleurs » (Sonarr, TVDB 70001) ; bob n'a rien vu.
+  app.get('/api/v2/public/users', async () => ({
+    data: [
+      { id: 'u1', username: 'alice', identity_name: 'alice' },
+      { id: 'u2', username: 'bob' },
+    ],
+    meta: { nextCursor: null },
+  }));
+  app.get<{ Params: { id: string } }>('/api/v2/public/media/:id', async (request, reply) =>
+    request.params.id === TRACEARR_SHOW
+      ? {
+          id: TRACEARR_SHOW,
+          media_type: 'show',
+          title: 'Les Veilleurs',
+          tmdb_id: 7001,
+          tvdb_id: 70_001,
+        }
+      : reply.code(404).send({ error: 'not found' }),
+  );
+  app.get<{ Querystring: { cursor?: string; user_id?: string } }>(
+    '/api/v2/public/history',
+    async (request) => {
+      // Synchronisation « Vu » : historique filtré par identité.
+      if (request.query.user_id !== undefined)
+        return { data: watchedHistory(request.query.user_id), meta: { nextCursor: null } };
+      const second = request.query.cursor === 'page2';
+      return {
+        // Une ligne sur trois est un épisode vu par bob (fiche utilisateur, P5d.2).
+        data: Array.from({ length: second ? 4 : 24 }, (_, i) => ({
+          ...(i % 3 === 2
+            ? {
+                mediaType: 'episode',
+                mediaTitle: `Épisode ${i + 1}`,
+                showTitle: 'Les Veilleurs',
+                seasonNumber: 1,
+                episodeNumber: i + 1,
+                user: { id: 'u2', username: 'bob' },
+                platform: 'Android TV',
+              }
+            : {
+                mediaType: 'movie',
+                mediaTitle: `${second ? 'Suite' : 'Lecture'} ${i + 1}`,
+                tmdbId: 1000 + i,
+                user: { id: 'u1', username: 'alice' },
+                platform: 'Plex Web',
+              }),
+          startedAt: new Date(Date.UTC(2026, 10, 20, 20) - i * 3_600_000).toISOString(),
+          durationMs: 3_600_000,
+          totalDurationMs: 3_600_000,
+          progressMs: 3_600_000,
+          watched: true,
+        })),
+        meta: { nextCursor: second ? null : 'page2' },
+      };
+    },
+  );
   app.get('/api/v1/public/users', async () => ({
     data: [
       {

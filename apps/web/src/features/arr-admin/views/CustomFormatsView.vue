@@ -5,7 +5,7 @@
 // conditions), suppression confirmée. Les modèles de conditions viennent de
 // `GET …/formats/schema`, chargés à la première ouverture du dialogue.
 import { customFormatSchema, specificationSchema, type CustomFormat } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -122,7 +122,7 @@ const labels = computed(() => ({
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="format-add"
         @click="edit(null)"
         >{{ t(ctx.key('add')) }}</v-btn
@@ -157,7 +157,7 @@ const labels = computed(() => ({
             <td>{{ t(ctx.key(format.includeCustomFormatWhenRenaming ? 'yes' : 'no')) }}</td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('edit'))"
@@ -166,7 +166,7 @@ const labels = computed(() => ({
                 @click="edit(format)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

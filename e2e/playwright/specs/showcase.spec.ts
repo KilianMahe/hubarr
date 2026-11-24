@@ -169,7 +169,8 @@ test('calendrier', async ({ page, isMobile }, info) => {
 
 test('découverte', async ({ page, isMobile }, info) => {
   test.skip(isMobile, 'Desktop seulement');
-  await open(page, '/decouverte');
+  // Onglet « Tendances » : titres de la semaine et listes TMDB, avec affiches.
+  await open(page, '/decouverte?onglet=tendances');
   await shoot(page, info, 'discover', page.locator('.v-img').nth(4));
 });
 

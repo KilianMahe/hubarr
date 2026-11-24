@@ -70,15 +70,16 @@ Images are built for **linux/amd64**. For another architecture, build from sourc
 
 ## Environment variables
 
-| Variable                 | Default                          | Purpose                                                                                        |
-| ------------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `PUID`, `PGID`           | `1000`                           | User and group owning the files in `/data`; the server runs under this identity, never as root |
-| `TZ`                     | `UTC`                            | Default display time zone and log time zone                                                    |
-| `HUBARR_LOG_LEVEL`       | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` or `trace`                                           |
-| `HUBARR_BASE_PATH`       | _(empty)_                        | Path prefix behind a reverse proxy that forwards the full path (`/hubarr`)                     |
-| `HUBARR_TRUST_PROXY`     | `loopback,linklocal,uniquelocal` | Trusted reverse proxies (`X-Forwarded-*`, `X-Forwarded-Prefix`)                                |
-| `HUBARR_FRAME_ANCESTORS` | _(empty)_                        | Origins allowed to embed Hubarr in an iframe                                                   |
-| `HUBARR_PORT`            | `7070`                           | Listening port inside the container                                                            |
+| Variable                  | Default                          | Purpose                                                                                        |
+| ------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `PUID`, `PGID`            | `1000`                           | User and group owning the files in `/data`; the server runs under this identity, never as root |
+| `TZ`                      | `UTC`                            | Default display time zone and log time zone                                                    |
+| `HUBARR_LOG_LEVEL`        | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` or `trace`                                           |
+| `HUBARR_LOG_BUFFER_LEVEL` | _(same as `HUBARR_LOG_LEVEL`)_   | Minimum level kept for the in-app **Logs** page (`info` keeps more detail there)               |
+| `HUBARR_BASE_PATH`        | _(empty)_                        | Path prefix behind a reverse proxy that forwards the full path (`/hubarr`)                     |
+| `HUBARR_TRUST_PROXY`      | `loopback,linklocal,uniquelocal` | Trusted reverse proxies (`X-Forwarded-*`, `X-Forwarded-Prefix`)                                |
+| `HUBARR_FRAME_ANCESTORS`  | _(empty)_                        | Origins allowed to embed Hubarr in an iframe                                                   |
+| `HUBARR_PORT`             | `7070`                           | Listening port inside the container                                                            |
 
 **Volume**: `/data` holds the SQLite database, its automatic backup and the avatars. **Port**: `7070`. **Health check**: built in (`/api/health`).
 

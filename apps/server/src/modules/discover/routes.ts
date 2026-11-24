@@ -20,11 +20,14 @@ import {
   discoverFilterQuerySchema,
   discoverHomeSchema,
   discoverSectionSchema,
+  folderSuggestionsSchema,
   genresResponseSchema,
   myRecommendationsSchema,
   okResponseSchema,
   personSchema,
   personSearchSchema,
+  popularByYearSchema,
+  popularYearParamsSchema,
   resolvedMediaSchema,
   smartSearchQuerySchema,
   smartSearchSchema,
@@ -32,11 +35,13 @@ import {
   tmdbDetailSchema,
   tmdbMediaTypeSchema,
   tmdbPageSchema,
+  tmdbSuggestionsSchema,
   watchlistNotesRequestSchema,
   watchlistResponseSchema,
   watchlistStatusSchema,
   watchlistToggleRequestSchema,
   watchlistToggleResponseSchema,
+  watchedSuggestionsSchema,
   type AddCandidate,
   type LibraryOwner,
   type TmdbCard,
@@ -54,6 +59,8 @@ import {
   type TmdbRaw,
 } from '../../integrations/tmdb/client';
 import { defaultQualityProfileIdOf, listEnabledInstances } from '../instances/instances';
+import { recentWatchedTitles, watchedOf } from '../tracearr-watch/sync';
+import { findUserById } from '../users/users';
 import {
   buildLibraryIndex,
   collectMovies,
@@ -73,7 +80,11 @@ import {
   toCard,
   yearFromDate,
 } from './enrich';
+import { FolderSuggestions } from './folders';
+import { rankRecommendations, type Seed as RecSeed } from './personal';
+import { animeDiscoverParams } from '../search/ranker';
 import { smartSearch } from './smart-search';
+import { suggestionRows } from './suggestions';
 import { tmdbClient } from './tmdb';
 
 const config = { service: 'tmdb' as const };
@@ -227,6 +238,52 @@ async function myRecommendations(app: FastifyInstance, tmdb: TmdbClient, index: 
   };
 }
 
+/** Titres regardés qui servent de point de départ, cartes affichées. */
+const WATCHED_SEEDS = 12;
+const WATCHED_SHOWN = 20;
+
+/**
+ * « D'après ce que vous avez regardé » (lot 8) : recommandations des derniers
+ * titres regardés (lectures Tracearr synchronisées), sans les titres déjà
+ * vus. Les titres en bibliothèque restent proposés, marqués : on peut avoir
+ * un film sans l'avoir regardé.
+ */
+async function watchedSuggestions(
+  app: FastifyInstance,
+  tmdb: TmdbClient,
+  index: LibraryIndex,
+  tracearrUserId: string,
+) {
+  const seeds: RecSeed[] = [];
+  for (const title of recentWatchedTitles(app.db, tracearrUserId, WATCHED_SEEDS)) {
+    let id = title.tmdbId ?? 0;
+    if (!id && title.mediaType === 'tv' && title.tvdbId !== null) {
+      id = (await tmdb.findTmdbIdByTvdbId(title.tvdbId)) ?? 0;
+    }
+    if (id > 0) seeds.push({ type: title.mediaType, id });
+  }
+  if (seeds.length === 0) return { linked: true, seeds: 0, results: [] };
+  const watched = watchedOf(app.db, tracearrUserId);
+  const seenMovies = new Set(watched.movies);
+  const seenShows = new Set(watched.shows.flatMap((show) => show.tmdbId ?? []));
+  const lists = await Promise.all(
+    seeds.map((seed) =>
+      seed.type === 'movie' ? tmdb.movieRecommendations(seed.id) : tmdb.tvRecommendations(seed.id),
+    ),
+  );
+  const ranked = rankRecommendations(seeds, lists.map(resultsOf), (type, id) =>
+    type === 'movie' ? seenMovies.has(id) : seenShows.has(id),
+  );
+  return {
+    linked: true,
+    seeds: seeds.length,
+    results: ranked
+      .slice(0, WATCHED_SHOWN)
+      .map((rec) => toCard(rec.item, index, rec.type))
+      .filter((card): card is TmdbCard => card !== null),
+  };
+}
+
 export const discoverRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const tmdb = () => tmdbClient(instance);
@@ -330,6 +387,56 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
     },
   );
 
+  // Lot 8 : une rangée par dossier racine Radarr/Sonarr (calcul en cache).
+  app.get(
+    '/api/decouverte/dossiers',
+    { config, schema: { response: { 200: folderSuggestionsSchema } } },
+    async () => {
+      const client = tmdb();
+      const [folders, index] = await Promise.all([
+        instance.cache.folders.read(),
+        libraryIndex(client),
+      ]);
+      return { folders: FolderSuggestions.present(folders, index) };
+    },
+  );
+
+  // Lot 8 : d'après les lectures récentes (Tracearr) de l'utilisateur connecté.
+  app.get(
+    '/api/decouverte/regardes',
+    { config, schema: { response: { 200: watchedSuggestionsSchema } } },
+    async (request) => {
+      const user = request.user === null ? undefined : findUserById(app.db, request.user.id);
+      const tracearrUserId = user?.tracearrUserId ?? null;
+      if (tracearrUserId === null) return { linked: false, seeds: 0, results: [] };
+      const client = tmdb();
+      return watchedSuggestions(instance, client, await libraryIndex(client), tracearrUserId);
+    },
+  );
+
+  // Lot 8 : les plus populaires d'une année, films et séries.
+  app.get(
+    '/api/decouverte/annee/:year',
+    {
+      config,
+      schema: { params: popularYearParamsSchema, response: { 200: popularByYearSchema } },
+    },
+    async (request) => {
+      const client = tmdb();
+      const { year } = request.params;
+      const [index, moviesRaw, tvRaw] = await Promise.all([
+        libraryIndex(client),
+        client.discoverMovies({ primary_release_year: year, sort_by: 'popularity.desc' }),
+        client.discoverTv({ first_air_date_year: year, sort_by: 'popularity.desc' }),
+      ]);
+      return {
+        year,
+        movies: enrich(resultsOf(moviesRaw), index, 'movie'),
+        tv: enrich(resultsOf(tvRaw), index, 'tv'),
+      };
+    },
+  );
+
   // n° 553 : exploration filtrée (`/discover`).
   app.get(
     '/api/decouverte/filter',
@@ -343,6 +450,9 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const movie = q.type === 'movie';
       const params: Record<string, string | number> = { page: q.page };
       if (q.genres) params.with_genres = q.genres;
+      if (q.anime === '1' || q.anime === 'true' || q.anime === 'on') {
+        Object.assign(params, animeDiscoverParams(q.genres));
+      }
       if (q.year_min)
         params[movie ? 'primary_release_date.gte' : 'first_air_date.gte'] = `${q.year_min}-01-01`;
       if (q.year_max)
@@ -448,6 +558,26 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
         ...buildDetail(d, type, index, client.locale),
         similar: enrich(resultsOf(similarRaw).slice(0, 16), index, type),
       };
+    },
+  );
+
+  // Suggestions de la fiche Hubarr d'un film ou d'une série (id TMDB).
+  app.get(
+    '/api/decouverte/suggestions/:type/:id',
+    { config, schema: { params: typeParams, response: { 200: tmdbSuggestionsSchema } } },
+    async (request) => {
+      const client = tmdb();
+      const { type, id } = request.params;
+      const [index, recRaw, simRaw] = await Promise.all([
+        libraryIndex(client),
+        type === 'movie' ? client.movieRecommendations(id) : client.tvRecommendations(id),
+        type === 'movie' ? client.movieSimilar(id) : client.tvSimilar(id),
+      ]);
+      return suggestionRows(
+        enrich(resultsOf(recRaw), index, type),
+        enrich(resultsOf(simRaw), index, type),
+        id,
+      );
     },
   );
 

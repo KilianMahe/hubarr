@@ -8,7 +8,7 @@
 // enregistrement.
 import type { Provider } from '@hubarr/shared';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { mdiArrowLeft, mdiPlus } from '@mdi/js';
+import { msAdd, msArrowBack } from '../../components/symbols';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { apiErrorText } from '../../app/api/error-text';
@@ -264,7 +264,7 @@ const loadFailed = computed(() =>
       <v-btn
         v-if="adding"
         variant="text"
-        :prepend-icon="mdiArrowLeft"
+        :prepend-icon="msArrowBack"
         data-test="indexer-back"
         @click="back"
         >{{ t('prowlarr.common.back') }}</v-btn
@@ -492,7 +492,7 @@ const loadFailed = computed(() =>
         >
           <template #append-inner>
             <v-btn
-              :icon="mdiPlus"
+              :icon="msAdd"
               size="x-small"
               variant="text"
               :loading="creatingTag"

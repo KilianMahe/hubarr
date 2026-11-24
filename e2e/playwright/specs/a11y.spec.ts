@@ -73,6 +73,8 @@ for (const [name, path, ready] of [
   ['paramètres d’un service', '/medias/films/radarr/tags', 'service-settings-nav'],
   ['Transmission', '/transmission', 'torrents-transmission'],
   ['SABnzbd', '/usenet/sabnzbd', 'usenet-row'],
+  // Lot 4.
+  ['journaux', '/admin/logs', 'logs-list'],
 ] as const) {
   test(`noms accessibles : ${name}`, async ({ page }) => {
     await page.goto(path);

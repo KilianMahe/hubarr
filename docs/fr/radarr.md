@@ -23,7 +23,7 @@ La page **Films** présente les statistiques de la bibliothèque, la **file d'at
 - **Recherche et filtres** : statut (suivis, téléchargés, manquants, non suivis), qualité, genre, langue, tri. Les critères sont gardés dans l'adresse de la page : un marque-page retrouve la même sélection.
 - **Vues** : grille, mur d'affiches, liste détaillée, tableau ou étagères par statut, à choisir dans le menu **Affichage** (le même sur ordinateur et sur mobile). Le choix est mémorisé sur l'appareil.
 - **Marque-page** d'une affiche : suivre ou ne plus suivre le film sans ouvrir sa fiche.
-- **Ajouter** : recherche d'un film par titre, choix du profil de qualité, du dossier racine et de la recherche automatique ; Hubarr suit ensuite la recherche de Radarr pendant une minute. Avant toute saisie, la fenêtre propose les films tendance de la semaine (si TMDB est configuré) : un clic lance la recherche du titre et le présélectionne.
+- **Ajouter** : recherche d'un film par titre. Chaque résultat propose **Voir** (sa fiche TMDB, ou sa fiche Hubarr si le film est déjà dans Radarr) et **Ajouter**, qui ouvre le formulaire : le film en tête, puis ses réglages en deux groupes, **Bibliothèque** (dossier racine, profil de qualité) et **Suivi** (recherche automatique). Le compte rendu de l'ajout reste affiché, avec **Voir** pour ouvrir la fiche du film. **Retour** revient aux résultats en conservant la recherche ; la croix ferme la fenêtre. Après l'ajout, Hubarr suit la recherche de Radarr pendant une minute. Avant toute saisie, la fenêtre propose les films tendance de la semaine (si TMDB est configuré) : un clic lance la recherche du titre et ouvre son formulaire. Le bouton **Ajouter** d'une fiche TMDB ouverte par **Voir** mène aussi au formulaire.
 - **Mode sélection** : modifier (suivi, profil, disponibilité, dossier racine), étiqueter, renommer les fichiers ou supprimer plusieurs films à la fois. Sur ordinateur, Maj+clic sélectionne une plage.
 - **Actions sur le filtre** : actualiser les films filtrés, ou lancer la recherche des films manquants du filtre.
 - **Tout actualiser** et **synchronisation RSS**, suivies jusqu'à leur fin.
@@ -36,7 +36,7 @@ Chaque téléchargement montre sa progression, son état (en cours, en attente d
 
 ## Fiche d'un film
 
-Un clic sur un film ouvre sa **page** : en-tête avec l'image de fond, l'affiche, le statut et les notes, puis des cartes (synopsis, fichier, détails, historique, distribution). Son adresse, `/medias/<slug>/films/<id>`, peut être partagée ou mise en favori ; les anciennes adresses en `?open=<id>` y mènent toujours. Les sections longues (releases, modification, fichiers, historique complet) s'ouvrent en panneau, par le bas sur mobile.
+Un clic sur un film ouvre sa **page**. Sur ordinateur, une colonne à gauche reste visible pendant le défilement : affiche, état (téléchargé, manquant, pas encore disponible, avec le suivi, la qualité et la taille), actions et chiffres clés (notes, qualité, taille). À droite : titre, durée, genres et liens, puis des cartes (synopsis, fichier, détails, historique, distribution, suggestions) ; la suppression est repliée en bas. Sur mobile, l'affiche et le titre partagent la première ligne, suivis de l'état, des actions et des chiffres. Son adresse, `/medias/<slug>/films/<id>`, peut être partagée ou mise en favori ; les anciennes adresses en `?open=<id>` y mènent toujours. Les sections longues (releases, modification, fichiers, historique complet) s'ouvrent en panneau, par le bas sur mobile.
 
 - **Rechercher** : Radarr interroge ses indexeurs ; si rien n'est retenu, Hubarr interroge directement les indexeurs et télécharge la meilleure release acceptée par le profil.
 - **Recherche interactive** : toutes les releases trouvées (jusqu'à 90 secondes), triables, avec le détail du score des formats personnalisés et la raison d'un refus ; téléchargez celle de votre choix.
@@ -45,6 +45,7 @@ Un clic sur un film ouvre sa **page** : en-tête avec l'image de fond, l'affiche
 - **Modifier** : suivi, disponibilité minimale, profil, chemin (avec un explorateur des dossiers du serveur Radarr) et étiquettes.
 - **Gérer les fichiers** : qualité, langues et groupe de release de chaque fichier.
 - Distribution et équipe (le marque-page d'une personne crée dans Radarr une liste d'import qui ajoutera ses films), titres alternatifs, historique et liste de blocage du film.
+- **Recommandations** et **Similaires** (si TMDB est configuré) : deux rangées de titres TMDB, ceux déjà en bibliothèque marqués. Un film possédé ouvre sa fiche Hubarr ; un autre ouvre sa fiche TMDB, d'où l'ajouter.
 
 ## Pages de l'instance
 

@@ -107,8 +107,8 @@ describe('préférences d’affichage', () => {
 });
 
 describe('mise en page du tableau de bord', () => {
-  it('ordre par défaut, tout visible ; 10 sections connues (files d’attente, P5d.1)', () => {
-    expect(DASHBOARD_SECTIONS).toHaveLength(10);
+  it('ordre par défaut, tout visible ; 12 sections connues (files d’attente P5d.1, statistiques lot 13)', () => {
+    expect(DASHBOARD_SECTIONS).toHaveLength(12);
     expect(readDashboardLayout(database.db)).toEqual(
       DASHBOARD_SECTIONS.map((key) => ({ key, visible: true })),
     );
@@ -121,7 +121,7 @@ describe('mise en page du tableau de bord', () => {
     });
     const layout = readDashboardLayout(database.db);
     expect(layout.slice(0, 3).map((row) => row.key)).toEqual(['recent', 'health', 'upcoming']);
-    expect(layout).toHaveLength(10);
+    expect(layout).toHaveLength(12);
     expect(layout.find((row) => row.key === 'plex')?.visible).toBe(false);
     // Ordre de l'original (chaîne « a,b ») toujours lu.
     setSetting(database.db, 'dashboard_section_order', 'trending, upcoming');

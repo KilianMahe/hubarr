@@ -8,8 +8,9 @@ import {
   type MovieDetail,
   type MovieLibraryItem,
   type MovieLibraryResponse,
+  type TmdbCard,
 } from '@hubarr/shared';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
   apiParamsOf,
@@ -473,6 +474,101 @@ describe('Fiche film', () => {
       t('media.api.movie_not_found'),
     );
   });
+
+  it('suggestions TMDB : un titre possédé ouvre sa fiche, un autre la fiche TMDB', async () => {
+    const card = (id: number, overrides: Partial<TmdbCard> = {}): TmdbCard => ({
+      id,
+      type: 'movie',
+      title: `Suggestion ${id}`,
+      year: 2001,
+      release: '2001-01-01',
+      overview: null,
+      poster: null,
+      posterHi: null,
+      backdrop: null,
+      vote: 7,
+      voteCount: 10,
+      popularity: 1,
+      inLibrary: false,
+      libStatus: null,
+      libId: null,
+      libSlug: null,
+      ...overrides,
+    });
+    const fetch = fakeFetch({
+      ...detailRoutes(),
+      'GET /api/decouverte/suggestions/movie/1': () => ({
+        body: {
+          recommendations: [
+            card(604, { inLibrary: true, libStatus: 'downloaded', libId: 2, libSlug: 'radarr' }),
+          ],
+          similar: [card(605)],
+        },
+      }),
+    });
+    const services = {
+      ...RADARR_SERVICES,
+      states: { ...RADARR_SERVICES.states, tmdb: { configured: true, disabled: false } },
+    };
+    const { wrapper, router } = await mountApp(
+      '/medias/radarr/films/1',
+      bootstrapOf({ user: ADMIN, services }),
+    );
+    mounted.push(wrapper);
+    await settle();
+    expect(wrapper.find('[data-test="suggestions-recommendations"]').text()).toContain(
+      'Suggestion 604',
+    );
+    expect(wrapper.find('[data-test="suggestions-similar"]').text()).toContain('Suggestion 605');
+    await wrapper.find('[data-test="media-card-movie-605"]').trigger('click');
+    await settle();
+    expect(fetch.calls.some((c) => c.url === '/api/decouverte/detail/movie/605')).toBe(true);
+    await wrapper.find('[data-test="media-card-movie-604"]').trigger('click');
+    await settle();
+    expect(router.currentRoute.value.name).toBe('radarr-movie');
+    expect(router.currentRoute.value.params.id).toBe('2');
+  });
+
+  it('sans TMDB : aucune suggestion demandée', async () => {
+    const { wrapper, fetch } = await mountMovies('/medias/radarr/films/1', detailRoutes());
+    expect(wrapper.find('[data-test="detail-suggestions"]').exists()).toBe(false);
+    expect(fetch.calls.some((c) => c.url.startsWith('/api/decouverte/'))).toBe(false);
+  });
+});
+
+describe('Fiche sur mobile', () => {
+  const width = window.innerWidth;
+  const setWidth = (value: number) => {
+    const happy = (window as unknown as { happyDOM: { setViewport(size: object): void } }).happyDOM;
+    happy.setViewport({ width: value, height: 900 });
+  };
+  beforeEach(() => {
+    setWidth(412);
+  });
+  afterEach(() => {
+    setWidth(width);
+  });
+
+  it('recherches et actualisation dans la page ; le bouton central ouvre l’édition', async () => {
+    await mountMovies('/medias/radarr/films/1', {
+      'GET /api/medias/radarr/films/1/detail': () => ({ body: detailOf(1) }),
+      'GET /api/medias/radarr/films/1/credits': () => ({ body: [] }),
+    });
+    const detail = document.querySelector('[data-test="movie-detail"]');
+    for (const id of ['movie-monitor', 'movie-search', 'movie-interactive', 'movie-refresh'])
+      expect(detail?.querySelector(`[data-test="${id}"]`), id).not.toBeNull();
+    expect(document.querySelector('[data-test="movie-speed-dial"]')).toBeNull();
+    clickIn('[data-test="movie-edit-fab"]');
+    await settle();
+    // Feuille de l'édition ouverte, puis refermée par sa croix.
+    const sheet = () => document.querySelector('[data-test="movie-edit"]')?.closest('.v-overlay');
+    expect(sheet()?.classList.contains('v-overlay--active')).toBe(true);
+    const close = sheet()?.querySelector<HTMLElement>('[data-test="dialog-close"]');
+    expect(close).toBeTruthy();
+    close?.click();
+    await settle();
+    expect(sheet()?.classList.contains('v-overlay--active') ?? false).toBe(false);
+  });
 });
 
 describe('Recherche, releases et renommage (P2.5)', () => {
@@ -662,11 +758,11 @@ describe('Ajout et suivi de personnes (P2.6)', () => {
       },
       { timeout: 3_000 },
     );
-    const items = document.querySelectorAll<HTMLButtonElement>(
-      '[data-test="add-movie-result-item"]',
-    );
-    expect(items[1]?.disabled).toBe(true);
-    items[0]?.click();
+    const items = document.querySelectorAll<HTMLElement>('[data-test="add-movie-result-item"]');
+    // Déjà dans Radarr : « Voir » seulement, pas d'« Ajouter ».
+    expect(items[1]?.querySelector('[data-test="add-movie-pick"]')).toBeNull();
+    expect(items[1]?.querySelector('[data-test="add-movie-exists"]')).not.toBeNull();
+    items[0]?.querySelector<HTMLElement>('[data-test="add-movie-pick"]')?.click();
     await settle();
     // Recherche auto décochée : pas de suivi après l'ajout.
     document
@@ -689,6 +785,12 @@ describe('Ajout et suivi de personnes (P2.6)', () => {
     expect(document.querySelector('[data-test="add-movie-result"]')?.textContent).toContain(
       t('media.films.modal.added_not_monitored', { title: 'The Matrix' }),
     );
+    // Compte rendu : « Voir » mène à la fiche du film ajouté.
+    expect(
+      document
+        .querySelector<HTMLAnchorElement>('[data-test="add-movie-open"]')
+        ?.getAttribute('href'),
+    ).toMatch(/\/films\/42$/);
   });
 
   it('ajout sans recherche saisie : tendances TMDB, un clic cherche le titre et le présélectionne (V16)', async () => {
@@ -744,6 +846,117 @@ describe('Ajout et suivi de personnes (P2.6)', () => {
     expect(document.querySelector('[data-test="add-movie-form"]')?.textContent).toContain(
       'The Matrix (1999)',
     );
+  });
+
+  it('ajout : « Voir » (fiche TMDB ou fiche Hubarr), « Retour » conserve la recherche', async () => {
+    const tmdb = {
+      id: 603,
+      type: 'movie',
+      title: 'The Matrix',
+      original: 'The Matrix',
+      tagline: null,
+      year: 1999,
+      release: '1999-03-31',
+      status: 'Released',
+      runtime: 136,
+      genres: [],
+      overview: 'Synopsis TMDB',
+      vote: 8,
+      voteCount: 10,
+      popularity: 1,
+      poster: null,
+      posterPath: null,
+      backdrop: null,
+      homepage: null,
+      imdbId: null,
+      tvdbId: null,
+      networks: [],
+      seasons: null,
+      episodes: null,
+      episodeRuntime: null,
+      inProduction: null,
+      lastAirDate: null,
+      nextEpisode: null,
+      lastEpisode: null,
+      creators: [],
+      originalLanguage: 'en',
+      spokenLanguages: [],
+      countries: [],
+      companies: [],
+      collection: null,
+      budget: 0,
+      revenue: 0,
+      keywords: [],
+      certification: null,
+      providers: null,
+      cast: [],
+      crew: { directors: [], writers: [], composers: [], cinematographers: [] },
+      trailer: null,
+      videoGallery: [],
+      seasonsList: [],
+      altTitles: [],
+      reviews: [],
+      backdrops: [],
+      similar: [],
+      inLibrary: false,
+      libStatus: null,
+      libId: null,
+      libSlug: null,
+    };
+    const { wrapper, router } = await mountMovies('/medias/radarr/films', {
+      'GET /api/medias/radarr/films/lookup': () => ({
+        body: [
+          { ...detailOf(9), id: null, tmdbId: 603, title: 'The Matrix', year: 1999 },
+          { ...detailOf(1), tmdbId: 604, title: 'Déjà là' },
+        ],
+      }),
+      'GET /api/medias/radarr/films/config': () => ({
+        body: { qualityProfiles: [], rootFolders: [], tags: [], defaultQualityProfileId: null },
+      }),
+      'GET /api/decouverte/detail/movie/603': () => ({ body: tmdb }),
+    });
+    await wrapper.find('[data-test="movies-add"]').trigger('click');
+    await settle();
+    const input = document.querySelector<HTMLInputElement>('[data-test="add-movie-search"] input');
+    if (input === null) throw new Error('champ de recherche introuvable');
+    input.value = 'matrix';
+    input.dispatchEvent(new Event('input'));
+    await vi.waitFor(
+      () => {
+        expect(document.querySelectorAll('[data-test="add-movie-result-item"]')).toHaveLength(2);
+      },
+      { timeout: 3_000 },
+    );
+    const item = (index: number) =>
+      document.querySelectorAll<HTMLElement>('[data-test="add-movie-result-item"]')[index];
+
+    // « Voir » d'un titre absent : fiche TMDB, dont « Ajouter » ouvre le formulaire.
+    item(0)?.querySelector<HTMLElement>('[data-test="add-movie-view"]')?.click();
+    await settle();
+    expect(document.querySelector('[data-test="tmdb-detail"]')?.textContent).toContain(
+      'Synopsis TMDB',
+    );
+    clickIn('[data-test="detail-add"]');
+    await settle();
+    expect(document.querySelector('[data-test="add-movie-form"]')?.textContent).toContain(
+      'The Matrix (1999)',
+    );
+    expect(document.querySelector('[data-test="quick-add-dialog"]')).toBeNull();
+
+    // « Retour » : résultats et recherche conservés.
+    clickIn('[data-test="add-movie-back"]');
+    await settle();
+    expect(document.querySelector('[data-test="add-movie-form"]')).toBeNull();
+    expect(
+      document.querySelector<HTMLInputElement>('[data-test="add-movie-search"] input')?.value,
+    ).toBe('matrix');
+    expect(document.querySelectorAll('[data-test="add-movie-result-item"]')).toHaveLength(2);
+
+    // « Voir » d'un titre déjà dans Radarr : sa fiche Hubarr.
+    item(1)?.querySelector<HTMLElement>('[data-test="add-movie-view"]')?.click();
+    await settle();
+    expect(router.currentRoute.value.name).toBe('radarr-movie');
+    expect(router.currentRoute.value.params.id).toBe('1');
   });
 
   it('suivre un artiste depuis la fiche, puis ne plus le suivre', async () => {

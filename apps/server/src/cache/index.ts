@@ -8,13 +8,16 @@ import { LIBRARY_TIMEOUT_MS as SERIES_LIBRARY_TIMEOUT_MS } from '../integrations
 import { BazarrClient } from '../integrations/bazarr/client';
 import { BazarrSubtitleIndex } from '../integrations/bazarr/subtitle-index';
 import { getInstanceBySlug, listEnabledInstances } from '../modules/instances/instances';
+import { FolderSuggestions } from '../modules/discover/folders';
 import { tmdbClient } from '../modules/discover/tmdb';
+import { buildLibraryIndex, collectMovies, collectSeries } from '../modules/media/library';
 import { SearchVocabulary } from '../modules/search/vocabulary';
 import { apiKeyServiceClient, radarrClient, sonarrClient } from '../modules/services/clients';
 import { MediaLibraryCache } from './library-cache';
 import { MemoryStore } from './memory-store';
 import { RefreshQueue } from './refresh-queue';
 import { BazarrIndexRefresher } from './refreshers/bazarr-index';
+import { FolderSuggestionsRefresher } from './refreshers/folder-suggestions';
 import { MediaLibraryRefresher } from './refreshers/media-library';
 import { SearchVocabularyRefresher } from './refreshers/search-vocabulary';
 import { StaleWhileRevalidateCache } from './swr-cache';
@@ -28,6 +31,8 @@ export interface AppCache {
   bazarr: BazarrSubtitleIndex;
   /** Vocabulaire de correction de la recherche (P4.5). */
   vocabulary: SearchVocabulary;
+  /** Suggestions par dossier racine de la découverte (lot 8). */
+  folders: FolderSuggestions;
 }
 
 export function createAppCache(
@@ -79,6 +84,20 @@ export function createAppCache(
     logger: app.log,
   });
   queue.register(new SearchVocabularyRefresher(vocabulary, swr));
+  const folders = new FolderSuggestions({
+    swr,
+    tmdb: () => {
+      const client = tmdbClient(app);
+      return client.configured ? client : null;
+    },
+    library: async () => {
+      const [movies, series] = await Promise.all([collectMovies(app), collectSeries(app)]);
+      return { movies, series };
+    },
+    index: (client) => buildLibraryIndex(app, client),
+    logger: app.log,
+  });
+  queue.register(new FolderSuggestionsRefresher(folders, swr));
   return {
     store,
     swr,
@@ -86,6 +105,7 @@ export function createAppCache(
     library: new MediaLibraryCache(swr, app.log),
     bazarr,
     vocabulary,
+    folders,
   };
 }
 

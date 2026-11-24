@@ -5,7 +5,7 @@
 // le suivre (ligne barrée), rechercher tous les manquants (bandeau de
 // progression « Film x/n — titre », bilan des téléchargements).
 import type { MissingMovie } from '@hubarr/shared';
-import { mdiBookmarkOff, mdiMagnify } from '@mdi/js';
+import { msBookmarkRemove, msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -202,7 +202,7 @@ async function searchAll(): Promise<void> {
       >
       <v-spacer />
       <v-btn
-        :prepend-icon="mdiMagnify"
+        :prepend-icon="msSearch"
         color="service"
         variant="flat"
         size="small"
@@ -282,7 +282,7 @@ async function searchAll(): Promise<void> {
           <template #append>
             <v-btn
               v-if="!unavailable(movie)"
-              :icon="mdiMagnify"
+              :icon="msSearch"
               size="small"
               variant="text"
               color="service-text"
@@ -293,7 +293,7 @@ async function searchAll(): Promise<void> {
               @click="searchOne(movie)"
             />
             <v-btn
-              :icon="mdiBookmarkOff"
+              :icon="msBookmarkRemove"
               size="small"
               variant="text"
               :disabled="unmonitored.has(movie.id)"

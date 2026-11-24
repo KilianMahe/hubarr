@@ -10,6 +10,8 @@ coverage/
 data-dev/
 .env*
 !.env.example
+# Réglages locaux de Claude Code (jetons FORGEJO_TOKEN, GITHUB_TOKEN, DOCKERHUB_TOKEN)
+.claude/settings.local.json
 
 # Divers
 .DS_Store
@@ -17,3 +19,4 @@ data-dev/
 
 # VitePress
 docs/.vitepress/cache/
+.trivy-image.tar

@@ -3,7 +3,7 @@
 // Annexe A) ; le serveur répond `index.html` sur chacune.
 
 import type { ServiceId } from '@hubarr/shared';
-import { mdiPlus } from '@mdi/js';
+import { msAdd } from '../../components/symbols';
 import type { Pinia } from 'pinia';
 import {
   createRouter,
@@ -30,6 +30,8 @@ import {
   TRACEARR_USER_ROUTE,
 } from '../../features/activity/tracearr-nav';
 import { SEERR_BOTTOM_NAV } from '../../features/seerr/seerr-nav';
+import { SETTINGS_BOTTOM_NAV } from '../../features/settings/sections';
+import { HOME_TABS } from '../home-tabs';
 import { SONARR_BOTTOM_NAV, SONARR_FAB } from '../../features/series/sonarr-pages';
 import { USENET_BOTTOM_NAV, USENET_FAB } from '../../features/usenet/usenet-nav';
 import type { BottomNavItem, RouteFab } from '../navigation';
@@ -64,7 +66,8 @@ declare module 'vue-router' {
     seerrSection?: string;
     /**
      * Page d'administration d'un service, ouverte depuis les paramètres de
-     * Hubarr (P5c.4, D140) : ni barre basse ni FAB, lien « Retour aux paramètres ».
+     * Hubarr (P5c.4, D140) : pas de FAB, lien « Retour aux paramètres » ; sur
+     * mobile, barre basse des groupes du service (`serviceSettingsBottomNav`).
      */
     serviceSettings?: boolean;
   }
@@ -165,13 +168,19 @@ export const routes: RouteRecordRaw[] = [
         path: 'admin/settings',
         name: 'settings',
         component: () => import('../../features/settings/SettingsView.vue'),
-        meta: { titleKey: 'admin.page.title', requiresAdmin: true },
+        meta: { titleKey: 'admin.page.title', requiresAdmin: true, bottomNav: SETTINGS_BOTTOM_NAV },
+      },
+      {
+        // Journaux : section des paramètres (lot 9) ; l'adresse reste valide.
+        path: 'admin/logs',
+        name: 'logs',
+        redirect: { name: 'settings', hash: '#section-logs' },
       },
       {
         path: 'tableau-de-bord',
         name: 'dashboard',
         component: () => import('../../features/dashboard/DashboardView.vue'),
-        meta: { titleKey: 'dashboard.title' },
+        meta: { titleKey: 'dashboard.title', bottomNav: HOME_TABS },
       },
       {
         // Route n° 70 : les admins vont aux services des paramètres, les autres à l'accueil.
@@ -184,25 +193,34 @@ export const routes: RouteRecordRaw[] = [
         path: 'decouverte',
         name: 'tmdb',
         component: () => import('../../features/discover/DiscoverView.vue'),
-        meta: { serviceIndex: true, service: 'tmdb', titleKey: 'sidebar.nav.discovery' },
+        meta: {
+          serviceIndex: true,
+          service: 'tmdb',
+          titleKey: 'sidebar.nav.discovery',
+          bottomNav: HOME_TABS,
+        },
       },
       {
         path: 'decouverte/explorer',
         name: 'tmdb-explorer',
         component: () => import('../../features/discover/ExplorerView.vue'),
-        meta: { service: 'tmdb', titleKey: 'decouverte.explorer.title' },
+        meta: { service: 'tmdb', titleKey: 'decouverte.explorer.title', bottomNav: HOME_TABS },
       },
       {
         path: 'decouverte/watchlist',
         name: 'tmdb-watchlist',
         component: () => import('../../features/discover/WatchlistView.vue'),
-        meta: { service: 'tmdb', titleKey: 'decouverte.watchlist.title' },
+        meta: { service: 'tmdb', titleKey: 'decouverte.watchlist.title', bottomNav: HOME_TABS },
       },
       {
         path: 'calendrier',
         name: 'calendar',
         component: () => import('../../features/calendar/CalendarView.vue'),
-        meta: { titleKey: 'sidebar.nav.calendar', requiresAnyService: ['radarr', 'sonarr'] },
+        meta: {
+          titleKey: 'sidebar.nav.calendar',
+          requiresAnyService: ['radarr', 'sonarr'],
+          bottomNav: HOME_TABS,
+        },
       },
       {
         path: 'medias/:slug/films',
@@ -561,7 +579,7 @@ export const routes: RouteRecordRaw[] = [
           requiresAdmin: true,
           // Pas d'onglets : FAB flottant d'ajout (mobile, P5b.4).
           fab: {
-            icon: mdiPlus,
+            icon: msAdd,
             labelKey: 'qbittorrent.toolbar.add_title',
             action: 'add',
             index: client,

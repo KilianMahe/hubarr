@@ -8,6 +8,7 @@ import type { Episode, EpisodeFile, SeriesDetail, SeriesRelease } from '@hubarr/
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
+  episodeStatus,
   fileRowsOf,
   historyEventLabel,
   monitorRange,
@@ -96,6 +97,15 @@ function release(overrides: Partial<SeriesRelease> = {}): SeriesRelease {
 }
 
 describe('logique de la fiche', () => {
+  it('état d’un épisode : présent, manquant, à venir, non suivi', () => {
+    const now = Date.parse('2024-06-01T00:00:00Z');
+    expect(episodeStatus(episode(1, { hasFile: true }), now)).toBe('downloaded');
+    expect(episodeStatus(episode(2), now)).toBe('missing');
+    expect(episodeStatus(episode(3, { airDateUtc: '2024-07-01T20:00:00Z' }), now)).toBe('upcoming');
+    expect(episodeStatus(episode(4, { airDateUtc: null }), now)).toBe('upcoming');
+    expect(episodeStatus(episode(5, { monitored: false }), now)).toBe('unmonitored');
+  });
+
   it('saisons : la plus récente d’abord, progression et suivi', () => {
     const groups = seasonGroups([
       episode(1, { hasFile: true }),
@@ -229,6 +239,25 @@ describe('Fiche série', () => {
     expect(dialog?.textContent).toContain(t('media.series.detail.season_tpl', { n: 1 }));
   });
 
+  it('mobile : recherche et actualisation dans la page, le reste dans le speed-dial', async () => {
+    const happy = (window as unknown as { happyDOM: { setViewport(size: object): void } }).happyDOM;
+    const width = window.innerWidth;
+    happy.setViewport({ width: 412, height: 900 });
+    try {
+      await mountSeries('/medias/sonarr/series/2', detailRoutes());
+      const detail = document.querySelector('[data-test="series-detail"]');
+      for (const id of ['series-monitor', 'series-search-missing', 'series-refresh'])
+        expect(detail?.querySelector(`[data-test="${id}"]`), id).not.toBeNull();
+      expect(detail?.querySelector('[data-test="series-edit-open"]')).toBeNull();
+      clickIn('[data-test="series-speed-dial"]');
+      await settle();
+      expect(document.querySelector('[data-test="series-edit-open"]')).not.toBeNull();
+      expect(document.querySelectorAll('[data-test="series-search-missing"]')).toHaveLength(1);
+    } finally {
+      happy.setViewport({ width, height: 900 });
+    }
+  });
+
   it('page n° 195 : `/medias/:slug/series/:id` est la fiche (D130)', async () => {
     const { router } = await mountSeries('/medias/sonarr/series/2', detailRoutes());
     expect(router.currentRoute.value.name).toBe('sonarr-series');
@@ -285,6 +314,8 @@ describe('Fiche série', () => {
         'POST /api/medias/sonarr/series/release/grab': () => ({ body: { ok: true } }),
       }),
     );
+    clickIn('[data-test="season-menu"]');
+    await settle();
     clickIn('[data-test="season-interactive"]');
     await settle();
     expect(document.querySelector('[data-test="release-label"]')?.textContent).toContain(

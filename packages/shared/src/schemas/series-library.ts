@@ -81,7 +81,7 @@ export function parseSeriesLibraryQuery(
   defaultPerPage: number = DEFAULT_LIBRARY_PER_PAGE,
 ): SeriesLibraryQuery {
   let status = oneOf(SERIES_LIBRARY_STATUSES, first(raw.status)) ?? 'all';
-  // Liens de la v1.0 de Prismarr (`?filter=`), lus seulement sans `?status=`.
+  // Anciens liens (`?filter=`), lus seulement sans `?status=`.
   if (status === 'all' && raw.status === undefined && raw.filter !== undefined) {
     status = oneOf(SERIES_LIBRARY_STATUSES, first(raw.filter)) ?? 'all';
   }

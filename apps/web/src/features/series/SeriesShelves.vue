@@ -4,15 +4,17 @@
 // venir, non suivies), en rangées défilantes ; chaque étagère se déplie en grille.
 import type { SeriesLibraryItem } from '@hubarr/shared';
 import {
-  mdiCheck,
-  mdiChevronRight,
-  mdiCrystalBall,
-  mdiEye,
-  mdiFlower,
-  mdiTelevision,
-} from '@mdi/js';
+  msCheck,
+  msChevronRight,
+  msLocalFlorist,
+  msOnlinePrediction,
+  msTv,
+  msVisibility,
+} from '../../components/symbols';
 import { computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { showEpisodes, useWatched, watchedCount } from '../activity/watched';
+import ScrollRow from '../../components/ScrollRow.vue';
 import SeriesCard from './SeriesCard.vue';
 import { SERIES_SHELF_LABELS, seriesShelvesOf, type SeriesShelfKey } from './library';
 
@@ -29,6 +31,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const shelves = computed(() => seriesShelvesOf(props.series));
+const watched = useWatched();
+const watchedOf = (entry: SeriesLibraryItem) =>
+  watchedCount(showEpisodes(watched.value, { tvdbId: entry.tvdbId }));
 const expanded = reactive<Record<SeriesShelfKey, boolean>>({
   continuing: false,
   anime: false,
@@ -37,11 +42,11 @@ const expanded = reactive<Record<SeriesShelfKey, boolean>>({
   unmonitored: false,
 });
 const ICONS: Record<SeriesShelfKey, string> = {
-  continuing: mdiTelevision,
-  anime: mdiFlower,
-  ended: mdiCheck,
-  upcoming: mdiCrystalBall,
-  unmonitored: mdiEye,
+  continuing: msTv,
+  anime: msLocalFlorist,
+  ended: msCheck,
+  upcoming: msOnlinePrediction,
+  unmonitored: msVisibility,
 };
 </script>
 
@@ -50,7 +55,7 @@ const ICONS: Record<SeriesShelfKey, string> = {
     <section v-for="shelf in shelves" :key="shelf.key" :data-shelf="shelf.key">
       <h2 class="d-flex align-center ga-2 text-title-medium mb-2">
         <v-btn
-          :icon="mdiChevronRight"
+          :icon="msChevronRight"
           size="small"
           variant="text"
           :class="{ 'shelf-chevron--open': expanded[shelf.key] }"
@@ -63,7 +68,11 @@ const ICONS: Record<SeriesShelfKey, string> = {
         {{ t(SERIES_SHELF_LABELS[shelf.key]) }}
         <span class="text-body-small text-muted">({{ shelf.items.length }})</span>
       </h2>
-      <div :class="expanded[shelf.key] ? 'shelf-grid' : 'shelf-row'">
+      <component
+        :is="expanded[shelf.key] ? 'div' : ScrollRow"
+        :class="{ 'shelf-grid': expanded[shelf.key] }"
+        v-bind="expanded[shelf.key] ? {} : { itemWidth: '120px' }"
+      >
         <SeriesCard
           v-for="entry in shelf.items"
           :key="`${shelf.key}-${entry.id}`"
@@ -71,24 +80,17 @@ const ICONS: Record<SeriesShelfKey, string> = {
           :select-mode="selectMode"
           :selected="selected.has(entry.id)"
           compact
+          :watched-episodes="watchedOf(entry)"
           @select="emit('select', entry.id, $event)"
           @open="emit('open', entry.id)"
           @monitor="emit('monitor', entry.id)"
         />
-      </div>
+      </component>
     </section>
   </div>
 </template>
 
 <style scoped>
-.shelf-row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 120px;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
 .shelf-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

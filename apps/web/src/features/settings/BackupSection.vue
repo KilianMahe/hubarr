@@ -4,7 +4,7 @@
 // clé ni mot de passe) et import d'un export de Hubarr (64 Ko au plus, après
 // confirmation). Après un import, thème, préférences et services sont relus.
 import { IMPORT_MAX_BYTES, importResultSchema, type SettingsResponse } from '@hubarr/shared';
-import { mdiDownload, mdiUpload } from '@mdi/js';
+import { msDownload, msUpload } from '../../components/symbols';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -88,7 +88,7 @@ function confirmImport(): void {
       </v-card-subtitle>
       <v-card-actions>
         <v-btn
-          :prepend-icon="mdiDownload"
+          :prepend-icon="msDownload"
           href="api/admin/settings/export"
           download
           variant="tonal"
@@ -117,7 +117,7 @@ function confirmImport(): void {
           @change="choose"
         />
         <v-btn
-          :prepend-icon="mdiUpload"
+          :prepend-icon="msUpload"
           variant="tonal"
           :loading="upload.isPending.value"
           @click="input?.click()"

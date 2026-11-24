@@ -14,6 +14,8 @@
 // autres écritures sont conservées au lieu d'être romanisées : une requête en
 // cyrillique ou en japonais reste comparable à un titre de la même écriture.
 
+import { ANIME_GENRE_ID, ANIME_ORIGINAL_LANGUAGE } from '@hubarr/shared';
+
 export const SEARCH_SORTS = ['relevance', 'popularity', 'vote', 'newest'] as const;
 export type SearchSort = (typeof SEARCH_SORTS)[number];
 
@@ -25,6 +27,8 @@ export interface SearchFilters {
   year_min?: number | null;
   year_max?: number | null;
   vote_min?: number;
+  /** Animés seulement (genre Animation, langue originale japonaise). */
+  anime?: boolean;
 }
 
 export interface Candidate {
@@ -136,6 +140,27 @@ export function typeOf(item: TmdbRaw): 'movie' | 'tv' | null {
   return 'name' in item ? 'tv' : null;
 }
 
+/** Animé d'après un résultat TMDB : genre Animation, langue originale japonaise. */
+export function isAnime(item: TmdbRaw): boolean {
+  const genres = Array.isArray(item.genre_ids) ? item.genre_ids.map(num) : [];
+  return genres.includes(ANIME_GENRE_ID) && item.original_language === ANIME_ORIGINAL_LANGUAGE;
+}
+
+/**
+ * Paramètres de `/discover` pour les animés : le genre Animation s'ajoute aux
+ * genres choisis (TMDB les combine en « et »), langue originale japonaise.
+ */
+export function animeDiscoverParams(genres: string | number | null | undefined) {
+  const ids = new Set(
+    String(genres ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => /^\d+$/.test(id)),
+  );
+  ids.add(String(ANIME_GENRE_ID));
+  return { with_genres: [...ids].join(','), with_original_language: ANIME_ORIGINAL_LANGUAGE };
+}
+
 export function matches(item: TmdbRaw, filters: SearchFilters): boolean {
   const type = typeOf(item);
   if (type === null) return false;
@@ -148,6 +173,7 @@ export function matches(item: TmdbRaw, filters: SearchFilters): boolean {
   if (filters.year_min && (year === null || year < filters.year_min)) return false;
   if (filters.year_max && (year === null || year > filters.year_max)) return false;
   if (filters.vote_min && num(item.vote_average) < filters.vote_min) return false;
+  if (filters.anime === true && !isAnime(item)) return false;
   return true;
 }
 

@@ -1,6 +1,6 @@
 # Tableau de bord
 
-Le tableau de bord rassemble les signaux de tous vos services sur un seul écran. Il s'ouvre à l'adresse `/tableau-de-bord` ; c'est aussi la page d'accueil par défaut (modifiable dans **Paramètres → Affichage**).
+Le tableau de bord rassemble les signaux de tous vos services sur un seul écran. Il s'ouvre à l'adresse `/tableau-de-bord`, dans le premier onglet de l'[**Accueil**](./premier-demarrage.md#accueil) ; c'est aussi la page d'accueil par défaut (modifiable dans **Paramètres → Affichage**).
 
 ## Bandeau
 
@@ -8,20 +8,29 @@ En haut, la salutation, le jour et l'heure (fuseau des préférences d'affichage
 
 ## Sections
 
-| Section             | Contenu                                                                                                                                        | Service requis       |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| Prochaines sorties  | Grille de 7 jours (films et épisodes), 3 titres par jour puis un lien vers le calendrier                                                       | Radarr ou Sonarr     |
-| Files d'attente     | Téléchargements Radarr et Sonarr de toutes les instances, problèmes d'abord, relus toutes les 10 s ; un titre ouvre sa fiche (administrateurs) | Radarr ou Sonarr     |
-| Demandes en attente | Les 5 dernières demandes Seerr en attente                                                                                                      | Seerr                |
-| Santé des services  | Une pastille par instance Radarr/Sonarr et par service configuré, relue toutes les 30 s                                                        | —                    |
-| Activité en cours   | Lectures en cours et récemment vues, relues toutes les 10 s                                                                                    | Tautulli ou Tracearr |
-| Activité Emby       | Lectures en cours sur Emby                                                                                                                     | Emby                 |
-| Transmission        | Vitesses, compteurs et téléchargements actifs                                                                                                  | Transmission         |
-| Ma watchlist        | Les 16 derniers titres ajoutés à la watchlist                                                                                                  | TMDB                 |
-| Tendances           | Titres tendance de la semaine                                                                                                                  | TMDB                 |
-| Derniers ajouts     | Les 16 derniers titres ajoutés à vos bibliothèques                                                                                             | Radarr ou Sonarr     |
+| Section              | Contenu                                                                                                                                        | Service requis              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Prochaines sorties   | Grille de 7 jours (films et épisodes), 3 titres par jour puis un lien vers le calendrier                                                       | Radarr ou Sonarr            |
+| Files d'attente      | Téléchargements Radarr et Sonarr de toutes les instances, problèmes d'abord, relus toutes les 10 s ; un titre ouvre sa fiche (administrateurs) | Radarr ou Sonarr            |
+| Téléchargés par jour | Volume téléchargé par jour sur les 30 derniers jours, avec le total et la moyenne par jour (administrateurs)                                   | Un client de téléchargement |
+| Espace disque        | Occupation des disques qui portent les dossiers racines de Radarr et Sonarr, alerte au-delà de 90 % (administrateurs)                          | Radarr ou Sonarr            |
+| Demandes en attente  | Les 5 dernières demandes Seerr en attente                                                                                                      | Seerr                       |
+| Santé des services   | Une pastille par instance Radarr/Sonarr et par service configuré, relue toutes les 30 s                                                        | —                           |
+| Activité en cours    | Lectures en cours et récemment vues, relues toutes les 10 s                                                                                    | Tautulli ou Tracearr        |
+| Activité Emby        | Lectures en cours sur Emby                                                                                                                     | Emby                        |
+| Transmission         | Vitesses, compteurs et téléchargements actifs                                                                                                  | Transmission                |
+| Ma watchlist         | Les 16 derniers titres ajoutés à la watchlist                                                                                                  | TMDB                        |
+| Tendances            | Titres tendance de la semaine                                                                                                                  | TMDB                        |
+| Derniers ajouts      | Les 16 derniers titres ajoutés à vos bibliothèques                                                                                             | Radarr ou Sonarr            |
 
 Chaque section se charge seule : un service lent ou en panne n'empêche pas les autres de s'afficher, et une section dont le service n'est pas configuré n'apparaît pas. Les bibliothèques sont partagées avec les pages Films et Séries (aucun appel en double) et les agrégats coûteux sont gardés 45 secondes.
+
+## Statistiques
+
+Deux sections réservées aux administrateurs résument les téléchargements et le stockage. Leurs chiffres sont relus au plus toutes les 5 minutes.
+
+- **Téléchargés par jour** additionne la taille des téléchargements terminés chaque jour (fuseau d'affichage) sur les 30 derniers jours, pour chaque client configuré : qBittorrent, Transmission et Deluge (torrents terminés), SABnzbd et NZBGet (historique réussi). Le survol d'une barre donne le jour et son volume. Hubarr ne stocke rien : le graphique part de ce que les clients listent encore, donc un torrent ou un élément d'historique supprimé de son client n'est plus compté. Un client qui ne répond pas est nommé et laissé hors du total.
+- **Espace disque** affiche une barre par disque portant un dossier racine de Radarr ou de Sonarr, avec l'espace libre, la taille totale et les dossiers qu'il porte. Un disque vu par plusieurs instances n'apparaît qu'une fois, même monté à des chemins différents dans leurs conteneurs (reconnu à sa taille et à son espace libre identiques). Un disque occupé à plus de 90 % est signalé **Presque plein**.
 
 ## Aperçu rapide
 
@@ -29,7 +38,7 @@ Un clic sur une affiche ouvre un **aperçu rapide** : synopsis, genres, note, é
 
 ## Mise en page
 
-Un administrateur peut **modifier la mise en page** : glisser-déposer ou boutons Monter/Descendre pour l'ordre, interrupteur pour masquer une section, puis **Enregistrer**. Le même réglage existe dans **Paramètres → Affichage**. Le bandeau reste toujours en haut.
+Un administrateur peut **modifier la mise en page** : glisser une section par sa poignée (à la souris ou au doigt) ou boutons Monter/Descendre pour l'ordre, interrupteur pour masquer une section, puis **Enregistrer**. Le même réglage existe dans **Paramètres → Affichage**. Le bandeau reste toujours en haut.
 
 ## Menu de santé
 

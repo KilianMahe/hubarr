@@ -5,9 +5,12 @@
 //   node tools/publish-notes.js github-release 1.0.0   (GITHUB_TOKEN)
 //     crée ou met à jour la release GitHub du tag v1.0.0 ; notes = section
 //     de la version dans CHANGELOG.md, plus l'image Docker et la doc ;
-//     (DRY_RUN=1 : affiche seulement les notes) ;
+//     (DRY_RUN=1 : affiche les notes, celles d'« Unreleased » si la version
+//     n'a pas encore sa section, et vérifie le droit d'écriture du jeton
+//     s'il est fourni, sans rien publier) ;
 //   node tools/publish-notes.js dockerhub              (DOCKERHUB_TOKEN)
-//     met à jour la description du dépôt Docker Hub (docker/DOCKERHUB.md).
+//     met à jour la description du dépôt Docker Hub (docker/DOCKERHUB.md)
+//     (DRY_RUN=1 : vérifie seulement la connexion).
 //
 // Cibles : `make github-release VERSION=x.y.z`, `make dockerhub-description`.
 
@@ -48,7 +51,11 @@ async function call(url, init, what) {
 }
 
 async function githubRelease(version) {
-  const section = changelogSection(readFileSync('CHANGELOG.md', 'utf8'), version);
+  const dryRun = process.env.DRY_RUN === '1';
+  const changelog = readFileSync('CHANGELOG.md', 'utf8');
+  const section =
+    changelogSection(changelog, version) ??
+    (dryRun ? changelogSection(changelog, 'Unreleased') : null);
   if (section === null) fail(`Section [${version}] absente de CHANGELOG.md`);
   const tag = `v${version}`;
   const body = `${section}
@@ -60,32 +67,49 @@ docker pull ${DOCKER_REPO}:${version}
 \`\`\`
 
 See the [installation guide](https://github.com/${GITHUB_REPO}/blob/${tag}/docs/installation.md) and the [example Compose file](https://github.com/${GITHUB_REPO}/blob/${tag}/docker-compose.example.yml). The documentation is also served by Hubarr itself at \`/docs\`.`;
-  // DRY_RUN=1 : affiche les notes sans rien publier.
-  if (process.env.DRY_RUN === '1') {
-    console.log(body);
-    return;
-  }
-  const token = requireEnv(
-    'GITHUB_TOKEN',
-    'jeton GitHub avec le droit « Contents: write » sur le dépôt',
-  );
-  const headers = {
+  const headers = (token) => ({
     Accept: 'application/vnd.github+json',
     Authorization: `Bearer ${token}`,
     'X-GitHub-Api-Version': '2022-11-28',
-  };
+  });
+  // DRY_RUN=1 : affiche les notes ; avec un jeton, vérifie son droit d'écriture.
+  if (dryRun) {
+    console.log(body);
+    if (process.env.GITHUB_TOKEN) {
+      const repo = await call(
+        `https://api.github.com/repos/${GITHUB_REPO}`,
+        { headers: headers(process.env.GITHUB_TOKEN) },
+        'Accès au dépôt GitHub',
+      );
+      if (repo.permissions?.push !== true)
+        fail(`Le jeton GitHub n'a pas le droit d'écriture sur ${GITHUB_REPO}`);
+      console.log(`Essai : jeton GitHub valide, écriture autorisée sur ${GITHUB_REPO}.`);
+    }
+    return;
+  }
+  const auth = headers(
+    requireEnv('GITHUB_TOKEN', 'jeton GitHub avec le droit « Contents: write » sur le dépôt'),
+  );
   const api = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
-  const payload = { tag_name: tag, name: `Hubarr ${version}`, body, make_latest: 'true' };
-  const existing = await fetch(`${api}/tags/${tag}`, { headers });
+  // Préversion (x.y.z-rc.1) : marquée comme telle, jamais « Latest ».
+  const prerelease = version.includes('-');
+  const payload = {
+    tag_name: tag,
+    name: `Hubarr ${version}`,
+    body,
+    prerelease,
+    make_latest: prerelease ? 'false' : 'true',
+  };
+  const existing = await fetch(`${api}/tags/${tag}`, { headers: auth });
   const release = existing.ok
     ? await call(
         `${api}/${(await existing.json()).id}`,
-        { method: 'PATCH', headers, body: JSON.stringify(payload) },
+        { method: 'PATCH', headers: auth, body: JSON.stringify(payload) },
         'Mise à jour de la release',
       )
     : await call(
         api,
-        { method: 'POST', headers, body: JSON.stringify(payload) },
+        { method: 'POST', headers: auth, body: JSON.stringify(payload) },
         'Création de la release',
       );
   console.log(`Release GitHub : ${release.html_url}`);
@@ -106,6 +130,10 @@ async function dockerHub() {
     },
     'Connexion à Docker Hub',
   );
+  if (process.env.DRY_RUN === '1') {
+    console.log(`Essai : connexion à Docker Hub réussie (${username}), description non modifiée.`);
+    return;
+  }
   await call(
     `https://hub.docker.com/v2/repositories/${DOCKER_REPO}/`,
     {

@@ -5,7 +5,7 @@
 // nom et catégorie, taille et motif d'échec (traduit pour NZBGet), statut,
 // âge de la fin.
 import type { UsenetClientId, UsenetDownload } from '@hubarr/shared';
-import { mdiAlertCircle, mdiCheck, mdiClockOutline } from '@mdi/js';
+import { msCheck, msErrorFill, msSchedule } from '../../components/symbols';
 import { useI18n } from 'vue-i18n';
 import { useFormat } from '../../app/format';
 import { useTorrentI18n } from '../downloads/use-torrent-i18n';
@@ -30,10 +30,10 @@ function failText(item: UsenetDownload): string | null {
         <v-icon
           :icon="
             item.status === 'failed'
-              ? mdiAlertCircle
+              ? msErrorFill
               : item.status === 'completed'
-                ? mdiCheck
-                : mdiClockOutline
+                ? msCheck
+                : msSchedule
           "
           :color="
             item.status === 'failed' ? 'error' : item.status === 'completed' ? 'success' : undefined

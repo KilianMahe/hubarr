@@ -32,7 +32,7 @@ export function listTimezones(): string[] {
   return timezoneList;
 }
 
-/** Fuseau du système (`TZ` du conteneur, issue #12 de Prismarr). */
+/** Fuseau du système (`TZ` du conteneur). */
 export function systemTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }

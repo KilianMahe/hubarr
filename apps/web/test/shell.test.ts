@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Shell, routeur et écrans hors session (P0.12) : gardes, assistant, connexion,
 // déconnexion, accent par service.
-import { SERVICE_ACCENTS, type ProfileResponse } from '@hubarr/shared';
+import { SERVICE_ACCENTS, SOURCE_CODE_URL, type ProfileResponse } from '@hubarr/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RouteLocationNormalized } from 'vue-router';
 import { VSelect } from 'vuetify/components';
@@ -229,6 +229,21 @@ describe('shell connecté', () => {
     expect(drawer).toContain(t('footer.source_code'));
     expect(drawer).toContain(t('footer.version', { version: '1.2.3' }));
     expect(drawer).toContain(t('sidebar.footer.settings'));
+  });
+
+  it('pied du tiroir : liste verticale Paramètres, Aide, Code source', async () => {
+    fakeFetch({});
+    const { wrapper } = await mountApp('/', bootstrapOf({ user: ADMIN }));
+    await settle();
+    const footer = wrapper.get('[data-test="drawer-footer"]');
+    const items = footer.findAll('.v-list-item');
+    expect(items.map((item) => item.text())).toEqual([
+      t('sidebar.footer.settings'),
+      t('footer.help'),
+      t('footer.source_code'),
+    ]);
+    expect(items[2]?.attributes('href')).toBe(SOURCE_CODE_URL);
+    expect(items[2]?.attributes('target')).toBe('_blank');
   });
 
   it('cache les paramètres à un utilisateur non admin', async () => {

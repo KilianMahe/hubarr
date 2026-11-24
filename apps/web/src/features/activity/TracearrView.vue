@@ -22,7 +22,7 @@ import { activitySchema } from '@hubarr/shared';
 import { useLiveQuery } from '../../app/live';
 import StatTile from '../../components/ds/StatTile.vue';
 import ServiceHeader from '../../components/ds/ServiceHeader.vue';
-import { mdiAccountMultiple, mdiChevronRight, mdiMagnify } from '@mdi/js';
+import { msChevronRight, msGroup, msSearch } from '../../components/symbols';
 import EmptyState from '../../components/EmptyState.vue';
 import TracearrTabs from './TracearrTabs.vue';
 import { TRACEARR_ROUTES, TRACEARR_USER_ROUTE, tracearrSectionOf } from './tracearr-nav';
@@ -304,7 +304,7 @@ const chartList = computed(() =>
         <v-filter-field
           v-if="(users.data.value ?? []).length > 6"
           v-model="userSearch"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           :placeholder="t('tracearr.users.search')"
           :aria-label="t('tracearr.users.search')"
           density="compact"
@@ -315,7 +315,7 @@ const chartList = computed(() =>
       </div>
       <EmptyState
         v-if="(users.data.value ?? []).length === 0"
-        :icon="mdiAccountMultiple"
+        :icon="msGroup"
         :title="t('tracearr.users.empty')"
         inline
       />
@@ -352,7 +352,7 @@ const chartList = computed(() =>
                 {{ user.serverName ?? '—' }}
               </div>
             </div>
-            <v-icon v-if="user.key !== null" :icon="mdiChevronRight" class="text-muted" />
+            <v-icon v-if="user.key !== null" :icon="msChevronRight" class="text-muted" />
           </div>
           <div class="tracearr-users__stats mt-3 text-body-small">
             <div>

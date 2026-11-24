@@ -15,7 +15,7 @@ import {
   type ArrNamedItem,
   type Episode,
 } from '@hubarr/shared';
-import { mdiDelete } from '@mdi/js';
+import { msDelete } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -488,7 +488,7 @@ const field = { density: 'compact', variant: 'outlined', hideDetails: true } as 
               <td class="text-no-wrap text-muted">{{ seriesSize(t, row.size) }}</td>
               <td>
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   size="x-small"
                   variant="text"
                   color="error"

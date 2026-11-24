@@ -1,6 +1,6 @@
 # Settings
 
-The **Settings** page (`/admin/settings`, from the account menu or the bottom of the side menu) is for administrators only. It has five tabs, each with its own address (`#section-services`, `#section-display`…), handy as a bookmark.
+The **Settings** page (`/admin/settings`, from the account menu or the bottom of the side menu) is for administrators only. It has six tabs, each with its own address (`#section-services`, `#section-display`…), handy as a bookmark. On mobile, the tabs are in the bottom bar and the top bar names the open section ("Settings · Backup").
 
 ## External services
 
@@ -19,7 +19,7 @@ For each service:
 
 ### Service administration
 
-The Prowlarr and Seerr cards have a **Settings** button next to **Save**; for Radarr and Sonarr, it is the cog icon next to each enabled instance's test button. It opens a page dedicated to the service's settings in Hubarr, with two rows of tabs: the **groups** (configuration, system…), then the group's **pages** (profiles, indexers, clients, notifications, general, status, tasks, logs, backups, updates…). Each page keeps its address and offers a **Back to settings** button.
+The Prowlarr and Seerr cards have a **Settings** button next to **Save**; for Radarr and Sonarr, it is the cog icon next to each enabled instance's test button. It opens a page dedicated to the service's settings in Hubarr, with two rows of tabs: the **groups** (configuration, system…), then the group's **pages** (profiles, indexers, clients, notifications, general, status, tasks, logs, backups, updates…). Each page keeps its address and offers a **Back to settings** button. On mobile, the groups are in the bottom bar (a tap on a group lists its pages) and the top bar names the service and the page ("Sonarr · Tasks").
 
 ### Several Radarr or Sonarr instances
 
@@ -32,7 +32,7 @@ Radarr and Sonarr accept several instances (for example "Radarr" and "Radarr 4K"
 
 ## Service health
 
-The health icon in the top bar sums up the configured services (green: everything answers; orange: some do; red: none) and lists every service and instance. A coloured dot also follows each side menu entry. Health is checked every minute; a service seen unreachable is not queried again for 10 seconds.
+The health icon in the top bar sums up the configured services (green: everything answers; orange: some do; red: none) and lists every service and instance. A coloured dot also follows each side menu entry. Health is checked every minute; a service seen unreachable is not queried again for 10 seconds. The details of failed calls (status, network error code, duration) are on the [**Logs**](./troubleshooting.md#logs-page) page.
 
 When a service does not answer, its page shows a banner with the reason; **Retry** checks again right away. The page of a service that is not configured leads to these settings, the page of a disabled service to the home page.
 
@@ -43,8 +43,8 @@ When a service does not answer, its page shows a banner with the reason; **Retry
 - **Time zone**, **date and time formats**; the system time zone (`TZ`) by default.
 - **Theme** (classic with a light/dark toggle, or one of 17 presets) and **accent colour**: applied as soon as you save.
 - **Refresh rate** of qBittorrent, Deluge and Transmission, **live activity source**, **density** and **items per page**.
-- **Side menu visibility** of each service and of the calendar.
-- **Dashboard layout**: order (Move up/Move down buttons) and visible sections.
+- **Side menu visibility** of each service and of the calendar; Discover and the calendar are tabs of **Home**, hidden along with their entry.
+- **Dashboard layout**: order (drag a section by its handle, or Move up/Move down buttons) and visible sections.
 
 ::: tip Refresh rate and real time
 A torrent client's refresh rate drives the global watch on media pages: number of active downloads in the side menu and a notification when a download finishes (or fails), once across all tabs. `0` turns it off. Screens update through a real-time stream: Hubarr queries each service once per interval however many tabs are open, and falls back to periodic polling on its own when the stream is cut (proxy, network).
@@ -61,7 +61,9 @@ Hubarr's interface language and TMDb metadata language, then the interface langu
 - **Export** downloads a JSON file with the preferences, the layout, side menu visibility, service URLs and usernames, and the Radarr/Sonarr instances. **No API key and no password** is included.
 - **Import** reads such a file back (64 KB at most). Importing adds or updates, never deletes; an existing instance or service keeps its secrets, unless the file changes its scheme, host or port: its API key and password are then cleared, so that a tampered file cannot send them to another server. Type the keys and passwords again afterwards.
 
-Prismarr exports are not accepted: a Hubarr install starts from scratch.
+## Logs
+
+The last log entries kept by Hubarr, to diagnose a service that does not answer: see [Logs page](./troubleshooting.md#logs-page). The former address `/admin/logs` leads to this section.
 
 ## About
 

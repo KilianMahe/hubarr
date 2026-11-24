@@ -3,6 +3,7 @@
 // invalide arrête le serveur avec un message explicite plutôt qu'un comportement
 // silencieusement faux.
 
+import { LOG_LEVEL_NAMES } from '@hubarr/shared';
 import { z } from 'zod';
 import { normalizeBasePath } from '../http/base-path';
 
@@ -31,6 +32,12 @@ const envSchema = z.object({
   HUBARR_DATA_DIR: z.string().min(1).default('/data'),
   /** WARN par défaut, comme l'original. */
   HUBARR_LOG_LEVEL: z.enum(LOG_LEVELS).default('warn'),
+  /**
+   * Niveau minimal gardé pour la page « Journaux » (1 000 dernières entrées en
+   * mémoire). Par défaut, celui de la console ; `info` y garde plus de détail
+   * sans rendre la console plus bavarde.
+   */
+  HUBARR_LOG_BUFFER_LEVEL: z.enum(LOG_LEVEL_NAMES).optional(),
   HUBARR_VERSION: z.string().min(1).default('0.0.0-dev'),
   HUBARR_TRUST_PROXY: trustProxySchema,
   /**

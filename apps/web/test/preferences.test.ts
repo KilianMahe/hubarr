@@ -4,14 +4,11 @@
 // mise en page), section « Langues », toasts désactivés.
 
 import {
-  DASHBOARD_SECTIONS,
   SERVICE_IDS,
   defaultDisplayValues,
   resolveTheme,
   type BootstrapServices,
-  type FlatServiceState,
   type LanguagesResponse,
-  type SettingsResponse,
 } from '@hubarr/shared';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +18,7 @@ import { routes } from '../src/app/router';
 import { useNotifyStore } from '../src/app/stores/notify';
 import { useSessionStore } from '../src/app/stores/session';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle } from './helpers';
+import { ADMIN, bootstrapOf, fakeFetch, mountApp, settingsOf, settle } from './helpers';
 
 const t = (key: string, values?: Record<string, unknown>) => i18n.global.t(key, values ?? {});
 
@@ -150,43 +147,6 @@ describe('toasts', () => {
     expect(notify.queue.map((item) => item.kind)).toEqual(['error']);
   });
 });
-
-const EMPTY: FlatServiceState = {
-  saved: false,
-  configured: false,
-  enabled: true,
-  url: '',
-  user: '',
-  hasApiKey: false,
-  hasPassword: false,
-};
-
-function settingsOf(overrides: Partial<SettingsResponse> = {}): SettingsResponse {
-  return {
-    services: Object.fromEntries(
-      SERVICE_IDS.filter((id) => id !== 'radarr' && id !== 'sonarr').map((id) => [id, EMPTY]),
-    ) as SettingsResponse['services'],
-    instances: { radarr: [], sonarr: [] },
-    sidebar: Object.fromEntries([...SERVICE_IDS, 'calendar'].map((id) => [id, true])),
-    display: { ...defaultDisplayValues(), display_timezone: '' },
-    systemTimezone: 'Europe/Paris',
-    timezones: ['Europe/Paris', 'UTC'],
-    dashboard: DASHBOARD_SECTIONS.map((key) => ({ key, visible: true })),
-    theme: resolveTheme(undefined, undefined),
-    backup: { exportable: 0, skipped: 0 },
-    about: {
-      version: '1.2.3',
-      nodeVersion: 'v24',
-      databasePath: '/data/hubarr.db',
-      databaseSize: 0,
-      avatarsDir: '/data/avatars',
-      userCount: 1,
-      serverTime: '2026-11-18T12:00:00.000Z',
-      timezone: 'UTC',
-    },
-    ...overrides,
-  };
-}
 
 describe('section Affichage', () => {
   it('enregistre préférences, menu et mise en page ; applique thème et préférences', async () => {

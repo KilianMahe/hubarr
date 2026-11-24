@@ -3,7 +3,7 @@
 // Statut de Prowlarr (`prowlarr/system.html.twig`, n° 271) : informations
 // (n° 298) et santé (n° 297), chargées indépendamment.
 import { prowlarrHealthSchema, prowlarrStatusSchema } from '@hubarr/shared';
-import { mdiCheckCircle } from '@mdi/js';
+import { msCheckCircleFill } from '../../../components/symbols';
 import { computed } from 'vue';
 import { z } from 'zod';
 import { useFormat } from '../../../app/format';
@@ -71,7 +71,7 @@ const info = computed(() => {
               v-if="(health.query.data.value ?? []).length === 0 && health.query.isSuccess.value"
               class="d-flex align-center ga-2 text-success"
             >
-              <v-icon :icon="mdiCheckCircle" size="small" /> {{ t('prowlarr.system.health_ok') }}
+              <v-icon :icon="msCheckCircleFill" size="small" /> {{ t('prowlarr.system.health_ok') }}
             </p>
             <v-alert
               v-for="(item, index) in health.query.data.value ?? []"

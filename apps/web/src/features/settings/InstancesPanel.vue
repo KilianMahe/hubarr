@@ -11,7 +11,7 @@ import {
   type InstanceType,
   type ServiceInstance,
 } from '@hubarr/shared';
-import { mdiPlus } from '@mdi/js';
+import { msAdd } from '../../components/symbols';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -270,7 +270,7 @@ function dotColor(row: ServiceInstance): string {
 
       <div class="d-flex flex-wrap align-center ga-2 mt-2">
         <v-btn
-          :prepend-icon="mdiPlus"
+          :prepend-icon="msAdd"
           variant="tonal"
           data-test="instance-add"
           @click="openDialog(null)"

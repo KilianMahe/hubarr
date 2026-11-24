@@ -40,6 +40,18 @@ describe('design system', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('chaque dialogue a la croix de fermeture commune (`DialogTitle` ou `dialog-close`)', () => {
+    // Dialogues construits à la main (hors `ResponsiveDialog`, qui l'intègre).
+    const offenders = sources(join(__dirname, '../src'))
+      .filter((file) => file.endsWith('.vue'))
+      .filter((file) => {
+        const code = readFileSync(file, 'utf8');
+        const opens = /<v-dialog\b|<v-bottom-sheet\b|VBottomSheet : VDialog/.test(code);
+        return opens && !/<DialogTitle\b|data-test="dialog-close"|<TmdbDetailBody\b/.test(code);
+      });
+    expect(offenders).toEqual([]);
+  });
+
   it('MetaLine : un séparateur entre chaque élément', () => {
     const wrapper = mount(MetaLine, {
       global,

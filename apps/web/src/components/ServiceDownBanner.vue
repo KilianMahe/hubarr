@@ -5,7 +5,7 @@
 // (SABnzbd) ou injoignable. « Réessayer » relance la détection (un admin vide
 // aussi le disjoncteur côté serveur).
 import { serviceDiagnosisResponseSchema, type ServiceId } from '@hubarr/shared';
-import { mdiAlertCircle } from '@mdi/js';
+import { msErrorFill } from './symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -103,7 +103,7 @@ async function retry(): Promise<void> {
     v-if="down"
     type="error"
     variant="tonal"
-    :icon="mdiAlertCircle"
+    :icon="msErrorFill"
     class="mb-4"
     data-test="service-down-banner"
   >

@@ -5,7 +5,7 @@
 // - Session par cookie (`SID`, ou `QBT_SID_<port>` depuis qBittorrent 5.2),
 //   ouverte au premier appel et rouverte une fois sur 401/403 ; sans
 //   utilisateur **ou** sans mot de passe, aucune connexion (proxy qui
-//   authentifie, issue #10 de Prismarr).
+//   authentifie).
 // - qBittorrent 5.x : `torrents/stop` et `torrents/start` ; repli sur
 //   `pause`/`resume` (4.x) quand le 5.x répond 404 (risques P3).
 // - `sync/maindata` (totaux, espace libre) gardé 10 s ; catégories et

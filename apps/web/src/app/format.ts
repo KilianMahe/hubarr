@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Formats selon les préférences d'affichage (`prismarr_date`, `prismarr_time`,
-// `prismarr_datetime`, `prismarr_bytes`, `prismarr_speed` d'origine).
+// Formats selon les préférences d'affichage (date, heure, date et heure,
+// tailles, débits).
 
 import {
   formatBytes,

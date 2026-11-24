@@ -53,17 +53,18 @@ To pin a version, replace `latest` with its number (`naroner/hubarr:1.0.0`); ver
 
 ## Environment variables
 
-| Variable                 | Default                          | Purpose                                                                                 |
-| ------------------------ | -------------------------------- | --------------------------------------------------------------------------------------- |
-| `HUBARR_PORT`            | `7070`                           | Listening port inside the container                                                     |
-| `HUBARR_DATA_DIR`        | `/data`                          | Persistent data folder                                                                  |
-| `HUBARR_LOG_LEVEL`       | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` or `trace`                                    |
-| `HUBARR_TRUST_PROXY`     | `loopback,linklocal,uniquelocal` | Trusted reverse proxies: `true`, `false` or a list of addresses/ranges                  |
-| `HUBARR_FRAME_ANCESTORS` | _(empty)_                        | Origins allowed to embed Hubarr in an iframe, separated by spaces                       |
-| `HUBARR_BASE_PATH`       | _(empty)_                        | Path prefix behind a reverse proxy (`/hubarr`), see [Reverse proxy](./reverse-proxy.md) |
-| `HUBARR_HOST`            | `0.0.0.0`                        | Listening address inside the container                                                  |
-| `PUID`, `PGID`           | `1000`                           | User and group owning the files in `/data` (see above)                                  |
-| `TZ`                     | `UTC`                            | Default display time zone (unless set in preferences) and log time zone                 |
+| Variable                  | Default                          | Purpose                                                                                         |
+| ------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `HUBARR_PORT`             | `7070`                           | Listening port inside the container                                                             |
+| `HUBARR_DATA_DIR`         | `/data`                          | Persistent data folder                                                                          |
+| `HUBARR_LOG_LEVEL`        | `warn`                           | `fatal`, `error`, `warn`, `info`, `debug` or `trace`                                            |
+| `HUBARR_LOG_BUFFER_LEVEL` | _(same as `HUBARR_LOG_LEVEL`)_   | Minimum level kept for the **Logs** page, see [Troubleshooting](./troubleshooting.md#logs-page) |
+| `HUBARR_TRUST_PROXY`      | `loopback,linklocal,uniquelocal` | Trusted reverse proxies: `true`, `false` or a list of addresses/ranges                          |
+| `HUBARR_FRAME_ANCESTORS`  | _(empty)_                        | Origins allowed to embed Hubarr in an iframe, separated by spaces                               |
+| `HUBARR_BASE_PATH`        | _(empty)_                        | Path prefix behind a reverse proxy (`/hubarr`), see [Reverse proxy](./reverse-proxy.md)         |
+| `HUBARR_HOST`             | `0.0.0.0`                        | Listening address inside the container                                                          |
+| `PUID`, `PGID`            | `1000`                           | User and group owning the files in `/data` (see above)                                          |
+| `TZ`                      | `UTC`                            | Default display time zone (unless set in preferences) and log time zone                         |
 
 ## Update
 
@@ -78,10 +79,6 @@ The app installed on a phone (PWA) updates itself on its next launch: it follows
 Database migrations run at startup, after a `hubarr.db.bak` backup copy.
 
 Copying the data folder before an update is a good precaution: see [Backup and restore](./troubleshooting.md#backup-and-restore).
-
-::: warning Data folder
-Hubarr refuses to start on a folder that holds another application's database (Prismarr in particular): use a fresh data folder.
-:::
 
 ## Building the image from source
 

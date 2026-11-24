@@ -4,12 +4,15 @@
 // ouvertes par le bouton « Paramètres » de sa carte dans `/admin/settings` :
 // retour aux paramètres, puis une rangée d'onglets par groupe (configuration,
 // système…) et une seconde avec les pages du groupe courant. Le service vient
-// de la route (`meta.service`), l'instance Radarr/Sonarr de son `slug`.
+// de la route (`meta.service`), l'instance Radarr/Sonarr de son `slug`. Sur
+// mobile, la barre basse du shell porte les groupes et leurs pages : seul le
+// retour reste ici.
 import { SERVICE_SETTINGS } from '@hubarr/shared';
-import { mdiArrowLeft } from '@mdi/js';
+import { msArrowBack } from './symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import { useDisplay } from 'vuetify';
 import {
   SETTINGS_SERVICES_LOCATION,
   activeAdminGroup,
@@ -19,6 +22,7 @@ import {
 
 const { t } = useI18n();
 const route = useRoute();
+const { smAndDown } = useDisplay();
 const service = computed(() => {
   const value = route.meta.service;
   return typeof value === 'string' && isAdministered(value) ? value : null;
@@ -34,7 +38,7 @@ const label = computed(() => (service.value === null ? '' : SERVICE_SETTINGS[ser
   <nav class="service-settings-nav mb-3" data-test="service-settings-nav">
     <v-btn
       :to="SETTINGS_SERVICES_LOCATION"
-      :prepend-icon="mdiArrowLeft"
+      :prepend-icon="msArrowBack"
       variant="tonal"
       size="small"
       rounded="pill"
@@ -42,7 +46,7 @@ const label = computed(() => (service.value === null ? '' : SERVICE_SETTINGS[ser
       data-test="settings-back"
       >{{ t('admin.service_admin.back') }}</v-btn
     >
-    <template v-if="groups.length > 0">
+    <template v-if="groups.length > 0 && !smAndDown">
       <v-tabs
         :model-value="group?.labelKey"
         color="service-text"

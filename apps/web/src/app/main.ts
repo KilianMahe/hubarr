@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Point d'entrée de la SPA : état initial du serveur, langue, thème, puis
-// Pinia, routeur, TanStack Query et montage.
+// Pinia, routeur, TanStack Query (cache persistant restauré avant le montage)
+// et montage.
 
 import 'vuetify/styles';
 import './theme/theme.css';
@@ -17,6 +18,7 @@ import { fetchBootstrap, resolveInitialTheme, resolveLocale } from './boot';
 import { i18n, setLocale } from './plugins/i18n';
 import { createHubarrVuetify } from './plugins/vuetify';
 import { registerServiceWorker } from './pwa';
+import { createIdbPersister, createQueryPersistence, QUERY_PERSISTENCE } from './query-persist';
 import { createHubarrRouter } from './router';
 import { useSessionStore } from './stores/session';
 
@@ -47,6 +49,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Cache persistant : restauré pour l'utilisateur connecté avant le montage
+// (affichage immédiat), purgé dès que la session se ferme ou change de compte.
+const session = useSessionStore(pinia);
+const persistence = createQueryPersistence(queryClient, {
+  persister: createIdbPersister(),
+  version: bootstrap?.version ?? '',
+});
+if (session.user) await persistence.start(session.user.id);
+watch(
+  () => session.user?.id ?? null,
+  async (next, previous) => {
+    if (previous !== null) await persistence.purge();
+    if (next !== null) await persistence.start(next);
+  },
+);
+
 // Titre de l'onglet : celui de l'écran, retraduit au changement de langue.
 function updateTitle(): void {
   const to = router.currentRoute.value;
@@ -62,6 +80,7 @@ createApp(App)
   .use(vuetify.plugin)
   .use(router)
   .use(VueQueryPlugin, { queryClient })
+  .provide(QUERY_PERSISTENCE, persistence)
   .mount('#app');
 
 registerServiceWorker(bootstrap?.version);

@@ -6,7 +6,6 @@
 //   remplace le FAB déclaré par la route (`meta.fab`) ; avec `actions`, il
 //   devient un speed-dial (fiches film et série) ;
 // - `search` : recherche locale dans la barre du haut « pilule » ;
-// - `stats` : compteurs du service dans la barre du haut « pilule » ;
 // - `selection` : sélection multiple en cours (la barre du haut devient la
 //   barre contextuelle de la sélection, la barre basse s'efface).
 // La dernière inscription l'emporte ; elle s'efface au démontage.
@@ -37,12 +36,6 @@ export interface TopBarSearch {
   onInput: (value: string) => void;
 }
 
-export interface TopBarStat {
-  value: string | number;
-  label: string;
-  unit?: string;
-}
-
 export interface SelectionState {
   count: number;
   clear: () => void;
@@ -58,14 +51,12 @@ interface Slot<T> {
 interface ChromeState {
   fab: Slot<FabSpec>;
   search: Slot<TopBarSearch>;
-  stats: Slot<TopBarStat[]>;
   selection: Slot<SelectionState>;
 }
 
 export const chrome: ChromeState = reactive<ChromeState>({
   fab: { owner: 0, value: null },
   search: { owner: 0, value: null },
-  stats: { owner: 0, value: null },
   selection: { owner: 0, value: null },
 });
 
@@ -102,9 +93,6 @@ export const useServiceFab = (source: () => FabSpec | null) => {
 };
 export const useTopBarSearch = (source: () => TopBarSearch | null) => {
   useChromeSlot('search', source);
-};
-export const useTopBarStats = (source: () => TopBarStat[] | null) => {
-  useChromeSlot('stats', source);
 };
 export const useSelectionChrome = (source: () => SelectionState | null) => {
   useChromeSlot('selection', source);

@@ -3,6 +3,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  animeDiscoverParams,
+  isAnime,
   matches,
   normalize,
   sortItems,
@@ -217,5 +219,21 @@ describe('SearchRanker', () => {
     expect(matches(tv, { year_max: 2018 })).toBe(false);
     expect(matches(movie, { vote_min: 8 })).toBe(false);
     expect(matches({ media_type: 'person', name: 'Z' }, {})).toBe(false);
+  });
+
+  it('animés : genre Animation et langue originale japonaise', () => {
+    const anime = { media_type: 'tv', name: 'A', genre_ids: [16, 10759], original_language: 'ja' };
+    const cartoon = { media_type: 'movie', title: 'B', genre_ids: [16], original_language: 'en' };
+    expect(isAnime(anime)).toBe(true);
+    expect(isAnime(cartoon)).toBe(false);
+    expect(matches(anime, { anime: true })).toBe(true);
+    expect(matches(cartoon, { anime: true })).toBe(false);
+    expect(matches(cartoon, { anime: false })).toBe(true);
+    expect(animeDiscoverParams(null)).toEqual({ with_genres: '16', with_original_language: 'ja' });
+    expect(animeDiscoverParams('35, 16,x')).toEqual({
+      with_genres: '35,16',
+      with_original_language: 'ja',
+    });
+    expect(animeDiscoverParams(10759).with_genres).toBe('10759,16');
   });
 });

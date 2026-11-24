@@ -12,6 +12,7 @@ import { posterUrl } from '../../movies/movie-display';
 import BazarrPage from '../BazarrPage.vue';
 import { bazarrApi, bazarrKeys } from '../bazarr-api';
 import StatTile from '../../../components/ds/StatTile.vue';
+import ScrollRow from '../../../components/ScrollRow.vue';
 
 const { t } = useI18n();
 const notify = useNotifyStore();
@@ -75,7 +76,7 @@ const TILES = [
           >
             {{ t('bazarr.landing.empty') }}
           </p>
-          <div v-else class="bazarr-row">
+          <ScrollRow v-else item-width="140px">
             <div
               v-for="item in overview.data.value.mostMissing"
               :key="`${item.kind}-${item.id}`"
@@ -115,7 +116,7 @@ const TILES = [
                 >{{ t('bazarr.auto.button') }}</v-btn
               >
             </div>
-          </div>
+          </ScrollRow>
         </v-card-text>
       </v-card>
     </template>
@@ -127,14 +128,6 @@ const TILES = [
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
-}
-.bazarr-row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 140px;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
 }
 .bazarr-row__poster {
   position: relative;

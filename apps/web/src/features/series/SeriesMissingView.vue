@@ -5,7 +5,7 @@
 // épisode (état sur la ligne) ; « Rechercher tous les manquants »
 // (`MissingEpisodeSearch`) suivie dans la bannière ; 50 par page.
 import type { WantedEpisode } from '@hubarr/shared';
-import { mdiCheck, mdiClose, mdiMagnify } from '@mdi/js';
+import { msCheck, msClose, msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -40,9 +40,9 @@ async function searchEpisode(episode: WantedEpisode): Promise<void> {
   }
 }
 const STATE_ICONS: Record<RowState, string> = {
-  running: mdiMagnify,
-  done: mdiCheck,
-  failed: mdiClose,
+  running: msSearch,
+  done: msCheck,
+  failed: msClose,
 };
 
 const banner = ref<{ type: 'info' | 'success' | 'error'; text: string } | null>(null);
@@ -73,7 +73,7 @@ async function searchAll(): Promise<void> {
       <v-spacer />
       <v-btn
         v-if="records.length > 0"
-        :prepend-icon="mdiMagnify"
+        :prepend-icon="msSearch"
         color="service"
         variant="flat"
         size="small"

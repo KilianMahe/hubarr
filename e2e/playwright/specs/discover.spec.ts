@@ -2,7 +2,8 @@
 // Parcours P4 (P4.6), en desktop et en mobile, contre les faux Radarr,
 // Sonarr, Seerr et TMDB : tableau de bord (cartes indépendantes, aperçu
 // rapide), calendrier et flux iCal, découverte (fiche, watchlist, ajout
-// rapide à Radarr), recherche globale.
+// rapide à Radarr, suggestions du lot 8, sous-onglets du lot 12), recherche
+// globale.
 
 import { expect, test } from '@playwright/test';
 import { MOCKS_URL } from './env';
@@ -50,14 +51,22 @@ test('calendrier : sorties dédoublonnées, vue jour, flux iCal', async ({
     const month = page.getByTestId('calendar-month');
     await expect(month).toContainText('Orbite Basse III');
     // Desktop (P5d.5, V26) : un clic sur un jour met à jour la liste du dessous, sans changer de vue.
-    // Clic sur le numéro du jour : un clic sur une sortie ouvre son aperçu.
-    await month
-      .locator('[role="button"]', { hasText: 'Orbite Basse III' })
-      .first()
-      .click({ position: { x: 10, y: 10 } });
+    // Les sorties de la case ne s'ouvrent pas : un clic dessus choisit le jour.
+    await month.locator('.cal-block', { hasText: 'Orbite Basse III' }).first().click();
     await expect(month).toBeVisible();
+    await expect(page.getByTestId('quicklook')).toBeHidden();
     await expect(page.getByTestId('calendar-day')).toContainText('Orbite Basse III');
   }
+  // Couleur par statut de téléchargement : Cartographes (hier) est dans la file.
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  await page.goto(`/calendrier?view=day&date=${yesterday}`);
+  const queued = page.getByTestId('calendar-event').filter({ hasText: 'Cartographes' });
+  await expect(queued.getByTestId('calendar-event-status')).toHaveText(
+    'En cours de téléchargement',
+  );
+  await page.getByTestId('calendar-status-downloaded').click();
+  await expect(queued).toBeHidden();
+  await page.getByTestId('calendar-status-all').click();
   const ics = await request.get('/calendrier.ics');
   expect(ics.status()).toBe(200);
   expect(ics.headers()['content-type']).toContain('text/calendar');
@@ -67,7 +76,7 @@ test('calendrier : sorties dédoublonnées, vue jour, flux iCal', async ({
 });
 
 test('découverte : fiche par l’URL, watchlist, puis page Watchlist', async ({ page }) => {
-  await page.goto('/decouverte');
+  await page.goto('/decouverte?onglet=tendances');
   await expect(
     page.getByTestId('media-card-movie-9001').first().getByTestId('lib-status'),
   ).toBeVisible();
@@ -89,6 +98,101 @@ test('découverte : fiche par l’URL, watchlist, puis page Watchlist', async ({
   await expect(page.getByTestId('watchlist-item-9801')).toHaveCount(0);
 });
 
+test('découverte : sous-onglets, suggestions d’après Tracearr, par dossier racine, par année', async ({
+  page,
+}) => {
+  // alice a vu « Orbite Basse » (TMDB 9001) et des épisodes des « Veilleurs ».
+  await page.goto('/profil');
+  const card = page.getByTestId('profile-tracearr');
+  await card.getByTestId('profile-tracearr-account').click();
+  await page.getByRole('option', { name: 'alice' }).click();
+  await expect(card.getByTestId('profile-tracearr-sync')).toContainText('3 lectures');
+  try {
+    // « Pour vous » par défaut, sans les requêtes des autres onglets.
+    const requests: string[] = [];
+    page.on('request', (r) => requests.push(new URL(r.url()).pathname));
+    await page.goto('/decouverte');
+    await expect(page.getByTestId('discover-tab-pour-vous')).toHaveClass(/text-primary/);
+    const watched = page.getByTestId('discover-watched');
+    await expect(watched).toContainText('Nébuleuse');
+    await expect(watched.getByTestId('media-card-movie-9001')).toHaveCount(0);
+
+    // Dossier racine « /movies » du faux Radarr : sans les films possédés.
+    const folder = page.getByTestId('discover-folder').filter({ hasText: 'Pour « movies »' });
+    await expect(folder).toContainText('Nébuleuse');
+    await expect(folder.getByTestId('media-card-movie-9001')).toHaveCount(0);
+
+    expect(requests.some((path) => path.endsWith('/api/decouverte'))).toBe(false);
+    expect(requests.some((path) => path.includes('/api/decouverte/annee/'))).toBe(false);
+
+    await page.getByTestId('discover-tab-par-annee').click();
+    await expect(page).toHaveURL(/onglet=par-annee/);
+    await expect(watched).toHaveCount(0);
+    const byYear = page.getByTestId('discover-by-year');
+    await expect(byYear).toContainText(`Populaires en ${new Date().getFullYear()}`);
+    await expect(
+      byYear.getByTestId('media-card-movie-9001').getByTestId('lib-status'),
+    ).toBeVisible();
+    await byYear.getByTestId('by-year-tv').click();
+    await expect(byYear).toContainText('Les Veilleurs');
+
+    // Rangée sans barre de défilement : flèches aux bords, la précédente au-delà du début.
+    await expect(byYear.locator('.scroll-row__track')).toHaveCSS('scrollbar-width', 'none');
+    await expect(byYear.getByTestId('scroll-prev')).toBeHidden();
+
+    // Onglet mémorisé dans l'URL : il survit au rechargement.
+    await page.getByTestId('discover-tab-mieux-notes').click();
+    await expect(page).toHaveURL(/onglet=mieux-notes/);
+    await page.reload();
+    await expect(page.getByTestId('discover-tab-mieux-notes')).toHaveClass(/text-primary/);
+    await expect(page.getByText('Films les mieux notés')).toBeVisible();
+  } finally {
+    await page.goto('/profil');
+    await page.getByTestId('profile-tracearr-account').locator('.v-field__clearable').click();
+    await expect(page.getByTestId('profile-tracearr-sync')).toHaveCount(0);
+  }
+});
+
+test('explorateur : filtre par année précise, qui remplace la décennie', async ({ page }) => {
+  await page.goto('/decouverte/explorer');
+  await page.getByText('Années 1990').click();
+  await page.getByTestId('explorer-year').click();
+  await page.getByRole('option', { name: '2020', exact: true }).click();
+  const request = page.waitForRequest((r) => r.url().includes('/api/decouverte/filter'));
+  await page.getByTestId('explorer-search').click();
+  const url = new URL((await request).url());
+  expect(url.searchParams.get('year_min')).toBe('2020');
+  expect(url.searchParams.get('year_max')).toBe('2020');
+  await expect(page.getByTestId('media-card-movie-9801')).toBeVisible();
+});
+
+test('animés : type de l’explorateur (séries par défaut) et filtre de la recherche', async ({
+  page,
+}) => {
+  await page.goto('/decouverte/explorer');
+  await page.getByTestId('explorer-type-anime').click();
+  await expect(page.getByTestId('explorer-anime-type')).toBeVisible();
+  let request = page.waitForRequest((r) => r.url().includes('/api/decouverte/filter'));
+  await page.getByTestId('explorer-search').click();
+  let url = new URL((await request).url());
+  expect(url.searchParams.get('type')).toBe('tv');
+  expect(url.searchParams.get('anime')).toBe('1');
+  await page.getByTestId('explorer-anime-type').getByRole('button', { name: 'Films' }).click();
+  request = page.waitForRequest((r) => r.url().includes('/api/decouverte/filter'));
+  await page.getByTestId('explorer-search').click();
+  url = new URL((await request).url());
+  expect(url.searchParams.get('type')).toBe('movie');
+
+  await page.goto('/decouverte');
+  request = page.waitForRequest(
+    (r) => r.url().includes('/api/decouverte/recherche') && r.url().includes('anime=1'),
+  );
+  await page.getByTestId('discover-type-anime').click();
+  url = new URL((await request).url());
+  expect(url.searchParams.get('type')).toBe('all');
+  await expect(page.getByTestId('search-results')).toBeVisible();
+});
+
 test('découverte : recherche puis ajout rapide à Radarr', async ({ page }) => {
   await page.goto('/decouverte');
   await page.getByTestId('discover-search').locator('input').fill('grand détour');
@@ -97,8 +201,19 @@ test('découverte : recherche puis ajout rapide à Radarr', async ({ page }) => 
   await page.getByTestId('tmdb-detail').getByTestId('detail-add').click();
   const dialog = page.getByTestId('quick-add-dialog');
   await expect(dialog).toContainText('Le Grand Détour');
+  const added = page.waitForResponse((r) => r.url().endsWith('/api/medias/films/films/add'));
   await page.getByTestId('qa-submit').click();
   await expect(page.getByTestId('qa-submit')).toBeDisabled();
+  // Retrait par Hubarr, qui vide sa bibliothèque en cache : la réinitialisation
+  // du faux Radarr ne l'atteint pas, et le passage suivant (mobile) verrait
+  // le film comme déjà présent, sans bouton « Ajouter ».
+  const { movieId } = (await (await added).json()) as { movieId: number };
+  const { token } = (await (await page.request.get('/api/auth/csrf')).json()) as { token: string };
+  const removed = await page.request.post(`/api/medias/films/films/${movieId}/delete`, {
+    data: {},
+    headers: { 'x-csrf-token': token },
+  });
+  expect(removed.ok()).toBe(true);
 });
 
 test('recherche globale : bibliothèque et en ligne', async ({ page, isMobile }) => {

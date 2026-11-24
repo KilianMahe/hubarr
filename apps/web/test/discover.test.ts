@@ -7,14 +7,21 @@
 import type { BootstrapServices, CalendarEvent, OnlineSearchHit, TmdbCard } from '@hubarr/shared';
 import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { setLocale } from '../src/app/plugins/i18n';
+import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
   eventTitle,
   matchEvent,
   monthGrid,
   startOfWeek,
 } from '../src/features/calendar/calendar-api';
-import { countdownDays, parseDetail } from '../src/features/discover/discover-api';
+import {
+  countdownDays,
+  effectiveDiscoverTab,
+  explorerYearBounds,
+  parseDetail,
+  parseDiscoverTab,
+  popularYears,
+} from '../src/features/discover/discover-api';
 import { posterPathOf } from '../src/features/discover/useWatchlist';
 import { addRecentSearch, resolvedFromHit } from '../src/features/search/search';
 import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle, type FakeHandler } from './helpers';
@@ -78,6 +85,31 @@ describe('logique', () => {
     expect(posterPathOf(null)).toBeNull();
   });
 
+  it('années de « Populaires en » : de l’an prochain à la plus ancienne', () => {
+    const years = popularYears(new Date('2026-11-24T12:00:00Z'), 2020);
+    expect(years).toEqual([2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020]);
+  });
+
+  it('sous-onglets : URL, « Pour vous » par défaut, « Tendances » s’il est vide', () => {
+    expect(parseDiscoverTab('par-annee')).toBe('par-annee');
+    expect(parseDiscoverTab('inconnu')).toBeNull();
+    expect(parseDiscoverTab(undefined)).toBeNull();
+    expect(parseDiscoverTab(['tendances'])).toBeNull();
+    const empty = { settled: true, empty: true };
+    expect(effectiveDiscoverTab(null, { settled: false, empty: true })).toBe('pour-vous');
+    expect(effectiveDiscoverTab(null, { settled: true, empty: false })).toBe('pour-vous');
+    expect(effectiveDiscoverTab(null, empty)).toBe('tendances');
+    expect(effectiveDiscoverTab('pour-vous', empty)).toBe('pour-vous');
+    expect(effectiveDiscoverTab('mieux-notes', empty)).toBe('mieux-notes');
+  });
+
+  it('explorateur : l’année précise l’emporte sur la décennie', () => {
+    expect(explorerYearBounds(null, null)).toEqual({});
+    expect(explorerYearBounds(1990, null)).toEqual({ year_min: 1990, year_max: 1999 });
+    expect(explorerYearBounds(null, 2024)).toEqual({ year_min: 2024, year_max: 2024 });
+    expect(explorerYearBounds(1990, 2024)).toEqual({ year_min: 2024, year_max: 2024 });
+  });
+
   it('calendrier : filtres, titres, grille du mois commençant le lundi', () => {
     const film = {
       type: 'film',
@@ -85,6 +117,7 @@ describe('logique', () => {
       title: 'X',
       hasFile: false,
       monitored: true,
+      downloadStatus: 'missing',
     } as CalendarEvent;
     const ep = {
       type: 'episode',
@@ -94,11 +127,15 @@ describe('logique', () => {
       episode: 2,
       hasFile: true,
       monitored: true,
+      downloadStatus: 'downloaded',
     } as CalendarEvent;
     expect(matchEvent(film, 'digital', 'all')).toBe(true);
     expect(matchEvent(film, 'episode', 'all')).toBe(false);
-    expect(matchEvent(ep, 'all', 'available')).toBe(true);
-    expect(matchEvent(film, 'all', 'missing')).toBe(false);
+    // Filtre de statut : statut de téléchargement calculé par le serveur.
+    expect(matchEvent(ep, 'all', 'downloaded')).toBe(true);
+    expect(matchEvent(ep, 'all', 'missing')).toBe(false);
+    expect(matchEvent(film, 'all', 'missing')).toBe(true);
+    expect(matchEvent(film, 'digital', 'upcoming')).toBe(false);
     expect(eventTitle(ep)).toBe('Show S01E02');
     expect(startOfWeek('2026-11-22')).toBe('2026-11-16');
     const grid = monthGrid(2026, 10);
@@ -153,7 +190,7 @@ function discoverRoutes(extra: Record<string, FakeHandler> = {}): Record<string,
         popTv: [],
         upcoming: [],
         onAir: [],
-        topMovies: [],
+        topMovies: [card(71, { title: 'Top Movie' })],
         topTv: [],
       },
     }),
@@ -223,6 +260,107 @@ const detail = {
 };
 
 describe('découverte', () => {
+  it('suggestions : regardés (Tracearr), dossiers racine, populaires de l’année', async () => {
+    const year = new Date().getFullYear();
+    const { calls } = fakeFetch(
+      discoverRoutes({
+        'GET /api/decouverte/regardes': () => ({
+          body: { linked: true, seeds: 2, results: [card(41, { title: 'Because Watched' })] },
+        }),
+        'GET /api/decouverte/dossiers': () => ({
+          body: {
+            folders: [
+              {
+                key: 'radarr:films:/movies/kids',
+                service: 'radarr',
+                instance: 'Films',
+                label: 'kids',
+                path: '/movies/kids',
+                results: [card(51, { title: 'Kids Pick' })],
+              },
+            ],
+          },
+        }),
+        [`GET /api/decouverte/annee/${year}`]: () => ({
+          body: {
+            year,
+            movies: [card(61, { title: 'Year Movie' })],
+            tv: [card(62, { type: 'tv', title: 'Year Show' })],
+          },
+        }),
+      }),
+    );
+    const { wrapper, router } = await mountApp(
+      '/decouverte',
+      bootstrapOf({ user: ADMIN, services }),
+    );
+    mounted.push(wrapper);
+    await settle();
+    // « Pour vous » par défaut : seules ses requêtes partent.
+    expect(wrapper.get('[data-test="discover-tab-pour-vous"]').classes()).toContain('text-primary');
+    expect(calls.some((c) => c.url === '/api/decouverte')).toBe(false);
+    expect(calls.some((c) => c.url.includes('/api/decouverte/annee/'))).toBe(false);
+    expect(wrapper.find('[data-test="discover-by-year"]').exists()).toBe(false);
+    expect(wrapper.get('[data-test="discover-watched"]').text()).toContain('Because Watched');
+    const folder = wrapper.get('[data-test="discover-folder"]');
+    expect(folder.text()).toContain('For “kids”');
+    expect(folder.text()).toContain('Films folder');
+    expect(folder.text()).toContain('Kids Pick');
+    await wrapper.get('[data-test="discover-tab-par-annee"]').trigger('click');
+    await settle();
+    expect(router.currentRoute.value.query.onglet).toBe('par-annee');
+    expect(wrapper.find('[data-test="discover-watched"]').exists()).toBe(false);
+    const byYear = wrapper.get('[data-test="discover-by-year"]');
+    expect(byYear.text()).toContain(`Popular in ${year}`);
+    expect(byYear.text()).toContain('Year Movie');
+    await byYear.get('[data-test="by-year-tv"]').trigger('click');
+    await settle();
+    expect(wrapper.get('[data-test="discover-by-year"]').text()).toContain('Year Show');
+    expect(calls.filter((c) => c.url.includes('/api/decouverte/annee/'))).toHaveLength(1);
+    expect(calls.some((c) => c.url === '/api/decouverte')).toBe(false);
+
+    // Les mieux notés : les sections notées de l'accueil TMDB, sans les tendances.
+    await wrapper.get('[data-test="discover-tab-mieux-notes"]').trigger('click');
+    await settle();
+    expect(router.currentRoute.value.query.onglet).toBe('mieux-notes');
+    expect(wrapper.text()).toContain('Top Movie');
+    expect(wrapper.text()).not.toContain('Trending One');
+    expect(wrapper.text()).not.toContain('Hero Movie');
+  });
+
+  it('onglet de l’URL : « Tendances » sans les requêtes de « Pour vous »', async () => {
+    const { calls } = fakeFetch(discoverRoutes());
+    const { wrapper } = await mountApp(
+      '/decouverte?onglet=tendances',
+      bootstrapOf({ user: ADMIN, services }),
+    );
+    mounted.push(wrapper);
+    await settle();
+    expect(wrapper.text()).toContain('Hero Movie');
+    expect(wrapper.text()).toContain('Trending One');
+    expect(wrapper.text()).not.toContain('Top Movie');
+    expect(calls.some((c) => c.url.startsWith('/api/decouverte/mes-recommandations'))).toBe(false);
+    expect(calls.some((c) => c.url.startsWith('/api/decouverte/regardes'))).toBe(false);
+    expect(calls.some((c) => c.url.startsWith('/api/decouverte/dossiers'))).toBe(false);
+  });
+
+  it('sans compte Tracearr ni dossier : pas de rangée vide', async () => {
+    fakeFetch(
+      discoverRoutes({
+        'GET /api/decouverte/regardes': () => ({ body: { linked: false, seeds: 0, results: [] } }),
+        'GET /api/decouverte/dossiers': () => ({ body: { folders: [] } }),
+      }),
+    );
+    const { wrapper } = await mountApp('/decouverte', bootstrapOf({ user: ADMIN, services }));
+    mounted.push(wrapper);
+    await settle();
+    // « Pour vous » n'a rien à montrer : « Tendances » s'affiche.
+    expect(wrapper.get('[data-test="discover-tab-tendances"]').classes()).toContain('text-primary');
+    expect(wrapper.text()).toContain('Hero Movie');
+    expect(wrapper.find('[data-test="discover-watched"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="discover-folder"]').exists()).toBe(false);
+  });
+
   it('accueil, puis recherche corrigée avec retour à la requête exacte', async () => {
     const { calls } = fakeFetch(
       discoverRoutes({
@@ -376,6 +514,7 @@ describe('calendrier', () => {
       status: 'released',
       hasFile: false,
       monitored: true,
+      downloadStatus: 'missing',
       id: 7,
       runtime: 120,
       studio: 'WB',
@@ -415,10 +554,28 @@ describe('calendrier', () => {
     const events = wrapper.findAll('[data-test="calendar-event"]');
     expect(events).toHaveLength(1);
     expect(events[0]?.text()).toContain('Matrix');
+    // Statut de téléchargement : étiquette et liseré de sa couleur (thème).
+    expect(events[0]?.get('[data-test="calendar-event-status"]').text()).toBe(
+      i18n.global.t('calendar.status.missing'),
+    );
+    expect(events[0]?.attributes('style')).toContain('--v-theme-error');
+    // Filtre par statut : « À venir » masque la sortie manquante.
+    await wrapper.get('[data-test="calendar-status-upcoming"]').trigger('click');
+    await settle();
+    expect(wrapper.findAll('[data-test="calendar-event"]')).toHaveLength(0);
+    await wrapper.get('[data-test="calendar-status-all"]').trigger('click');
+    await settle();
     await wrapper.get('[data-test="view-month"]').trigger('click');
     await settle();
     expect(wrapper.find('[data-test="calendar-month"]').text()).toContain('Matrix');
     expect(localStorage.getItem('hubarr.calendar-view')).toBe('month');
+    // Les sorties de la case ne s'ouvrent pas : le clic choisit le jour.
+    const block = wrapper.get('[data-test="calendar-month"] .cal-block');
+    expect(block.element.tagName).toBe('SPAN');
+    await block.trigger('click');
+    await settle();
+    expect(document.querySelector('[data-test="quicklook"]')).toBeNull();
+    expect(wrapper.find('[data-test="calendar-day"]').text()).toContain('Matrix');
   });
 });
 

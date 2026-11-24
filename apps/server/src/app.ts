@@ -18,6 +18,7 @@ import { createAppCache, type AppCache } from './cache';
 import type { AppDatabase, Db } from './db/client';
 import { ServiceHealthCache, type HostResolver } from './integrations/http';
 import { LiveHub } from './live/hub';
+import { LogBuffer } from './logs';
 import { startMetricsLog } from './live/metrics';
 import { registerErrorHandling } from './http/errors';
 import { createPrefixResolver, stripBasePath } from './http/base-path';
@@ -34,6 +35,7 @@ import { eventsRoutes, registerSharedInvalidation } from './modules/events/route
 import { healthRoutes } from './modules/health/routes';
 import { ServiceHealthMonitor } from './modules/health/service-health';
 import { instanceRoutes } from './modules/instances/routes';
+import { logsRoutes } from './modules/logs/routes';
 import { movieAddRoutes } from './modules/movies/add-routes';
 import { movieDetailRoutes } from './modules/movies/detail-routes';
 import { moviePagesRoutes } from './modules/movies/pages-routes';
@@ -52,6 +54,8 @@ import { seerrRoutes } from './modules/seerr/routes';
 import { setupRoutes } from './modules/setup/routes';
 import { themeRoutes } from './modules/theme/routes';
 import { torrentRoutes } from './modules/torrents/routes';
+import { tracearrWatchRoutes } from './modules/tracearr-watch/routes';
+import { TracearrWatchSync, WATCH_SYNC_INTERVAL_MS } from './modules/tracearr-watch/sync';
 import { usenetRoutes } from './modules/usenet/routes';
 import { webRoutes } from './modules/web/routes';
 import access from './plugins/access';
@@ -73,6 +77,10 @@ declare module 'fastify' {
     cache: AppCache;
     /** Lectures partagées et pollers du flux temps réel (P5.1). */
     live: LiveHub;
+    /** Dernières entrées du journal (page « Journaux »). */
+    logs: LogBuffer;
+    /** Synchronisation des lectures Tracearr (« Vu », lot 7). */
+    watchSync: TracearrWatchSync;
   }
 }
 
@@ -98,6 +106,16 @@ export type BuildAppOptions = Pick<FastifyServerOptions, 'logger' | 'trustProxy'
   dispatcher?: Dispatcher;
   /** Résolution DNS de la garde SSRF (tests). */
   resolve?: HostResolver;
+  /**
+   * Tampon alimenté par la sortie du logger (`createLogStream`) ; sans lui
+   * (tests), un tampon vide.
+   */
+  logBuffer?: LogBuffer;
+  /**
+   * Période de la synchronisation des lectures Tracearr (15 min par défaut) ;
+   * `0` la désactive (tests).
+   */
+  watchSyncIntervalMs?: number;
   /** Routes supplémentaires, enregistrées après les plugins (tests). */
   routes?: FastifyPluginAsync[];
 };
@@ -113,6 +131,7 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
     rewriteUrl: (request) => stripBasePath(request.url ?? '/', basePath),
   });
   app.decorate('db', options.database.db);
+  app.decorate('logs', options.logBuffer ?? new LogBuffer());
   const upstream = {
     health: new ServiceHealthCache(options.now ? { now: options.now } : {}),
     ...(options.dispatcher ? { dispatcher: options.dispatcher } : {}),
@@ -133,8 +152,14 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
     new LiveHub({ ...(options.now ? { now: options.now } : {}), logger: app.log }),
   );
   const stopMetrics = startMetricsLog(app);
+  app.decorate('watchSync', new TracearrWatchSync(app, options.now));
+  const watchSyncInterval = options.watchSyncIntervalMs ?? WATCH_SYNC_INTERVAL_MS;
+  const stopWatchSync =
+    watchSyncInterval > 0 ? app.watchSync.start(watchSyncInterval) : () => undefined;
   app.addHook('onClose', async () => {
     stopMetrics();
+    stopWatchSync();
+    await app.watchSync.idle();
     // Les rafraîchissements en cours se terminent avant la fermeture de la base.
     await app.cache.queue.close();
     options.database.close();
@@ -165,6 +190,7 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
     dataDir: options.dataDir,
   });
   void app.register(instanceRoutes);
+  void app.register(logsRoutes);
   void app.register(movieRoutes);
   void app.register(movieDetailRoutes);
   void app.register(movieReleaseRoutes);
@@ -180,6 +206,7 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
   void app.register(torrentRoutes);
   void app.register(usenetRoutes);
   void app.register(activityRoutes);
+  void app.register(tracearrWatchRoutes);
   void app.register(seerrRoutes);
   void app.register(discoverRoutes);
   void app.register(calendarRoutes, now);

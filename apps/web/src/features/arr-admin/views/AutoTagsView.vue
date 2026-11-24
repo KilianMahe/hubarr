@@ -7,7 +7,7 @@
 // l'instance (`/autotagging/schema`), comme celles des formats, au lieu d'ids
 // et d'un JSON brut.
 import { autoTagSchema, autoTagsPageSchema, type AutoTag } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ConfirmDialog from '../../../components/ConfirmDialog.vue';
@@ -122,7 +122,7 @@ const labels = computed(() => ({
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="autotag-add"
         @click="edit(null)"
         >{{ t(ctx.key('btn_add')) }}</v-btn
@@ -156,7 +156,7 @@ const labels = computed(() => ({
             <td>{{ t(ctx.key(rule.removeTagsAutomatically ? 'yes' : 'no')) }}</td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('btn_edit_title'))"
@@ -165,7 +165,7 @@ const labels = computed(() => ({
                 @click="edit(rule)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

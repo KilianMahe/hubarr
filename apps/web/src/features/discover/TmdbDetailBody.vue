@@ -8,7 +8,14 @@
 // Écart : la bande-annonce s'ouvre sur YouTube au lieu d'être
 // intégrée (la CSP de Hubarr n'autorise aucun cadre tiers).
 import type { TmdbCard, TmdbDetail } from '@hubarr/shared';
-import { mdiClose, mdiOpenInNew, mdiPlay, mdiPlus, mdiStar, mdiStarOutline } from '@mdi/js';
+import {
+  msAdd,
+  msClose,
+  msOpenInNew,
+  msPlayArrowFill,
+  msStar,
+  msStarFill,
+} from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openQuickAdd } from '../../app/overlays';
@@ -19,8 +26,10 @@ import MediaRow from './MediaRow.vue';
 import { useWatchlist } from './useWatchlist';
 import { mediaDetailLocation } from '../../app/media-links';
 
-const props = defineProps<{ d: TmdbDetail }>();
-const emit = defineEmits<{ similar: [card: TmdbCard]; close: [] }>();
+// `inlineAdd` : « Ajouter » est confié au parent (fenêtre d'ajout ouverte),
+// au lieu de l'ajout rapide global.
+const props = defineProps<{ d: TmdbDetail; inlineAdd?: boolean }>();
+const emit = defineEmits<{ similar: [card: TmdbCard]; close: []; add: [detail: TmdbDetail] }>();
 const { t, n } = useI18n();
 const session = useSessionStore();
 const watchlist = useWatchlist();
@@ -95,11 +104,12 @@ function star(): void {
       class="align-end"
     >
       <v-btn
-        :icon="mdiClose"
+        :icon="msClose"
         variant="text"
         color="white"
         class="detail-close"
         :aria-label="t('decouverte.action.close')"
+        data-test="dialog-close"
         @click="emit('close')"
       />
       <div class="d-flex ga-4 pa-4 align-end">
@@ -125,7 +135,7 @@ function star(): void {
               size="small"
               variant="flat"
               color="surface"
-              :prepend-icon="mdiStar"
+              :prepend-icon="msStarFill"
               >{{ d.vote }}</v-chip
             >
             <v-chip
@@ -150,7 +160,7 @@ function star(): void {
       <div class="d-flex flex-wrap ga-2 mb-4">
         <v-btn
           v-if="watchlist.enabled.value"
-          :prepend-icon="inWatchlist ? mdiStar : mdiStarOutline"
+          :prepend-icon="inWatchlist ? msStarFill : msStar"
           :color="inWatchlist ? 'warning' : undefined"
           variant="tonal"
           data-test="detail-watchlist"
@@ -161,10 +171,10 @@ function star(): void {
         >
         <v-btn
           v-if="session.isAdmin && !d.inLibrary"
-          :prepend-icon="mdiPlus"
+          :prepend-icon="msAdd"
           color="primary"
           data-test="detail-add"
-          @click="openQuickAdd({ tmdb: { type: d.type, id: d.id } })"
+          @click="inlineAdd ? emit('add', d) : openQuickAdd({ tmdb: { type: d.type, id: d.id } })"
           >{{
             t('decouverte.modal.add_to', { service: d.type === 'tv' ? 'Sonarr' : 'Radarr' })
           }}</v-btn
@@ -181,8 +191,8 @@ function star(): void {
           :href="youtube(d.trailer.key)"
           target="_blank"
           rel="noopener"
-          :prepend-icon="mdiPlay"
-          :append-icon="mdiOpenInNew"
+          :prepend-icon="msPlayArrowFill"
+          :append-icon="msOpenInNew"
           variant="tonal"
           >{{ t('decouverte.modal.trailer') }}</v-btn
         >
@@ -192,7 +202,7 @@ function star(): void {
           target="_blank"
           rel="noopener"
           variant="text"
-          :append-icon="mdiOpenInNew"
+          :append-icon="msOpenInNew"
           >IMDb</v-btn
         >
       </div>

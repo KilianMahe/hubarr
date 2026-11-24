@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Historique paginé d'un client Usenet (`usenet/history.html.twig`, route
 // n° 599) : 50 entrées par page, page dans l'URL (`?page=`), « Page p / n ».
-import { mdiArrowLeft } from '@mdi/js';
+import { msArrowBack } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -41,7 +41,7 @@ const go = (target: number) => router.push({ query: { ...route.query, page: Stri
       "
     >
       <v-btn
-        :prepend-icon="mdiArrowLeft"
+        :prepend-icon="msArrowBack"
         variant="text"
         size="small"
         :to="{ name: 'usenet', params: { client } }"

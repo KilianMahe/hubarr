@@ -2,6 +2,23 @@
 
 ## Reading the logs
 
+### Logs page {#logs-page}
+
+Administrators find the last 1,000 log entries in the **Logs** section of [Settings](./settings.md#logs) (`/admin/settings#section-logs`; the former address `/admin/logs` leads there), without opening a terminal:
+
+- filter by minimum level, by service and by text (message and details);
+- click an entry to see its details, and **Copy** it as JSON to attach to a bug report;
+- **Download** saves the filtered entries as a `.jsonl` file (one JSON entry per line);
+- the list refreshes every 5 seconds while **Auto refresh** is on.
+
+When a call to a service fails, the entry names the service and instance, the method and path called, the HTTP status or network error code (`ECONNREFUSED`, `ENOTFOUND`, timeout…), the duration, and whether Hubarr now considers the service unreachable (`circuit: open`: calls are skipped for 10 seconds).
+
+Secrets are masked before anything is logged, on the page as in the container output: API keys, tokens, passwords, `Authorization` headers, cookies, credentials in URLs and sensitive URL parameters (`apikey=`, `token=`…) are replaced with `[redacted]`.
+
+The entries are kept in memory: they start over at each restart. By default, the page keeps the same level as the console (`HUBARR_LOG_LEVEL`, `warn`). To keep more detail on the page without making the console more verbose, set `HUBARR_LOG_BUFFER_LEVEL=info`.
+
+### Container output
+
 ```sh
 docker logs -f hubarr
 ```
@@ -36,7 +53,6 @@ After 5 failures in 15 minutes, login is blocked for that account and IP address
 | `variables d'environnement invalides` (invalid environment variables) | A variable has an incorrect value: the message names it                                                                              |
 | `EACCES` on `/data`                                                   | The container runs with `user:` and cannot write to the folder: drop `user:` and set `PUID`/`PGID`, or `chown -R <uid>:<gid> ./data` |
 | Database newer than the application                                   | You went back to an older version: reinstall the recent one, or restore `hubarr.db.bak`                                              |
-| Another application's database                                        | The folder holds a Prismarr or other database: mount a fresh folder                                                                  |
 
 ## Backup and restore
 
@@ -64,7 +80,3 @@ Installing a PWA requires HTTPS. See [Mobile app](./mobile-app.md).
 ## The iCal feed does not sync in my calendar app
 
 The `/calendrier.ics` feed requires a Hubarr session: it works in a logged-in browser, but not yet in calendar apps that do not send the session cookie.
-
-## I was using Prismarr
-
-Hubarr is a separate application: it imports neither Prismarr's database nor its exports. Install it in a fresh data folder, run the wizard again, then reconnect your services.

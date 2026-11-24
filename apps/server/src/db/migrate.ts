@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Préparation de la base au démarrage :
-//   1. refus d'une ancienne base Prismarr (Doctrine) : pas de migration de données ;
-//   2. refus d'une base créée par une version plus récente de Hubarr ;
-//   3. sauvegarde `hubarr.db.bak` avant d'appliquer de nouvelles migrations ;
-//   4. migrations Drizzle appliquées dans une seule transaction.
+//   1. refus d'une base créée par une version plus récente de Hubarr ;
+//   2. sauvegarde `hubarr.db.bak` avant d'appliquer de nouvelles migrations ;
+//   3. migrations Drizzle appliquées dans une seule transaction.
 
-import { existsSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
@@ -13,22 +12,7 @@ import { openDatabase, type AppDatabase } from './client';
 
 export const DATABASE_FILE = 'hubarr.db';
 export const BACKUP_FILE = `${DATABASE_FILE}.bak`;
-/** Fichier de base de Prismarr PHP (`var/data/prismarr.db`). */
-export const LEGACY_DATABASE_FILE = 'prismarr.db';
-/** Table créée par Doctrine Migrations dans toute base Prismarr. */
-const DOCTRINE_TABLE = 'doctrine_migration_versions';
 const MIGRATIONS_TABLE = '__drizzle_migrations';
-
-/** La base (ou le dossier de données) provient de Prismarr PHP. */
-export class LegacyDatabaseError extends Error {
-  override readonly name = 'LegacyDatabaseError';
-  constructor(readonly file: string) {
-    super(
-      `${file} est une base Prismarr (Doctrine) : Hubarr ne reprend pas les données de Prismarr. ` +
-        'Utilisez un volume de données neuf, puis refaites l’assistant d’installation.',
-    );
-  }
-}
 
 /** La base contient des migrations inconnues de cette version (retour à une version antérieure). */
 export class DatabaseTooNewError extends Error {
@@ -91,7 +75,6 @@ export async function runMigrations(
   options: RunMigrationsOptions,
 ): Promise<MigrationReport> {
   const label = options.label ?? DATABASE_FILE;
-  if (hasTable(database, DOCTRINE_TABLE)) throw new LegacyDatabaseError(label);
 
   const migrations = readMigrationFiles({ migrationsFolder: options.migrationsFolder });
   const last = lastAppliedMigration(database);
@@ -125,10 +108,6 @@ export async function prepareDatabase(
   options: PrepareDatabaseOptions,
 ): Promise<{ database: AppDatabase; report: MigrationReport }> {
   mkdirSync(options.dataDir, { recursive: true });
-
-  // Un volume Prismarr monté tel quel : on refuse plutôt que de démarrer « vide » à côté.
-  const legacyFile = join(options.dataDir, LEGACY_DATABASE_FILE);
-  if (existsSync(legacyFile)) throw new LegacyDatabaseError(legacyFile);
 
   const file = join(options.dataDir, DATABASE_FILE);
   const database = openDatabase(file);

@@ -5,7 +5,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { LIBRARY, MOCKS_URL } from './env';
-import { detailAction, librarySearch, openServiceAdmin, openServicePage } from './nav';
+import { librarySearch, openServiceAdmin, openServicePage } from './nav';
 
 test.beforeEach(async ({ request }) => {
   await request.post(`${MOCKS_URL}/radarr/__reset`);
@@ -22,7 +22,7 @@ async function openLibrary(page: Page, query = ''): Promise<void> {
 
 test('bibliothèque : filtre, fiche et suivi', async ({ page, isMobile }) => {
   await openLibrary(page);
-  await librarySearch(page, isMobile, 'movies-search').fill('Orbite');
+  await (await librarySearch(page, isMobile, 'movies-search')).fill('Orbite');
   await expect(page).toHaveURL(/q=Orbite/);
   const content = page.getByTestId('movies-content');
   await expect(content).toContainText('Orbite Basse II');
@@ -46,10 +46,7 @@ test('bibliothèque : filtre, fiche et suivi', async ({ page, isMobile }) => {
   await expect(page).toHaveURL(/q=Orbite/);
 });
 
-test('fiche : recherche interactive et grab, le film entre dans la file', async ({
-  page,
-  isMobile,
-}) => {
+test('fiche : recherche interactive et grab, le film entre dans la file', async ({ page }) => {
   await openLibrary(page);
   await expect(page.getByTestId('queue-count')).toHaveText('1');
   // L'ancien lien profond `?open=` mène à la page du film.
@@ -57,7 +54,7 @@ test('fiche : recherche interactive et grab, le film entre dans la file', async 
   await expect(page).toHaveURL(/\/films\/7$/);
   const detail = page.getByTestId('movie-detail');
   await expect(detail.getByTestId('movie-title')).toHaveText('Minuit à Valparaíso (2023)');
-  await detailAction(page, isMobile, 'movie-speed-dial', 'movie-interactive');
+  await detail.getByTestId('movie-interactive').click();
   // Releases en feuille (bottom sheet sur mobile, dialogue sur desktop).
   const releases = page.getByTestId('movie-releases');
   await expect(releases.getByTestId('release-row')).toHaveCount(3);
@@ -69,20 +66,47 @@ test('fiche : recherche interactive et grab, le film entre dans la file', async 
   await expect(page.getByTestId('queue-count')).toHaveText('2', { timeout: 15_000 });
 });
 
+test('fiche : suggestions TMDB, fiche TMDB ou fiche Hubarr', async ({ page }) => {
+  await page.goto(`${LIBRARY}/7`);
+  const detail = page.getByTestId('movie-detail');
+  await expect(detail.getByTestId('movie-title')).toHaveText('Minuit à Valparaíso (2023)');
+  // Faux TMDB : recommandations « Le Grand Détour » et « Nébuleuse » ; le
+  // doublon est retiré des similaires, où reste « Orbite Basse » (possédé).
+  const recommendations = detail.getByTestId('suggestions-recommendations');
+  await expect(recommendations).toContainText('Nébuleuse');
+  const similar = detail.getByTestId('suggestions-similar');
+  await expect(similar).not.toContainText('Le Grand Détour');
+  await recommendations.getByTestId('media-card-movie-9801').click();
+  const tmdb = page.getByTestId('tmdb-detail');
+  await expect(tmdb).toContainText('Nébuleuse');
+  await tmdb.getByTestId('dialog-close').click();
+  await expect(tmdb).toBeHidden();
+  await similar.getByTestId('media-card-movie-9001').click();
+  await expect(page).toHaveURL(/\/films\/1$/);
+  await expect(detail.getByTestId('movie-title')).toHaveText('Orbite Basse (2019)');
+});
+
 test('ajout d’un film depuis la recherche', async ({ page, isMobile }) => {
   await openLibrary(page);
   await page.getByTestId('movies-add').click();
   const dialog = page.getByTestId('add-movie');
   await dialog.getByTestId('add-movie-search').locator('input').fill('Détour');
   await expect(dialog.getByTestId('add-movie-result-item')).toHaveCount(2);
-  await dialog.getByTestId('add-movie-result-item').first().click();
+  await dialog.getByTestId('add-movie-result-item').first().getByTestId('add-movie-pick').click();
+  await expect(dialog.getByTestId('add-movie-form')).toContainText('Le Grand Détour (2020)');
+  // « Retour » : la recherche et ses résultats sont conservés.
+  await dialog.getByTestId('add-movie-back').click();
+  await expect(dialog.getByTestId('add-movie-form')).toBeHidden();
+  await expect(dialog.getByTestId('add-movie-search').locator('input')).toHaveValue('Détour');
+  await expect(dialog.getByTestId('add-movie-result-item')).toHaveCount(2);
+  await dialog.getByTestId('add-movie-result-item').first().getByTestId('add-movie-pick').click();
   await expect(dialog.getByTestId('add-movie-form')).toContainText('Le Grand Détour (2020)');
   await dialog.getByTestId('add-movie-confirm').click();
   await expect(dialog.getByTestId('add-movie-result')).toContainText('Le Grand Détour');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   // Le film ajouté apparaît dans la bibliothèque (relue après l'ajout).
-  await librarySearch(page, isMobile, 'movies-search').fill('Détour');
+  await (await librarySearch(page, isMobile, 'movies-search')).fill('Détour');
   await expect(page.getByTestId('movies-content')).toContainText('Le Grand Détour');
 });
 

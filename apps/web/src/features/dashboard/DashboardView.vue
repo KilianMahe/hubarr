@@ -1,26 +1,29 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 // Tableau de bord (`dashboard/index.html.twig`, routes n° 31 à 42) : bandeau
-// épinglé en haut, puis les 9 sections dans l'ordre et la visibilité choisis
+// épinglé en haut, puis les sections dans l'ordre et la visibilité choisis
 // (`DashboardSections`). Chaque carte se charge seule et se masque sans son
 // service ; une carte en panne n'affecte pas les autres.
 //
-// Mode édition (admins) : réordonner par glisser-déposer ou par les boutons
-// Monter/Descendre, masquer une section, enregistrer (paramètres
+// Mode édition (admins) : réordonner par glisser-déposer (souris ou doigt,
+// poignée de la ligne) ou par les boutons Monter/Descendre, masquer une section, enregistrer (paramètres
 // d'affichage) ou annuler.
 import {
   dashboardSectionLabelKey,
   type DashboardLayout,
   type DashboardSection,
 } from '@hubarr/shared';
-import { mdiArrowDown, mdiArrowUp, mdiDragVertical, mdiPencil } from '@mdi/js';
+import { msArrowDownward, msArrowUpward, msDragIndicator, msEdit } from '../../components/symbols';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useNotifyStore } from '../../app/stores/notify';
+import { useSortable } from '../../app/sortable';
 import { useSessionStore } from '../../app/stores/session';
 import { saveSettings } from '../settings/settings-api';
 import ActivityCard from './cards/ActivityCard.vue';
+import DisksCard from './cards/DisksCard.vue';
+import DownloadsCard from './cards/DownloadsCard.vue';
 import EmbyCard from './cards/EmbyCard.vue';
 import HealthCard from './cards/HealthCard.vue';
 import HeroCard from './cards/HeroCard.vue';
@@ -47,6 +50,8 @@ const page = useQuery({
 const CARDS: Record<Exclude<DashboardSection, 'watchlist'>, Component> = {
   upcoming: UpcomingCard,
   queue: QueueCard,
+  downloads: DownloadsCard,
+  disks: DisksCard,
   requests: RequestsCard,
   health: HealthCard,
   plex: ActivityCard,
@@ -65,6 +70,11 @@ function shown(key: DashboardSection): boolean {
       return c.radarr || c.sonarr;
     case 'queue':
       // Files des instances : routes réservées aux admins.
+      return (c.radarr || c.sonarr) && session.isAdmin;
+    case 'downloads':
+      // Statistiques (lot 13) : données des clients, réservées aux admins.
+      return c.downloads && session.isAdmin;
+    case 'disks':
       return (c.radarr || c.sonarr) && session.isAdmin;
     case 'requests':
       return c.seerr;
@@ -95,16 +105,8 @@ function startEdit(): void {
 function move(index: number, delta: -1 | 1): void {
   draft.value = moveSection(draft.value, index, delta);
 }
-const dragged = ref<number | null>(null);
-function onDrop(index: number): void {
-  const from = dragged.value;
-  dragged.value = null;
-  if (from === null || from === index) return;
-  const next = [...draft.value];
-  const [moved] = next.splice(from, 1);
-  if (moved !== undefined) next.splice(index, 0, moved);
-  draft.value = next;
-}
+const editor = ref<HTMLElement | null>(null);
+const sortable = useSortable(draft, editor);
 const save = useMutation({
   mutationFn: () =>
     saveSettings({
@@ -130,49 +132,57 @@ const save = useMutation({
     <HeroCard />
 
     <v-card v-if="editing" rounded="xl" class="mb-6" data-test="layout-editor">
-      <v-list density="comfortable">
-        <v-list-item
-          v-for="(section, index) in draft"
-          :key="section.key"
-          draggable="true"
-          :class="{ 'opacity-50': !section.visible }"
-          :data-test="`layout-row-${section.key}`"
-          @dragstart="dragged = index"
-          @dragover.prevent
-          @drop="onDrop(index)"
-        >
-          <template #prepend>
-            <v-icon :icon="mdiDragVertical" class="drag-handle" />
-          </template>
-          <v-list-item-title>{{ t(dashboardSectionLabelKey(section.key)) }}</v-list-item-title>
-          <template #append>
-            <v-btn
-              :icon="mdiArrowUp"
-              size="small"
-              variant="text"
-              :disabled="index === 0"
-              :aria-label="t('admin.display.dashboard_layout.move_up')"
-              @click="move(index, -1)"
-            />
-            <v-btn
-              :icon="mdiArrowDown"
-              size="small"
-              variant="text"
-              :disabled="index === draft.length - 1"
-              :aria-label="t('admin.display.dashboard_layout.move_down')"
-              @click="move(index, 1)"
-            />
-            <v-switch
-              v-model="section.visible"
-              density="compact"
-              hide-details
-              color="primary"
-              class="ms-2"
-              :aria-label="t('dashboard.layout.hide')"
-            />
-          </template>
-        </v-list-item>
-      </v-list>
+      <div ref="editor">
+        <v-list density="comfortable">
+          <v-list-item
+            v-for="(section, index) in draft"
+            :key="section.key"
+            :class="{
+              'opacity-50': !section.visible,
+              'layout-row--dragging': sortable.dragging.value === index,
+            }"
+            data-sortable-item
+            :data-test="`layout-row-${section.key}`"
+          >
+            <template #prepend>
+              <v-icon
+                :icon="msDragIndicator"
+                class="drag-handle"
+                :aria-label="t('admin.display.dashboard_layout.drag')"
+                data-test="layout-drag"
+                v-on="sortable.handle(index)"
+              />
+            </template>
+            <v-list-item-title>{{ t(dashboardSectionLabelKey(section.key)) }}</v-list-item-title>
+            <template #append>
+              <v-btn
+                :icon="msArrowUpward"
+                size="small"
+                variant="text"
+                :disabled="index === 0"
+                :aria-label="t('admin.display.dashboard_layout.move_up')"
+                @click="move(index, -1)"
+              />
+              <v-btn
+                :icon="msArrowDownward"
+                size="small"
+                variant="text"
+                :disabled="index === draft.length - 1"
+                :aria-label="t('admin.display.dashboard_layout.move_down')"
+                @click="move(index, 1)"
+              />
+              <v-switch
+                v-model="section.visible"
+                density="compact"
+                hide-details
+                color="primary"
+                class="ms-2"
+                :aria-label="t('dashboard.layout.hide')"
+              />
+            </template>
+          </v-list-item>
+        </v-list>
+      </div>
     </v-card>
 
     <template v-else>
@@ -208,7 +218,7 @@ const save = useMutation({
         v-else
         variant="tonal"
         size="small"
-        :prepend-icon="mdiPencil"
+        :prepend-icon="msEdit"
         data-test="layout-edit"
         @click="startEdit"
         >{{ t('dashboard.layout.edit') }}</v-btn
@@ -243,5 +253,11 @@ const save = useMutation({
 }
 .drag-handle {
   cursor: grab;
+  /* Le doigt déplace la ligne au lieu de faire défiler la page. */
+  touch-action: none;
+}
+.layout-row--dragging {
+  background: rgba(var(--v-theme-primary), 0.12);
+  cursor: grabbing;
 }
 </style>

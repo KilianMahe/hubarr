@@ -6,7 +6,7 @@
 // chiffres sont calculés par le serveur sur l'historique récent (fenêtre
 // bornée, signalée quand elle ne couvre pas tout). L'adresse porte un jeton
 // opaque, jamais l'identifiant Tracearr (D148).
-import { mdiAccountOff, mdiArrowLeft } from '@mdi/js';
+import { msArrowBack, msPersonOff } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -68,7 +68,7 @@ function share(list: { plays: number }[], plays: number): number {
 
     <v-btn
       :to="{ name: TRACEARR_ROUTES.users.name }"
-      :prepend-icon="mdiArrowLeft"
+      :prepend-icon="msArrowBack"
       variant="text"
       size="small"
       class="mb-2 ms-n2"
@@ -78,7 +78,7 @@ function share(list: { plays: number }[], plays: number): number {
 
     <EmptyState
       v-if="notFound"
-      :icon="mdiAccountOff"
+      :icon="msPersonOff"
       :title="t('tracearr.user.not_found')"
       data-test="tracearr-user-not-found"
     />

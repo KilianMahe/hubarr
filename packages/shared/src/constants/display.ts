@@ -160,6 +160,9 @@ export const DASHBOARD_SECTIONS = [
   'upcoming',
   // Files d'attente Radarr et Sonarr (P5d.1, V21).
   'queue',
+  // Statistiques des admins (lot 13) : Go téléchargés par jour, espace disque.
+  'downloads',
+  'disks',
   'requests',
   'health',
   'plex',

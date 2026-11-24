@@ -5,7 +5,7 @@
 // statistiques (films, séries, sorties à 7 jours) chargées à part, en tuiles
 // sous le bandeau.
 import { dayInZone, hourInZone } from '@hubarr/shared';
-import { mdiCalendar, mdiMovieOpen, mdiStar, mdiTelevisionClassic } from '@mdi/js';
+import { msCalendarToday, msMovie, msStarFill, msTv } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -42,14 +42,14 @@ const spot = computed(() => hero.data.value?.spotlight ?? null);
 // Desktop (P5c.3, V1) : bandeau limité en hauteur, contenu resserré.
 const { mdAndUp } = useDisplay();
 const stats = computed(() => [
-  { icon: mdiMovieOpen, value: hero.data.value?.stats.films, key: 'dashboard.hero.stats.films' },
+  { icon: msMovie, value: hero.data.value?.stats.films, key: 'dashboard.hero.stats.films' },
   {
-    icon: mdiTelevisionClassic,
+    icon: msTv,
     value: hero.data.value?.stats.series,
     key: 'dashboard.hero.stats.series',
   },
   {
-    icon: mdiCalendar,
+    icon: msCalendarToday,
     value: hero.data.value?.upcomingCount,
     key: 'dashboard.hero.stats.upcoming_7d',
   },
@@ -85,7 +85,7 @@ const stats = computed(() => [
             </div>
             <div class="d-flex flex-wrap ga-2 text-body-small align-center">
               <span v-if="spot.rating"
-                ><v-icon :icon="mdiStar" size="14" />
+                ><v-icon :icon="msStarFill" size="14" />
                 {{ Math.round(spot.rating * 10) / 10 }}/10</span
               >
               <span v-if="spot.year">{{ spot.year }}</span>

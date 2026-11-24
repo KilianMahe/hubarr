@@ -5,7 +5,8 @@
 // (masquées si TMDB n'est pas configuré). Un clic sur une affiche lance la
 // recherche du titre dans Radarr/Sonarr (`pick`).
 import type { TmdbCard } from '@hubarr/shared';
-import { mdiCheck, mdiMovieSearchOutline, mdiTelevisionPlay } from '@mdi/js';
+import ScrollRow from './ScrollRow.vue';
+import { msCheck, msLiveTv, msMovie } from './symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -29,23 +30,19 @@ const prefix = computed(() => (props.type === 'movie' ? 'movie' : 'series'));
 <template>
   <div class="add-suggestions" data-test="add-suggestions">
     <div class="add-suggestions__intro">
-      <v-icon
-        :icon="type === 'movie' ? mdiMovieSearchOutline : mdiTelevisionPlay"
-        size="48"
-        color="service-text"
-      />
+      <v-icon :icon="type === 'movie' ? msMovie : msLiveTv" size="48" color="service-text" />
       <div class="text-title-medium mt-2">{{ t(`media.add.empty_${prefix}_title`) }}</div>
       <p class="text-body-medium text-muted mt-1">{{ t(`media.add.empty_${prefix}_hint`) }}</p>
     </div>
 
     <template v-if="trending.isPending.value">
-      <div class="add-suggestions__row" aria-hidden="true">
+      <ScrollRow item-width="112px" aria-hidden="true">
         <v-skeleton-loader v-for="n in 6" :key="n" type="image" class="add-suggestions__card" />
-      </div>
+      </ScrollRow>
     </template>
     <template v-else-if="cards.length > 0">
       <h3 class="text-title-small mb-2">{{ t(`media.add.trending_${prefix}`) }}</h3>
-      <div class="add-suggestions__row">
+      <ScrollRow item-width="112px">
         <button
           v-for="card in cards"
           :key="card.id"
@@ -71,13 +68,13 @@ const prefix = computed(() => (props.type === 'movie' ? 'movie' : 'series'));
               class="ma-1"
               :aria-label="t('media.add.in_library')"
             >
-              <v-icon :icon="mdiCheck" size="12" />
+              <v-icon :icon="msCheck" size="12" />
             </v-chip>
           </v-img>
           <span class="add-suggestions__title text-body-small">{{ card.title }}</span>
           <span v-if="card.year" class="text-label-small text-muted">{{ card.year }}</span>
         </button>
-      </div>
+      </ScrollRow>
     </template>
   </div>
 </template>
@@ -89,15 +86,6 @@ const prefix = computed(() => (props.type === 'movie' ? 'movie' : 'series'));
   align-items: center;
   text-align: center;
   padding: 24px 16px 20px;
-}
-.add-suggestions__row {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 112px;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  scroll-snap-type: x proximity;
 }
 .add-suggestions__card {
   display: flex;
@@ -111,7 +99,6 @@ const prefix = computed(() => (props.type === 'movie' ? 'movie' : 'series'));
   font: inherit;
   text-align: left;
   cursor: pointer;
-  scroll-snap-align: start;
 }
 .add-suggestions__card:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary));

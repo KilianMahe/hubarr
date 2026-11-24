@@ -29,7 +29,7 @@ import type {
 } from './types';
 
 /**
- * Délai de la bibliothèque complète (issue #41 de Prismarr) : sur une grosse
+ * Délai de la bibliothèque complète : sur une grosse
  * instance, `/api/v3/movie` dépasse les 8 s par défaut. Réservé aux routes de
  * bibliothèque ; les widgets fréquents gardent 8 s.
  */

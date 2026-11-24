@@ -16,27 +16,27 @@ import {
   type TorrentSort,
 } from '@hubarr/shared';
 import {
-  mdiAlertCircleOutline,
-  mdiArrowDownBold,
-  mdiArrowUpBold,
-  mdiCheckAll,
-  mdiCheckCircleOutline,
-  mdiDelete,
-  mdiFlash,
-  mdiFolderOutline,
-  mdiFormatListBulleted,
-  mdiMagnify,
-  mdiMagnifyClose,
-  mdiPause,
-  mdiPauseCircleOutline,
-  mdiPlay,
-  mdiPlus,
-  mdiProgressClock,
-  mdiRefresh,
-  mdiTable,
-  mdiTagOutline,
-  mdiViewHeadline,
-} from '@mdi/js';
+  msAdd,
+  msArrowDownwardAlt,
+  msArrowUpwardAlt,
+  msBolt,
+  msCheckCircle,
+  msDelete,
+  msDoneAll,
+  msError,
+  msFolder,
+  msFormatListBulleted,
+  msPauseCircle,
+  msPauseFill,
+  msPlayArrowFill,
+  msRefresh,
+  msSearch,
+  msSearchOff,
+  msSell,
+  msTable,
+  msTimelapse,
+  msViewHeadline,
+} from '../../components/symbols';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
@@ -189,14 +189,14 @@ function setTag(tag: string): void {
   state.page = 1;
 }
 const FILTER_ICONS: Record<string, string> = {
-  all: mdiCheckAll,
-  active: mdiFlash,
-  downloading: mdiArrowDownBold,
-  seeding: mdiArrowUpBold,
-  stalled: mdiProgressClock,
-  paused: mdiPauseCircleOutline,
-  completed: mdiCheckCircleOutline,
-  error: mdiAlertCircleOutline,
+  all: msDoneAll,
+  active: msBolt,
+  downloading: msArrowDownwardAlt,
+  seeding: msArrowUpwardAlt,
+  stalled: msTimelapse,
+  paused: msPauseCircle,
+  completed: msCheckCircle,
+  error: msError,
 };
 // Filtres avec compteurs (les tuiles de l'en-tête de P3d, P5b.1 Q1).
 const filterOptions = computed<(FilterChipOption<string> & { count: number | null })[]>(() => {
@@ -212,7 +212,7 @@ const filterOptions = computed<(FilterChipOption<string> & { count: number | nul
   return filters.value.map((filter) => ({
     value: filter,
     label: tk(`filters.${filter}`),
-    icon: FILTER_ICONS[filter] ?? mdiCheckAll,
+    icon: FILTER_ICONS[filter] ?? msDoneAll,
     count: counts[filter] ?? null,
   }));
 });
@@ -249,9 +249,9 @@ function sortBy(sort: TorrentSort): void {
   }
 }
 const viewOptions = computed<ViewModeOption<TorrentView>[]>(() => [
-  { value: 'list', icon: mdiFormatListBulleted, label: tk('view.list_title') },
-  { value: 'table', icon: mdiTable, label: tk('view.table_title') },
-  { value: 'compact', icon: mdiViewHeadline, label: tk('view.compact_title') },
+  { value: 'list', icon: msFormatListBulleted, label: tk('view.list_title') },
+  { value: 'table', icon: msTable, label: tk('view.table_title') },
+  { value: 'compact', icon: msViewHeadline, label: tk('view.compact_title') },
 ]);
 
 const refresh = () => queryClient.invalidateQueries({ queryKey: torrentKeys.all(props.client) });
@@ -404,7 +404,7 @@ const tagOptions = computed(() => [
     <ServiceHeader :service="client" :title="title" :subtitle="subtitle">
       <v-btn
         v-if="mdAndUp"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         color="service"
         variant="flat"
         data-test="torrent-add-open"
@@ -412,7 +412,7 @@ const tagOptions = computed(() => [
         >{{ tk('toolbar.add') }}</v-btn
       >
       <v-btn
-        :icon="mdiPause"
+        :icon="msPauseFill"
         variant="tonal"
         size="small"
         :title="tk('toolbar.pause_all_title')"
@@ -421,7 +421,7 @@ const tagOptions = computed(() => [
         @click="pauseAll"
       />
       <v-btn
-        :icon="mdiPlay"
+        :icon="msPlayArrowFill"
         variant="tonal"
         size="small"
         :title="tk('toolbar.resume_all_title')"
@@ -497,7 +497,7 @@ const tagOptions = computed(() => [
                 v-for="option in categoryOptions"
                 :key="option.value"
                 :value="option.value"
-                :prepend-icon="mdiFolderOutline"
+                :prepend-icon="msFolder"
                 :title="option.title"
               />
             </v-list>
@@ -517,7 +517,7 @@ const tagOptions = computed(() => [
                 v-for="option in tagOptions"
                 :key="option.value"
                 :value="option.value"
-                :prepend-icon="mdiTagOutline"
+                :prepend-icon="msSell"
                 :title="option.title"
               />
             </v-list>
@@ -545,7 +545,7 @@ const tagOptions = computed(() => [
             />
             <v-filter-field
               v-model="searchInput"
-              :prepend-inner-icon="mdiMagnify"
+              :prepend-inner-icon="msSearch"
               :placeholder="tk('filters.search_placeholder')"
               :aria-label="tk('filters.search_placeholder')"
               density="compact"
@@ -604,7 +604,7 @@ const tagOptions = computed(() => [
             <v-card variant="flat" border>
               <EmptyState
                 v-if="torrents.length === 0"
-                :icon="mdiMagnifyClose"
+                :icon="msSearchOff"
                 :title="tk('empty.no_match')"
                 data-test="torrents-empty"
               />
@@ -669,7 +669,7 @@ const tagOptions = computed(() => [
                 size="small"
                 variant="tonal"
                 color="success"
-                :prepend-icon="mdiPlay"
+                :prepend-icon="msPlayArrowFill"
                 data-test="bulk-resume"
                 @click="bulk('resume')"
                 >{{ tk('bulk.resume') }}</v-btn
@@ -678,7 +678,7 @@ const tagOptions = computed(() => [
                 size="small"
                 variant="tonal"
                 color="warning"
-                :prepend-icon="mdiPause"
+                :prepend-icon="msPauseFill"
                 data-test="bulk-pause"
                 @click="bulk('pause')"
                 >{{ tk('bulk.pause') }}</v-btn
@@ -686,7 +686,7 @@ const tagOptions = computed(() => [
               <v-btn
                 size="small"
                 variant="tonal"
-                :prepend-icon="mdiRefresh"
+                :prepend-icon="msRefresh"
                 @click="bulk('recheck')"
                 >{{ tk('bulk.recheck') }}</v-btn
               >
@@ -705,7 +705,7 @@ const tagOptions = computed(() => [
                 size="small"
                 variant="tonal"
                 color="error"
-                :prepend-icon="mdiDelete"
+                :prepend-icon="msDelete"
                 data-test="bulk-delete"
                 @click="askDelete([...selected])"
                 >{{ tk('bulk.delete') }}</v-btn

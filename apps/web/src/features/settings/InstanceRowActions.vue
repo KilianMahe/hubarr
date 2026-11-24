@@ -4,7 +4,7 @@
 // paramètres de l'instance (page à onglets, P5d.3, D149), test de connexion,
 // puis menu défaut, activation, édition, suppression.
 import type { ServiceInstance } from '@hubarr/shared';
-import { mdiCogOutline, mdiDelete, mdiDotsVertical, mdiFlash, mdiPencil } from '@mdi/js';
+import { msBolt, msDelete, msEdit, msMoreVert, msSettings } from '../../components/symbols';
 import { useI18n } from 'vue-i18n';
 import type { RouteLocationRaw } from 'vue-router';
 
@@ -30,7 +30,7 @@ const { t } = useI18n();
     <v-btn
       v-if="settingsTo"
       :to="settingsTo"
-      :icon="mdiCogOutline"
+      :icon="msSettings"
       :aria-label="t('admin.service_admin.open_instance', { name: row.name })"
       :title="t('admin.service_admin.open_instance', { name: row.name })"
       variant="text"
@@ -38,7 +38,7 @@ const { t } = useI18n();
       :data-test="`instance-settings-${row.slug}`"
     />
     <v-btn
-      :icon="mdiFlash"
+      :icon="msBolt"
       :aria-label="t('admin.services.test')"
       :title="t('admin.services.test')"
       :loading="testing"
@@ -51,7 +51,7 @@ const { t } = useI18n();
       <template #activator="{ props: menu }">
         <v-btn
           v-bind="menu"
-          :icon="mdiDotsVertical"
+          :icon="msMoreVert"
           :aria-label="t('admin.instances.col.actions')"
           variant="text"
           size="small"
@@ -79,12 +79,12 @@ const { t } = useI18n();
           </template>
         </v-list-item>
         <v-list-item
-          :prepend-icon="mdiPencil"
+          :prepend-icon="msEdit"
           :title="t('admin.instances.action.edit')"
           @click="emit('edit')"
         />
         <v-list-item
-          :prepend-icon="mdiDelete"
+          :prepend-icon="msDelete"
           :title="t('admin.instances.action.delete')"
           base-color="error"
           @click="emit('remove')"

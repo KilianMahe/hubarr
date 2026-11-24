@@ -5,7 +5,7 @@
 // par leur nom (l'original demandait leurs ids séparés par des virgules) ; le
 // profil par défaut (sans étiquette, dernier) ne se supprime pas.
 import { delayProfileSchema, type DelayProfile } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -119,7 +119,7 @@ const protocols = [
     <template #actions>
       <v-btn
         color="service"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         size="small"
         data-test="delay-add"
         @click="edit(null)"
@@ -161,7 +161,7 @@ const protocols = [
             <td>{{ t(ctx.key(profile.bypassIfHighestQuality ? 'yes' : 'no')) }}</td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('edit'))"
@@ -171,7 +171,7 @@ const protocols = [
               />
               <v-btn
                 v-if="!isDefaultDelayProfile(profile)"
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

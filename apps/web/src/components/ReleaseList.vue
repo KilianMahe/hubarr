@@ -5,7 +5,14 @@
 // seeds, langues, âge), cartes sur mobile. Une release refusée montre ses
 // motifs ; le score détaille les formats personnalisés du profil.
 import type { ArrRelease } from '@hubarr/shared';
-import { mdiAlertCircle, mdiCheck, mdiClose, mdiDownload, mdiMenuDown, mdiMenuUp } from '@mdi/js';
+import {
+  msArrowDropDown,
+  msArrowDropUp,
+  msCheck,
+  msClose,
+  msDownload,
+  msErrorFill,
+} from './symbols';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
@@ -68,10 +75,10 @@ function seeds(release: ArrRelease): string {
   return release.seeders === null ? '—' : String(release.seeders);
 }
 const GRAB_ICONS: Record<GrabState | 'idle', string> = {
-  idle: mdiDownload,
-  pending: mdiDownload,
-  done: mdiCheck,
-  failed: mdiClose,
+  idle: msDownload,
+  pending: msDownload,
+  done: msCheck,
+  failed: msClose,
 };
 const GRAB_COLORS: Record<GrabState | 'idle', string> = {
   idle: 'service',
@@ -108,7 +115,7 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
             {{ t(column.label) }}
             <v-icon
               v-if="column.key && sortKey === column.key"
-              :icon="ascending ? mdiMenuUp : mdiMenuDown"
+              :icon="ascending ? msArrowDropUp : msArrowDropDown"
               size="16"
             />
           </th>
@@ -120,7 +127,7 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
           <td class="release-list__title" :title="release.title">
             <v-icon
               v-if="!release.approved"
-              :icon="mdiAlertCircle"
+              :icon="msErrorFill"
               color="error"
               size="14"
               class="mr-1"
@@ -212,7 +219,7 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
             <div class="text-body-small font-weight-medium release-list__wrap">
               <v-icon
                 v-if="!release.approved"
-                :icon="mdiAlertCircle"
+                :icon="msErrorFill"
                 color="error"
                 size="14"
                 :title="release.rejections.join('\n')"

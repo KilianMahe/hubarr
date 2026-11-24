@@ -16,27 +16,23 @@ import { i18n, setLocale } from '../src/app/plugins/i18n';
 import { RADARR_BOTTOM_NAV } from '../src/features/movies/radarr-pages';
 import { SEERR_BOTTOM_NAV } from '../src/features/seerr/seerr-nav';
 import { SONARR_BOTTOM_NAV } from '../src/features/series/sonarr-pages';
-import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle } from './helpers';
+import { serviceSettingsBottomNav } from '../src/app/service-admin';
+import { SETTINGS_BOTTOM_NAV } from '../src/features/settings/sections';
+import { ADMIN, bootstrapOf, fakeFetch, mountApp, setViewportWidth, settle } from './helpers';
 
 const t = (key: string, values: Record<string, unknown> = {}) => i18n.global.t(key, values);
 const mounted: VueWrapper[] = [];
 const desktopWidth = window.innerWidth;
 
-/** Largeur de la fenêtre : Vuetify 4 interroge `matchMedia`, évalué par happy-dom sur son viewport. */
-function setWidth(width: number): void {
-  const happy = (window as unknown as { happyDOM: { setViewport(size: object): void } }).happyDOM;
-  happy.setViewport({ width, height: 900 });
-}
-
 beforeAll(async () => {
   await setLocale('fr');
 });
 beforeEach(() => {
-  setWidth(412);
+  setViewportWidth(412);
 });
 afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
-  setWidth(desktopWidth);
+  setViewportWidth(desktopWidth);
   vi.useRealTimers();
   localStorage.clear();
 });
@@ -89,6 +85,50 @@ describe('onglets actifs de la barre basse', () => {
     expect(SEERR_BOTTOM_NAV.map((item) => item.to.name)).toEqual(['seerr', 'seerr-users']);
     expect(active('seerr-settings-logs')).toEqual([]);
     expect(active('seerr-user')).toEqual(['seerr-users']);
+  });
+});
+
+describe('barre basse des paramètres (lot 3)', () => {
+  const at = (name: string, hash = '') => ({ name, hash }) as unknown as Route;
+  const activeIn = (items: typeof SETTINGS_BOTTOM_NAV, route: Route) =>
+    items.filter((item) => bottomNavActive(item, route)).map((item) => item.labelKey);
+
+  it('page Paramètres : une section par onglet, « Services » sans fragment', () => {
+    expect(SETTINGS_BOTTOM_NAV.map((item) => item.testId)).toEqual([
+      'tab-services',
+      'tab-display',
+      'tab-languages',
+      'tab-backup',
+      'tab-logs',
+      'tab-about',
+    ]);
+    expect(activeIn(SETTINGS_BOTTOM_NAV, at('settings'))).toEqual(['admin.nav.services']);
+    expect(activeIn(SETTINGS_BOTTOM_NAV, at('settings', '#section-backup'))).toEqual([
+      'admin.nav.backup',
+    ]);
+    expect(activeIn(SETTINGS_BOTTOM_NAV, at('settings', '#section-logs'))).toEqual([
+      'admin.nav.logs',
+    ]);
+    expect(activeIn(SETTINGS_BOTTOM_NAV, at('dashboard'))).toEqual([]);
+  });
+
+  it('paramètres d’un service : un onglet par groupe, actif sur chacune de ses pages', () => {
+    const items = serviceSettingsBottomNav('radarr', 'radarr');
+    expect(items.map((item) => item.labelKey)).toEqual([
+      'media.group.profiles',
+      'media.group.integrations',
+      'media.group.general',
+      'media.group.system',
+    ]);
+    expect(items.every((item) => item.testId === 'admin-group')).toBe(true);
+    // État du système en tête du groupe système.
+    expect(items[3]?.menu?.[0]?.id).toBe('radarr-system');
+    expect(activeIn(items, at('radarr-tags'))).toEqual(['media.group.general']);
+    expect(activeIn(items, at('radarr-system'))).toEqual(['media.group.system']);
+    expect(serviceSettingsBottomNav('seerr').map((item) => item.labelKey)).toEqual([
+      'jellyseerr.nav.settings',
+      'server.group.system',
+    ]);
   });
 });
 
@@ -236,9 +276,16 @@ describe('bibliothèque de films sur mobile', () => {
     const children = [...(nav?.querySelector('.v-bottom-navigation__content')?.children ?? [])];
     expect(children[2]?.querySelector('[data-test="movies-add"]')).not.toBeNull();
 
-    // La recherche est dans la pilule, plus dans la barre d'outils.
+    // Titre « Service · Page » dans la pilule (lot 3), la loupe ouvre la recherche.
+    expect($('[data-test="topbar-title"]')?.textContent.trim()).toBe(
+      `Radarr · ${t('media.nav.films')}`,
+    );
     expect($('[data-test="topbar-pill"]')).not.toBeNull();
     expect($('[data-test="movies-search"]')).toBeNull();
+    expect($('[data-test="topbar-search"]')).toBeNull();
+    $('[data-test="topbar-search-open"]')?.click();
+    await settle();
+    expect($('[data-test="topbar-title"]')).toBeNull();
     const input = $('[data-test="topbar-search"]') as HTMLInputElement;
     expect(input.placeholder).toBe(t('media.films.filters.search_placeholder'));
     input.value = 'matrix';
@@ -246,6 +293,12 @@ describe('bibliothèque de films sur mobile', () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
     await settle();
     expect(router.currentRoute.value.query.q).toBe('matrix');
+    // La croix vide la recherche et rend le titre.
+    $('[data-test="topbar-search-close"]')?.click();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await settle();
+    expect(router.currentRoute.value.query.q).toBeUndefined();
+    expect($('[data-test="topbar-title"]')).not.toBeNull();
   });
 
   it('le FAB ouvre l’ajout, depuis la bibliothèque comme depuis une autre page', async () => {
@@ -324,9 +377,11 @@ describe('onglet « Serveur »', () => {
     for (const id of ['radarr-system', 'radarr-quality', 'radarr-backups'])
       expect($(`[data-test="server-item-${id}"]`)).toBeNull();
     expect($('[data-test="server-panel"]')?.textContent).not.toContain(t('media.group.profiles'));
-    expect($('[data-test="topbar-stats"]')?.textContent).toContain('12.5');
+    // Compteurs dans la page, sous la version (lot 3).
+    expect($('[data-test="server-stats"]')?.textContent).toContain('12.5');
     // Onglet actif : « Serveur ».
     expect($('[data-test="bottom-nav-server.tab"]')?.classList).toContain('v-btn--active');
+    expect($('[data-test="topbar-title"]')?.textContent.trim()).toBe(`Radarr · ${t('server.tab')}`);
 
     $('[data-test="server-item-refresh-all"]')?.click();
     await settle();
@@ -373,6 +428,7 @@ describe('calendrier sur mobile (V12)', () => {
         status: 'released',
         hasFile: false,
         monitored: true,
+        downloadStatus: 'missing',
         id: 7,
         runtime: 120,
         studio: null,
@@ -416,7 +472,7 @@ describe('calendrier sur mobile (V12)', () => {
 
 describe('grand écran', () => {
   it('ni pilule, ni barre basse, ni FAB : la barre du haut et les onglets restent', async () => {
-    setWidth(desktopWidth);
+    setViewportWidth(desktopWidth);
     await mountRadarr('/medias/radarr/films');
     expect($('[data-test="topbar-pill"]')).toBeNull();
     expect($('[data-test="service-bottom-nav"]')).toBeNull();

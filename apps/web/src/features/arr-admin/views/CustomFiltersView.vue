@@ -6,7 +6,7 @@
 // types proposés sont ceux des écrans de l'instance (l'original proposait
 // `movie` et `customFilter`, inconnus d'elle) ; un type libre reste possible.
 import { customFilterSchema, type CustomFilter } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -94,7 +94,7 @@ function askDelete(filter: CustomFilter): void {
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="filter-add"
         @click="edit(null)"
         >{{ t(ctx.key('btn_add')) }}</v-btn
@@ -127,7 +127,7 @@ function askDelete(filter: CustomFilter): void {
             </td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('btn_edit_title'))"
@@ -136,7 +136,7 @@ function askDelete(filter: CustomFilter): void {
                 @click="edit(filter)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

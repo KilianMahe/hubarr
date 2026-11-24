@@ -5,7 +5,7 @@
 // nouveau nom), nombre d'éléments déjà bien nommés, puis « Organiser n
 // fichier(s) » lance le renommage élément par élément (4 à la fois). Partagé par
 // les films (`RenameMovie`) et les séries (`RenameSeries`).
-import { mdiCheck, mdiClose } from '@mdi/js';
+import { msCheck, msClose } from './symbols';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { fileName, mapLimit } from '../features/movies/library';
@@ -101,10 +101,10 @@ async function organise(): Promise<void> {
         <div v-for="(change, index) in changes" :key="index" class="bulk-rename__item">
           <div class="text-body-medium font-weight-medium mb-1">{{ change.title }}</div>
           <div class="text-body-small text-error bulk-rename__name">
-            <v-icon :icon="mdiClose" size="12" /> {{ change.from }}
+            <v-icon :icon="msClose" size="12" /> {{ change.from }}
           </div>
           <div class="text-body-small text-success bulk-rename__name">
-            <v-icon :icon="mdiCheck" size="12" /> {{ change.to }}
+            <v-icon :icon="msCheck" size="12" /> {{ change.to }}
           </div>
         </div>
       </div>

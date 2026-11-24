@@ -1,18 +1,23 @@
 #!/bin/sh
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Publication locale (`make release VERSION=x.y.z`) : il n'y a pas de CI, ce
-# script enchaîne les contrôles et produit la version.
+# Publication locale (`make release VERSION=x.y.z`) : la CI ne lance que
+# `pnpm check` ; ce script enchaîne tous les contrôles et produit la version.
 #
 #  1. vérifie la version (semver), l'arbre de travail (propre) et le tag (absent) ;
 #  2. lance `make check` et `make e2e` ;
 #  3. reporte la section "Unreleased" du CHANGELOG sous la nouvelle version
 #     (si `CHANGELOG.md` contient déjà la section de la version, il la garde),
 #     met à jour la version des package.json ;
-#  4. crée le commit `chore(release): x.y.z` et le tag annoté `vx.y.z` ;
+#  4. crée le commit `chore(release): x.y.z` et le tag annoté `vx.y.z` ; le
+#     commit inclut les captures de référence que `make e2e` vient de
+#     régénérer (`e2e/playwright/screenshots`), état visuel de la version ;
 #  5. construit l'image et l'étiquette `hubarr:local`, `<dépôt>:x.y.z` et
 #     `<dépôt>:latest` (`DOCKER_REPO`, `naroner/hubarr` par défaut).
-# La publication reste une étape à part : `make publish VERSION=x.y.z` (Docker
-# Hub) et `make publish-github VERSION=x.y.z` (dépôt public).
+# La publication suit le push du tag (`git push origin main --follow-tags`) :
+# la CI Forgejo (`.forgejo/workflows/release.yml`) pousse l'image sur Docker
+# Hub, publie le dépôt public GitHub, la release et la description Docker Hub.
+# À la main, à défaut : `make publish`, `make publish-github`,
+# `make github-release` et `make dockerhub-description`.
 set -eu
 
 VERSION="${1:-}"
@@ -46,6 +51,7 @@ for manifest in package.json apps/server/package.json apps/web/package.json pack
 done
 
 git add CHANGELOG.md package.json apps/server/package.json apps/web/package.json packages/shared/package.json docs/package.json
+git add e2e/playwright/screenshots
 git commit -m "chore(release): $VERSION"
 git tag -a "$TAG" -m "Hubarr $VERSION"
 
@@ -54,4 +60,4 @@ make build VERSION="$VERSION" IMAGE="$REPO:$VERSION"
 docker tag "$REPO:$VERSION" "$REPO:latest"
 docker tag "$REPO:$VERSION" hubarr:local
 echo "Version $VERSION prête : tag $TAG, images $REPO:$VERSION, $REPO:latest et hubarr:local."
-echo "Publier : make publish VERSION=$VERSION && make publish-github VERSION=$VERSION"
+echo "Publier : git push origin main --follow-tags (la CI Forgejo publie l'image, GitHub et les notes)."

@@ -3,7 +3,7 @@
 // Tâches planifiées de Prowlarr (`prowlarr/tasks.html.twig`, n° 280) :
 // intervalle, dernière exécution et durée, prochaine ; lancement (n° 283).
 import { arrCommandStartedSchema, systemTaskSchema, type SystemTask } from '@hubarr/shared';
-import { mdiPlay } from '@mdi/js';
+import { msPlayArrowFill } from '../../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -75,7 +75,7 @@ async function launch(task: SystemTask): Promise<void> {
             </td>
             <td class="text-end">
               <v-btn
-                :icon="mdiPlay"
+                :icon="msPlayArrowFill"
                 size="small"
                 variant="text"
                 :loading="running === task.id"

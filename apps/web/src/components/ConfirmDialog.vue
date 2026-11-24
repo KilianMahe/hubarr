@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-// Confirmation d'une action : dialogue sur desktop, bottom sheet sur mobile.
+// Confirmation d'une action : dialogue sur desktop, bottom sheet sur mobile,
+// avec la croix de fermeture commune (sans titre).
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { VBottomSheet, VDialog } from 'vuetify/components';
+import DialogTitle from './DialogTitle.vue';
 
 const open = defineModel<boolean>({ required: true });
 withDefaults(
@@ -26,7 +28,8 @@ function confirm(): void {
 <template>
   <component :is="smAndDown ? VBottomSheet : VDialog" v-model="open" max-width="420">
     <v-card>
-      <v-card-text class="text-body-large pt-6" style="white-space: pre-line">{{
+      <DialogTitle @close="open = false" />
+      <v-card-text class="text-body-large pt-0" style="white-space: pre-line">{{
         message
       }}</v-card-text>
       <v-card-actions>

@@ -5,7 +5,7 @@
 // (les données des faux services et l'heure varient).
 
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { LIBRARY, MOCKS_URL } from './env';
+import { LIBRARY, MOCKS_URL, SERIES_LIBRARY } from './env';
 import { openServiceAdmin } from './nav';
 
 test.beforeEach(async ({ request }) => {
@@ -43,6 +43,11 @@ test('fiche film', async ({ page }, info) => {
   await capture(page, info, '3-film', page.getByTestId('movie-detail'));
 });
 
+test('fiche série', async ({ page }, info) => {
+  await page.goto(`${SERIES_LIBRARY}/1`);
+  await capture(page, info, '3b-serie', page.getByTestId('series-detail'), true);
+});
+
 test('qBittorrent', async ({ page }, info) => {
   await page.goto('/qbittorrent');
   await capture(page, info, '4-qbittorrent', page.getByTestId('torrent-row').first());
@@ -65,19 +70,19 @@ test('tiroir', async ({ page }, info) => {
   await capture(page, info, '7-drawer', page.getByTestId('nav-drawer'));
 });
 
-// Habillage mobile (P5b.4) : onglet « Serveur », speed-dial de la fiche,
+// Habillage mobile (P5b.4) : onglet « Serveur », actions de la fiche,
 // sélection par appui long (barre contextuelle en haut).
 test('onglet « Serveur » Radarr', async ({ page }, info) => {
   await page.goto('/medias/films/radarr/serveur');
   await capture(page, info, '8-server', page.getByTestId('server-panel'), true);
 });
 
-test('speed-dial de la fiche (mobile)', async ({ page, isMobile }, info) => {
-  test.skip(!isMobile, 'Speed-dial propre au mobile');
+test('actions de la fiche (mobile)', async ({ page, isMobile }, info) => {
+  test.skip(!isMobile, 'Disposition propre au mobile');
   await page.goto(`${LIBRARY}/7`);
   await expect(page.getByTestId('movie-detail')).toBeVisible();
-  await page.getByTestId('movie-speed-dial').click();
-  await capture(page, info, '9-speed-dial', page.getByTestId('movie-interactive'));
+  // Sur mobile aussi, les actions sont dans la page, sans menu à ouvrir.
+  await capture(page, info, '9-detail-actions', page.getByTestId('movie-interactive'));
 });
 
 test('sélection par appui long (mobile)', async ({ page, isMobile }, info) => {
@@ -125,12 +130,23 @@ test('P5c ajout de film sans recherche saisie', async ({ page }, info) => {
   await capture(page, info, '14-add-movie', page.getByTestId('add-suggestions'));
 });
 
+test('ajout de film, formulaire', async ({ page }, info) => {
+  await page.goto(LIBRARY);
+  await expect(page.getByTestId('movies-content')).toBeVisible();
+  await page.getByTestId('movies-add').click();
+  const dialog = page.getByTestId('add-movie');
+  await dialog.getByTestId('add-movie-search').locator('input').fill('Détour');
+  await dialog.getByTestId('add-movie-result-item').first().getByTestId('add-movie-pick').click();
+  await capture(page, info, '14b-add-movie-form', dialog.getByTestId('add-movie-form'));
+});
+
 test('P5d paramètres d’un service, onglets groupes puis pages', async ({
   page,
   isMobile,
 }, info) => {
   await openServiceAdmin(page, 'radarr', 'instance-settings-films', 'radarr-tags');
-  await expect(page.getByTestId('admin-link-radarr-tags')).toHaveClass(/v-tab--selected/);
+  if (isMobile) await expect(page.getByTestId('topbar-title')).toHaveText('Radarr · Tags');
+  else await expect(page.getByTestId('admin-link-radarr-tags')).toHaveClass(/v-tab--selected/);
   await page.screenshot({
     path: `screenshots/${info.project.name}/15-service-settings.png`,
     fullPage: !isMobile,

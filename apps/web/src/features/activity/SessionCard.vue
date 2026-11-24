@@ -5,7 +5,7 @@
 // utilisateur et lecteur, état, progression, décision de lecture, qualité,
 // codecs et bande passante.
 import type { ActivitySession } from '@hubarr/shared';
-import { mdiPause, mdiPlay } from '@mdi/js';
+import { msPauseFill, msPlayArrowFill } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -67,7 +67,7 @@ const codecs = (source: string | null, stream: string | null) =>
         <v-chip
           size="x-small"
           label
-          :prepend-icon="session.state === 'paused' ? mdiPause : mdiPlay"
+          :prepend-icon="session.state === 'paused' ? msPauseFill : msPlayArrowFill"
           >{{ t(stateKey) }}</v-chip
         >
         <v-chip v-if="decision" size="x-small" label :color="decision.color">{{

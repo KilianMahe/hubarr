@@ -14,7 +14,7 @@ import {
 } from '@hubarr/shared';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
-import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle } from './helpers';
+import { ADMIN, bootstrapOf, fakeFetch, mountApp, setViewportWidth, settle } from './helpers';
 
 const t = (key: string, values?: Record<string, unknown>) => i18n.global.t(key, values ?? {});
 
@@ -299,5 +299,32 @@ describe('paramètres : à propos', () => {
   it('l’ancre ouvre l’onglet et affiche la version', async () => {
     const { wrapper } = await open(settingsOf(), {}, '#section-about');
     expect(wrapper.get('#section-about').text()).toContain('1.2.3');
+  });
+});
+
+describe('paramètres sur mobile (lot 3)', () => {
+  const desktopWidth = window.innerWidth;
+  afterEach(() => {
+    setViewportWidth(desktopWidth);
+  });
+
+  it('sections dans la barre basse, section nommée dans la barre du haut', async () => {
+    setViewportWidth(412);
+    const { wrapper, router } = await open(settingsOf(), {}, '#section-about');
+    const $ = (selector: string) => document.querySelector<HTMLElement>(selector);
+    expect($('[data-test="service-bottom-nav"]')).not.toBeNull();
+    // Plus d'onglets dans la page.
+    expect(wrapper.find('.settings-layout .v-tabs').exists()).toBe(false);
+    expect($('[data-test="tab-about"]')?.classList).toContain('v-btn--active');
+    expect($('[data-test="topbar-title"]')?.textContent.trim()).toBe(
+      `${t('admin.page.title')} · ${t('admin.nav.about')}`,
+    );
+    $('[data-test="tab-display"]')?.click();
+    await settle();
+    expect(router.currentRoute.value.hash).toBe('#section-display');
+    expect($('[data-test="tab-display"]')?.classList).toContain('v-btn--active');
+    expect($('[data-test="topbar-title"]')?.textContent.trim()).toBe(
+      `${t('admin.page.title')} · ${t('admin.nav.display')}`,
+    );
   });
 });

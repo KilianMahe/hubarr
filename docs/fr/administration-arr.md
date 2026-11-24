@@ -4,7 +4,7 @@ Hubarr reprend les réglages de vos instances [Radarr](https://radarr.video) et 
 
 ## Accéder aux réglages
 
-Les pages de configuration et de système d'une instance s'ouvrent depuis **Paramètres → Services**, par l'icône **Paramètres** (roue dentée) de l'instance dans la carte Radarr ou Sonarr. Chaque page garde son adresse (`/medias/<slug>/radarr/qualite`…) et affiche un bouton **Retour aux paramètres**, puis deux rangées d'onglets : les groupes ci-dessous, puis les pages du groupe. Les pages d'usage (commandes, calendrier Sonarr, import de bibliothèque, suggestions, exclusions) restent dans la navigation de l'instance : menu **Plus** sur ordinateur, onglet **Serveur** sur mobile. Les pages sont groupées comme dans Radarr et Sonarr :
+Les pages de configuration et de système d'une instance s'ouvrent depuis **Paramètres → Services**, par l'icône **Paramètres** (roue dentée) de l'instance dans la carte Radarr ou Sonarr. Chaque page garde son adresse (`/medias/<slug>/radarr/qualite`…) et affiche un bouton **Retour aux paramètres**, puis deux rangées d'onglets : les groupes ci-dessous, puis les pages du groupe. Sur mobile, les groupes sont dans la barre du bas, et un appui sur un groupe liste ses pages. Les pages d'usage (commandes, calendrier Sonarr, import de bibliothèque, suggestions, exclusions) restent dans la navigation de l'instance : menu **Plus** sur ordinateur, onglet **Serveur** sur mobile. Les pages sont groupées comme dans Radarr et Sonarr :
 
 | Groupe       | Pages                                                                                                          |
 | ------------ | -------------------------------------------------------------------------------------------------------------- |

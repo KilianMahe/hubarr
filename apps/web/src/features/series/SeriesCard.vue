@@ -3,13 +3,15 @@
 // Carte d'affiche d'une série (vues grille et mur), sur `PosterCard` : puce
 // d'état en clair (épisodes présents / attendus, couleur de l'état), barre de
 // progression des épisodes, titre et saisons (« animé » en sous-titre) ; badge
-// de sous-titres Bazarr. Un clic ouvre la fiche ; le marque-page bascule le
+// de sous-titres Bazarr et « Vu » / « x/y vus » (Tracearr, lot 7). Un clic ouvre la fiche ; le marque-page bascule le
 // suivi (`hover-monitor-btn`).
 import type { SeriesLibraryItem } from '@hubarr/shared';
-import { mdiBookmark, mdiBookmarkOutline } from '@mdi/js';
+import { msBookmark, msBookmarkFill } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import PosterCard from '../../components/ds/PosterCard.vue';
+import WatchedBadge from '../activity/WatchedBadge.vue';
+import { watchedProgress } from '../activity/watched';
 import SubtitleBadge from '../bazarr/SubtitleBadge.vue';
 import type { SubtitleBadgeStatus } from '../bazarr/bazarr-api';
 import { posterUrl } from '../movies/movie-display';
@@ -30,6 +32,8 @@ const props = defineProps<{
   compact?: boolean;
   /** Badge de sous-titres Bazarr (`null` : aucun). */
   subtitle?: SubtitleBadgeStatus;
+  /** Épisodes vus par l'utilisateur connecté, hors spéciaux (Tracearr). */
+  watchedEpisodes?: number;
 }>();
 const emit = defineEmits<{
   select: [event: MouseEvent | KeyboardEvent];
@@ -61,6 +65,9 @@ const subtitleText = computed(() =>
     .filter((part) => part !== null)
     .join(' · '),
 );
+const watched = computed(() =>
+  watchedProgress(props.watchedEpisodes ?? 0, props.series.episodeCount),
+);
 const poster = computed(() => posterUrl(props.series.poster, props.compact ? 'w185' : 'w342'));
 const monitorLabel = computed(() =>
   t(props.series.monitored ? 'media.series.detail.unmonitor' : 'media.series.detail.monitor'),
@@ -80,8 +87,15 @@ const monitorLabel = computed(() =>
     @open="emit('open')"
     @select="emit('select', $event)"
   >
-    <template v-if="subtitle" #badges>
-      <SubtitleBadge :id="series.id" kind="series" :status="subtitle" @search="emit('subtitles')" />
+    <template v-if="subtitle || watched" #badges>
+      <SubtitleBadge
+        v-if="subtitle"
+        :id="series.id"
+        kind="series"
+        :status="subtitle"
+        @search="emit('subtitles')"
+      />
+      <WatchedBadge v-if="watched" overlay :progress="watched" />
     </template>
     <template #action>
       <component
@@ -94,7 +108,7 @@ const monitorLabel = computed(() =>
         data-test="series-card-monitor"
         @click="!selectMode && emit('monitor')"
       >
-        <v-icon :icon="series.monitored ? mdiBookmark : mdiBookmarkOutline" size="20" />
+        <v-icon :icon="series.monitored ? msBookmarkFill : msBookmark" size="20" />
       </component>
     </template>
   </PosterCard>

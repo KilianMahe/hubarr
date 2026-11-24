@@ -4,7 +4,7 @@
 // relues toutes les 5 s (onglet visible), statut, début, fin, durée, message ;
 // annulation confirmée d'une commande en attente ou en cours.
 import { arrCommandSummarySchema, type ArrCommandSummary } from '@hubarr/shared';
-import { mdiCancel } from '@mdi/js';
+import { msBlock } from '../../../components/symbols';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
 import { useFormat } from '../../../app/format';
@@ -97,7 +97,7 @@ function askCancel(command: ArrCommandSummary): void {
             <td class="text-end">
               <v-btn
                 v-if="command.status === 'queued' || command.status === 'started'"
-                :icon="mdiCancel"
+                :icon="msBlock"
                 variant="text"
                 color="error"
                 size="small"

@@ -151,7 +151,7 @@ const codeItems = (available: Record<string, string>) =>
     >
       <v-card variant="outlined" class="mb-4">
         <v-card-title class="text-title-medium">{{
-          t('admin.languages.prismarr_section')
+          t('admin.languages.hubarr_section')
         }}</v-card-title>
         <v-card-text>
           <v-row>
@@ -159,8 +159,8 @@ const codeItems = (available: Record<string, string>) =>
               <v-select
                 v-model="form.hubarrUi"
                 :items="uiItems"
-                :label="t('admin.languages.prismarr_ui_label')"
-                :hint="t('admin.languages.prismarr_ui_help')"
+                :label="t('admin.languages.hubarr_ui_label')"
+                :hint="t('admin.languages.hubarr_ui_help')"
                 persistent-hint
                 data-test="hubarr-ui"
               />
@@ -169,8 +169,8 @@ const codeItems = (available: Record<string, string>) =>
               <v-select
                 v-model="form.hubarrMetadata"
                 :items="metadataItems"
-                :label="t('admin.languages.prismarr_metadata_label')"
-                :hint="t('admin.languages.prismarr_metadata_help')"
+                :label="t('admin.languages.hubarr_metadata_label')"
+                :hint="t('admin.languages.hubarr_metadata_help')"
                 persistent-hint
               />
             </v-col>

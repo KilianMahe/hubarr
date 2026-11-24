@@ -16,6 +16,10 @@ describe('loadEnv', () => {
     });
   });
 
+  it('HUBARR_LOG_BUFFER_LEVEL : absent par défaut, un niveau pino sinon', () => {
+    expect(loadEnv({ HUBARR_LOG_BUFFER_LEVEL: 'info' }).HUBARR_LOG_BUFFER_LEVEL).toBe('info');
+  });
+
   it('normalise HUBARR_BASE_PATH', () => {
     expect(loadEnv({ HUBARR_BASE_PATH: 'hubarr/' }).HUBARR_BASE_PATH).toBe('/hubarr');
   });
@@ -38,6 +42,7 @@ describe('loadEnv', () => {
     ['HUBARR_PORT', 'abc'],
     ['HUBARR_PORT', '70000'],
     ['HUBARR_LOG_LEVEL', 'verbose'],
+    ['HUBARR_LOG_BUFFER_LEVEL', 'silent'],
     ['HUBARR_BASE_PATH', '/a b'],
   ])('refuse %s=%s avec un message qui nomme la variable', (name, value) => {
     expect(() => loadEnv({ [name]: value })).toThrow(InvalidEnvError);

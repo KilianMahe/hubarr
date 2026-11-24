@@ -6,12 +6,13 @@
 // aussi sa série (exigée par Bazarr). Utilisé par les pages Bazarr et par les
 // badges des bibliothèques.
 import type { BazarrSubtitleResult } from '@hubarr/shared';
-import { mdiCheck, mdiDownload } from '@mdi/js';
+import { msCheck, msDownload } from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { useNotifyStore } from '../../app/stores/notify';
+import DialogTitle from '../../components/DialogTitle.vue';
 import { bazarrApi, bazarrKeys } from './bazarr-api';
 
 const props = defineProps<{
@@ -83,7 +84,7 @@ const results = computed(() => search.data.value?.results ?? []);
     scrollable
   >
     <v-card data-test="bazarr-search-dialog">
-      <v-card-title class="text-title-large pt-4">{{ t('bazarr.modal.title') }}</v-card-title>
+      <DialogTitle :title="t('bazarr.modal.title')" @close="open = false" />
       <v-card-text>
         <div v-if="search.isFetching.value" class="text-center text-muted py-6">
           <v-progress-circular indeterminate size="20" color="service" class="me-2" />
@@ -128,9 +129,9 @@ const results = computed(() => search.data.value?.results ?? []);
               >
                 <td>{{ result.provider }}</td>
                 <td>{{ result.language }}</td>
-                <td class="text-center"><v-icon v-if="result.hi" :icon="mdiCheck" size="16" /></td>
+                <td class="text-center"><v-icon v-if="result.hi" :icon="msCheck" size="16" /></td>
                 <td class="text-center">
-                  <v-icon v-if="result.forced" :icon="mdiCheck" size="16" />
+                  <v-icon v-if="result.forced" :icon="msCheck" size="16" />
                 </td>
                 <td>{{ result.score ?? '' }}</td>
                 <td class="bazarr-result__release" :title="result.release">{{ result.release }}</td>
@@ -140,7 +141,7 @@ const results = computed(() => search.data.value?.results ?? []);
                     size="small"
                     color="service"
                     variant="tonal"
-                    :prepend-icon="mdiDownload"
+                    :prepend-icon="msDownload"
                     :loading="downloading === index"
                     :disabled="downloading !== null"
                     data-test="bazarr-download"

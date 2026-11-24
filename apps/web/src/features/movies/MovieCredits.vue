@@ -4,7 +4,8 @@
 // nom, rôle). Le marque-page « Suivre cet artiste » arrive avec le suivi de
 // personnes (P2.6) via le slot `action`.
 import type { MovieCredit } from '@hubarr/shared';
-import { mdiAccount } from '@mdi/js';
+import ScrollRow from '../../components/ScrollRow.vue';
+import { msPersonFill } from '../../components/symbols';
 import { posterUrl } from './movie-display';
 
 defineProps<{ people: { person: MovieCredit; role: string }[] }>();
@@ -16,7 +17,7 @@ function photo(url: string | null): string | null {
 </script>
 
 <template>
-  <div class="movie-credits" role="list">
+  <ScrollRow item-width="84px" role="list">
     <div v-for="(entry, index) in people" :key="index" class="movie-credits__card" role="listitem">
       <div class="movie-credits__photo">
         <img
@@ -25,7 +26,7 @@ function photo(url: string | null): string | null {
           :alt="entry.person.personName"
           loading="lazy"
         />
-        <v-icon v-else :icon="mdiAccount" size="28" color="muted" />
+        <v-icon v-else :icon="msPersonFill" size="28" color="muted" />
         <slot name="action" :person="entry.person" />
       </div>
       <div class="text-body-small font-weight-medium movie-credits__name">
@@ -33,21 +34,12 @@ function photo(url: string | null): string | null {
       </div>
       <div class="text-label-small text-muted movie-credits__name">{{ entry.role }}</div>
     </div>
-  </div>
+  </ScrollRow>
 </template>
 
 <style scoped>
-.movie-credits {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  scroll-snap-type: x proximity;
-}
 .movie-credits__card {
-  flex: 0 0 84px;
   text-align: center;
-  scroll-snap-align: start;
 }
 .movie-credits__photo {
   position: relative;

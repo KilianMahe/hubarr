@@ -6,7 +6,7 @@
 // (serveur par défaut, `/service/{type}`) puis Refuser / Approuver : un choix
 // modifié est enregistré (`/request/{id}/edit`) avant l'approbation.
 import type { SeerrRequest } from '@hubarr/shared';
-import { mdiCheck, mdiClose, mdiDelete, mdiPencil, mdiRefresh } from '@mdi/js';
+import { msCheck, msClose, msDelete, msEdit, msRefresh } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -136,7 +136,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
       <v-btn
         size="small"
         variant="text"
-        :icon="mdiPencil"
+        :icon="msEdit"
         :aria-label="t('jellyseerr.common.edit')"
         :title="t('jellyseerr.common.edit')"
         data-test="seerr-edit"
@@ -146,7 +146,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
         size="small"
         variant="text"
         color="error"
-        :icon="mdiDelete"
+        :icon="msDelete"
         :aria-label="t('jellyseerr.common.delete')"
         :title="t('jellyseerr.common.delete')"
         data-test="seerr-delete"
@@ -156,7 +156,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
         v-if="['processing', 'approved'].includes(request.displayStatus)"
         size="small"
         variant="text"
-        :icon="mdiRefresh"
+        :icon="msRefresh"
         :loading="busy === `${request.id}-retry`"
         :aria-label="t('common.action.retry')"
         :title="t('common.action.retry')"
@@ -168,7 +168,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
           size="small"
           variant="tonal"
           color="error"
-          :prepend-icon="mdiClose"
+          :prepend-icon="msClose"
           :loading="busy === `${request.id}-decline`"
           data-test="seerr-decline"
           @click="emit('decline')"
@@ -178,7 +178,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
           size="small"
           variant="flat"
           color="service"
-          :prepend-icon="mdiCheck"
+          :prepend-icon="msCheck"
           :loading="busy === `${request.id}-approve`"
           data-test="seerr-approve"
           @click="approve"

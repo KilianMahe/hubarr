@@ -3,7 +3,7 @@
 // Pagination des listes paginées par Radarr/Sonarr (manquants, cutoff,
 // historique, liste de blocage) : « Page p — n sur total », précédent, suivant.
 // Affichée seulement au-delà d'une page, comme l'original.
-import { mdiChevronLeft, mdiChevronRight } from '@mdi/js';
+import { msChevronLeft, msChevronRight } from './symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -43,7 +43,7 @@ const summary = computed(() =>
     <span class="text-body-small text-muted">{{ summary }}</span>
     <v-spacer />
     <v-btn
-      :prepend-icon="mdiChevronLeft"
+      :prepend-icon="msChevronLeft"
       size="small"
       variant="text"
       :disabled="page <= 1"
@@ -51,7 +51,7 @@ const summary = computed(() =>
       >{{ t(`${i18nPrefix}.prev`) }}</v-btn
     >
     <v-btn
-      :append-icon="mdiChevronRight"
+      :append-icon="msChevronRight"
       size="small"
       variant="text"
       :disabled="!hasNext"

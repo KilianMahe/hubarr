@@ -22,20 +22,20 @@ import {
   type MoviesBulkEditRequest,
 } from '@hubarr/shared';
 import {
-  mdiCheckboxMarkedOutline,
-  mdiClose,
-  mdiDotsVertical,
-  mdiFilterVariant,
-  mdiMagnify,
-  mdiPlus,
-  mdiRefresh,
-  mdiRss,
-  mdiViewGrid,
-  mdiViewList,
-  mdiViewModule,
-  mdiViewSequential,
-  mdiBookshelf,
-} from '@mdi/js';
+  msAdd,
+  msCheckBox,
+  msClose,
+  msFilterList,
+  msGridViewFill,
+  msMoreVert,
+  msRefresh,
+  msRssFeed,
+  msSearch,
+  msShelves,
+  msViewAgenda,
+  msViewList,
+  msViewModule,
+} from '../../components/symbols';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -54,11 +54,12 @@ import FilterChips from '../../components/ds/FilterChips.vue';
 import MetaLine from '../../components/ds/MetaLine.vue';
 import PullToRefresh from '../../components/ds/PullToRefresh.vue';
 import StatTile from '../../components/ds/StatTile.vue';
-import AddMovieDialog from './AddMovieDialog.vue';
+import AddMediaDialog from '../add-media/AddMediaDialog.vue';
 import BulkDeleteDialog from '../../components/BulkDeleteDialog.vue';
 import BulkRenameDialog from '../../components/BulkRenameDialog.vue';
 import BulkEditDialog from './BulkEditDialog.vue';
 import BulkTagsDialog from '../../components/BulkTagsDialog.vue';
+import { useWatched } from '../activity/watched';
 import MovieCard from './MovieCard.vue';
 import MovieFilters from './MovieFilters.vue';
 import MovieListItem from './MovieListItem.vue';
@@ -96,6 +97,7 @@ const queryClient = useQueryClient();
 const { mdAndUp, smAndDown } = useDisplay();
 const commands = useArrCommand();
 const subtitles = useSubtitleStatuses('movie');
+const watched = useWatched();
 const subtitleSearch = reactive<{ open: boolean; id: number | null }>({ open: false, id: null });
 
 const slug = computed(() => String(route.params.slug ?? ''));
@@ -235,11 +237,11 @@ const viewMode = useViewMode<ViewMode>(
   storage,
 );
 const VIEW_ICONS: Record<ViewMode, string> = {
-  grid: mdiViewGrid,
-  wall: mdiViewModule,
-  extended: mdiViewSequential,
-  table: mdiViewList,
-  shelf: mdiBookshelf,
+  grid: msGridViewFill,
+  wall: msViewModule,
+  extended: msViewAgenda,
+  table: msViewList,
+  shelf: msShelves,
 };
 const viewOptions = computed(() =>
   VIEW_MODES.map((mode) => ({
@@ -654,7 +656,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
     <RadarrNav :subtitle="data ? t('media.films.header_count', { count: data.stats.total }) : null">
       <v-btn
         v-if="mdAndUp"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         color="service"
         variant="flat"
         size="small"
@@ -666,7 +668,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
         <template #activator="{ props: menuProps }">
           <v-btn
             v-bind="menuProps"
-            :icon="mdiDotsVertical"
+            :icon="msMoreVert"
             size="small"
             variant="text"
             :loading="busy.refreshAll || busy.rss"
@@ -676,13 +678,13 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
         </template>
         <v-list density="compact">
           <v-list-item
-            :prepend-icon="mdiRefresh"
+            :prepend-icon="msRefresh"
             :title="t('media.films.actions.refresh_all_title')"
             data-test="movies-refresh-all"
             @click="runInstanceCommand('refreshAll')"
           />
           <v-list-item
-            :prepend-icon="mdiRss"
+            :prepend-icon="msRssFeed"
             :title="t('media.films.actions.rss_sync')"
             data-test="movies-rss"
             @click="runInstanceCommand('rss')"
@@ -764,7 +766,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
         <v-filter-field
           v-if="mdAndUp"
           :model-value="search"
-          :prepend-inner-icon="mdiMagnify"
+          :prepend-inner-icon="msSearch"
           :placeholder="t('media.films.filters.search_placeholder')"
           :aria-label="t('media.films.filters.search_placeholder')"
           density="compact"
@@ -790,7 +792,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
             color="service"
           >
             <v-btn
-              :icon="mdiFilterVariant"
+              :icon="msFilterList"
               variant="text"
               size="small"
               :aria-label="t('media.films.filters.open')"
@@ -807,7 +809,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
           />
           <v-btn
             v-if="mdAndUp"
-            :prepend-icon="selectMode ? mdiClose : mdiCheckboxMarkedOutline"
+            :prepend-icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'outlined'"
             :color="selectMode ? 'service' : undefined"
@@ -819,7 +821,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
           >
           <v-btn
             v-else
-            :icon="selectMode ? mdiClose : mdiCheckboxMarkedOutline"
+            :icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'text'"
             :color="selectMode ? 'service' : undefined"
@@ -838,7 +840,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
       <div v-if="activeFilter || query.q !== ''" class="d-flex flex-wrap align-center ga-2 mb-2">
         <template v-if="activeFilter">
           <v-btn
-            :prepend-icon="mdiRefresh"
+            :prepend-icon="msRefresh"
             size="small"
             variant="tonal"
             color="service-text"
@@ -849,7 +851,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
             >{{ t('media.films.actions.refresh_filtered') }}</v-btn
           >
           <v-btn
-            :prepend-icon="mdiMagnify"
+            :prepend-icon="msSearch"
             size="small"
             variant="tonal"
             color="warning"
@@ -896,6 +898,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
               :selected="selected.has(movie.id)"
               :compact="viewMode === 'wall'"
               :subtitle="subtitles.statusOf(movie.id)"
+              :watched="movie.tmdbId !== null && watched.movies.has(movie.tmdbId)"
               @select="onSelect(movie.id, $event)"
               @open="openMovie(movie.id)"
               @monitor="toggleMonitor(movie.id)"
@@ -910,6 +913,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
               :movie="movie"
               :select-mode="selectMode"
               :selected="selected.has(movie.id)"
+              :watched="movie.tmdbId !== null && watched.movies.has(movie.tmdbId)"
               @select="onSelect(movie.id, $event)"
               @open="openMovie(movie.id)"
               @monitor="toggleMonitor(movie.id)"
@@ -1044,8 +1048,9 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
       :loading="saving"
       @confirm="confirmDelete"
     />
-    <AddMovieDialog
+    <AddMediaDialog
       v-model="addOpen"
+      kind="movie"
       :slug="slug"
       :indexer-count="warnings.data.value?.indexerCount ?? 0"
       @added="refreshLibrary"

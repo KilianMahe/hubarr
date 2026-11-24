@@ -12,13 +12,12 @@
 // « Scanner » la série depuis la ligne.
 import type { SeriesQueueItem } from '@hubarr/shared';
 import {
-  mdiChevronDown,
-  mdiClose,
-  mdiDownload,
-  mdiFolderSearchOutline,
-  mdiRefresh,
-  mdiTrayArrowDown,
-} from '@mdi/js';
+  msClose,
+  msDownload,
+  msFolderOpen,
+  msKeyboardArrowDown,
+  msRefresh,
+} from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -220,12 +219,12 @@ function statusLabel(item: SeriesQueueItem): string {
       @click="expanded = !expanded"
     >
       <v-icon
-        :icon="mdiChevronDown"
+        :icon="msKeyboardArrowDown"
         size="18"
         class="series-queue__chevron"
         :class="{ 'series-queue__chevron--open': expanded }"
       />
-      <v-icon :icon="mdiTrayArrowDown" size="18" />
+      <v-icon :icon="msDownload" size="18" />
       <span class="text-title-small">{{ t('media.series.queue.title') }}</span>
       <v-chip size="x-small" color="service" variant="flat" data-test="series-queue-count">{{
         items.length
@@ -333,7 +332,7 @@ function statusLabel(item: SeriesQueueItem): string {
             <td class="text-end text-no-wrap">
               <template v-if="standalone && item.seriesId !== null">
                 <v-btn
-                  :icon="mdiRefresh"
+                  :icon="msRefresh"
                   size="small"
                   variant="text"
                   :loading="busy[`refresh${item.id ?? item.seriesId}`]"
@@ -343,7 +342,7 @@ function statusLabel(item: SeriesQueueItem): string {
                   @click="seriesCommand(item, 'refresh')"
                 />
                 <v-btn
-                  :icon="mdiFolderSearchOutline"
+                  :icon="msFolderOpen"
                   size="small"
                   variant="text"
                   :loading="busy[`rescan${item.id ?? item.seriesId}`]"
@@ -355,7 +354,7 @@ function statusLabel(item: SeriesQueueItem): string {
               </template>
               <v-btn
                 v-if="queueActions(item).grab"
-                :icon="mdiDownload"
+                :icon="msDownload"
                 size="small"
                 variant="text"
                 color="success"
@@ -366,7 +365,7 @@ function statusLabel(item: SeriesQueueItem): string {
                 @click="grab(item)"
               />
               <v-btn
-                :icon="mdiClose"
+                :icon="msClose"
                 size="small"
                 variant="text"
                 color="error"

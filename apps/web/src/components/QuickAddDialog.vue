@@ -13,7 +13,7 @@ import {
   type AddCandidate,
   type ResolvedMedia,
 } from '@hubarr/shared';
-import { mdiCheck } from '@mdi/js';
+import { msCheck } from './symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -366,7 +366,7 @@ const translated = (key: string | null) => (key === null ? '' : key.includes('.'
         color="primary"
         :loading="adding"
         :disabled="done"
-        :prepend-icon="done ? mdiCheck : undefined"
+        :prepend-icon="done ? msCheck : undefined"
         data-test="qa-submit"
         @click="add"
         >{{

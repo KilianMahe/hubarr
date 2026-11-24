@@ -4,7 +4,7 @@
 // et nom attendu par Radarr ; sans proposition, le fichier est déjà bien nommé.
 // « Renommer » lance `RenameMovie`, suit la commande puis relit la fiche.
 import type { MovieDetail } from '@hubarr/shared';
-import { mdiCheck, mdiPencil } from '@mdi/js';
+import { msCheck, msEdit } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -83,7 +83,7 @@ defineExpose({ rename });
     <div class="d-flex align-center pa-3 pb-0">
       <h3 class="text-title-small flex-grow-1">{{ t('media.films.detail.file_naming') }}</h3>
       <v-btn
-        :prepend-icon="mdiPencil"
+        :prepend-icon="msEdit"
         size="small"
         variant="tonal"
         :loading="running"
@@ -113,7 +113,7 @@ defineExpose({ rename });
           class="text-body-small text-success mt-2"
           data-test="movie-rename-correct"
         >
-          <v-icon :icon="mdiCheck" size="14" /> {{ t('media.films.detail.already_correct') }}
+          <v-icon :icon="msCheck" size="14" /> {{ t('media.films.detail.already_correct') }}
         </div>
       </template>
       <v-alert v-if="feedback" :type="feedback.type" variant="tonal" density="compact" class="mt-3">

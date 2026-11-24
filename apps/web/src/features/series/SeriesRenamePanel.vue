@@ -6,7 +6,7 @@
 // suivie jusqu'au bilan, puis la fiche est relue. « Tous les fichiers sont déjà
 // correctement nommés » sans proposition.
 import type { SeriesRenameProposal } from '@hubarr/shared';
-import { mdiCheckCircle } from '@mdi/js';
+import { msCheckCircleFill } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -95,7 +95,7 @@ async function rename(): Promise<void> {
       class="text-success text-body-small pa-3 d-flex align-center ga-2"
       data-test="series-rename-correct"
     >
-      <v-icon :icon="mdiCheckCircle" size="16" />{{ t('media.series.detail.all_files_correct') }}
+      <v-icon :icon="msCheckCircleFill" size="16" />{{ t('media.series.detail.all_files_correct') }}
     </p>
     <template v-else>
       <v-table density="compact" class="series-rename">

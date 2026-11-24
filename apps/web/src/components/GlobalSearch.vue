@@ -8,7 +8,7 @@
 // clavier. Un résultat ouvre l'aperçu rapide (bibliothèque ou TMDB), ou
 // l'ajout rapide s'il n'a pas de fiche TMDB. Réservée aux admins.
 import type { LocalSearchHit, OnlineSearchHit } from '@hubarr/shared';
-import { mdiClose, mdiHistory, mdiMagnify, mdiMovieOpen, mdiTelevisionClassic } from '@mdi/js';
+import { msClose, msHistory, msMovie, msSearch, msTv } from './symbols';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
@@ -202,7 +202,7 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
             v-model="term"
             :placeholder="`${t('topbar.search.placeholder')} (${t('topbar.search.shortcut_hint')})`"
             :aria-label="t('topbar.search.label')"
-            :prepend-inner-icon="mdiMagnify"
+            :prepend-inner-icon="msSearch"
             :loading="loading"
             variant="solo-filled"
             flat
@@ -228,12 +228,12 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
                 v-for="q in recent"
                 :key="q"
                 :title="q"
-                :prepend-icon="mdiHistory"
+                :prepend-icon="msHistory"
                 @click="term = q"
               >
                 <template #append>
                   <v-btn
-                    :icon="mdiClose"
+                    :icon="msClose"
                     size="x-small"
                     variant="text"
                     :aria-label="t('topbar.search.forget')"
@@ -283,11 +283,7 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
                   <template #prepend>
                     <v-avatar rounded="sm" size="40" color="surface-alt" class="me-2">
                       <v-img v-if="hit.poster" :src="hit.poster" cover />
-                      <v-icon
-                        v-else
-                        :icon="hit.type === 'film' ? mdiMovieOpen : mdiTelevisionClassic"
-                        size="18"
-                      />
+                      <v-icon v-else :icon="hit.type === 'film' ? msMovie : msTv" size="18" />
                     </v-avatar>
                   </template>
                   <v-list-item-title>{{ hit.title }}</v-list-item-title>
@@ -336,7 +332,7 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
     </template>
     <template v-else>
       <v-btn
-        :icon="mdiMagnify"
+        :icon="msSearch"
         :aria-label="t('topbar.search.label')"
         data-test="global-search-open"
         @click="mobileOpen = true"
@@ -348,7 +344,7 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
               v-model="term"
               autofocus
               :placeholder="t('topbar.search.placeholder')"
-              :prepend-inner-icon="mdiMagnify"
+              :prepend-inner-icon="msSearch"
               :loading="loading"
               variant="solo-filled"
               flat
@@ -358,9 +354,10 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
               @keydown="onKeydown"
             />
             <v-btn
-              :icon="mdiClose"
+              :icon="msClose"
               variant="text"
               :aria-label="t('topbar.search.clear')"
+              data-test="dialog-close"
               @click="mobileOpen = false"
             />
           </div>
@@ -380,7 +377,7 @@ const indexOf = (hit: Hit) => hits.value.indexOf(hit);
                 v-for="q in recent"
                 :key="q"
                 :title="q"
-                :prepend-icon="mdiHistory"
+                :prepend-icon="msHistory"
                 @click="term = q"
               />
             </template>

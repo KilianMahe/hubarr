@@ -4,7 +4,7 @@
 // suppression confirmée ; Hubarr affiche aussi le nombre d'éléments qui
 // utilisent chaque étiquette (`/tag/detail`).
 import { arrTagItemSchema, arrTagUsageSchema } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -92,7 +92,7 @@ function askDelete(tag: { id: number; label: string }): void {
           <v-btn
             type="submit"
             color="service"
-            :prepend-icon="mdiPlus"
+            :prepend-icon="msAdd"
             :loading="adding"
             :disabled="newLabel.trim() === ''"
             data-test="tag-add"
@@ -119,7 +119,7 @@ function askDelete(tag: { id: number; label: string }): void {
               >{{ tag.usage }}</v-chip
             >
             <v-btn
-              :icon="mdiPencil"
+              :icon="msEdit"
               variant="text"
               size="small"
               :aria-label="t(ctx.key('btn_rename'))"
@@ -128,7 +128,7 @@ function askDelete(tag: { id: number; label: string }): void {
               @click="openRename(tag)"
             />
             <v-btn
-              :icon="mdiDelete"
+              :icon="msDelete"
               variant="text"
               color="error"
               size="small"

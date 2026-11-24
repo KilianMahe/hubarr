@@ -3,7 +3,7 @@
 // Pagination d'une bibliothèque (`_library_pagination.html.twig`) : plage
 // « a – b sur n », « filtrés sur N », pages avec ellipses, saut direct à partir
 // de 5 pages. Partagée par les films et les séries (`i18nPrefix`).
-import { mdiChevronLeft, mdiChevronRight } from '@mdi/js';
+import { msChevronLeft, msChevronRight } from './symbols';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PAGE_JUMP_MIN_PAGES, pageRange, paginationLinks } from '../features/movies/library';
@@ -51,7 +51,7 @@ function go(page: number): void {
       :aria-label="t(`${i18nPrefix}.aria_label`)"
     >
       <v-btn
-        :icon="mdiChevronLeft"
+        :icon="msChevronLeft"
         size="small"
         variant="text"
         :disabled="page <= 1"
@@ -72,7 +72,7 @@ function go(page: number): void {
         >
       </template>
       <v-btn
-        :icon="mdiChevronRight"
+        :icon="msChevronRight"
         size="small"
         variant="text"
         :disabled="page >= totalPages"

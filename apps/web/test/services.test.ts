@@ -128,15 +128,13 @@ describe('resolveServiceAccess', () => {
 describe('tiroir', () => {
   it('services configurés et visibles, par famille ; instances multiples en sous-entrées', () => {
     const sections = buildDrawerSections(servicesOf(), true);
+    // Découverte et Calendrier : onglets de l'accueil (lot 11), plus dans les sections.
     expect(sections.map((section) => section.titleKey)).toEqual([
-      'sidebar.section.discovery',
       'sidebar.family.arrs',
       'sidebar.family.downloads',
       'sidebar.family.server',
     ]);
-    const explore = sections[0]?.items.map((item) => item.key);
-    expect(explore).toEqual(['tmdb', 'calendar']);
-    const radarr = sections[1]?.items[0];
+    const radarr = sections[0]?.items[0];
     expect(radarr?.children?.map((child) => child.label)).toEqual(['Radarr', 'Radarr 4K']);
   });
 

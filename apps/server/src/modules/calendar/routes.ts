@@ -8,6 +8,8 @@
 //   GET /calendrier.ics        même flux au chemin d'origine, conservé pour
 //                              les abonnements existants
 //
+// La page lit aussi la file de chaque instance (statut « en cours de
+// téléchargement ») ; une file illisible ne retire que ce statut.
 // Une instance en panne lève le drapeau « injoignable » de son type sans
 // masquer les autres ; un type sans instance active n'affiche jamais de
 // bannière (l'utilisateur ne s'en sert pas). Le flux exige la session, comme
@@ -36,13 +38,26 @@ async function fanOut<T>(
   app: FastifyInstance,
   type: 'radarr' | 'sonarr',
   load: (row: InstanceRow) => Promise<T[]>,
+  loadQueued?: (row: InstanceRow) => Promise<number[]>,
 ): Promise<Fetched<T>> {
   let failed = false;
   const rows = listEnabledInstances(app.db, type);
+  const queuedOf = async (row: InstanceRow) => {
+    if (loadQueued === undefined) return undefined;
+    try {
+      return new Set(await loadQueued(row));
+    } catch (error) {
+      app.log.warn({ err: error, instance: row.slug }, `file ${type} illisible pour le calendrier`);
+      return undefined;
+    }
+  };
   const lists = await Promise.all(
     rows.map(async (row) => {
       try {
-        return { items: await load(row), slug: row.slug, name: row.name };
+        const [items, queued] = await Promise.all([load(row), queuedOf(row)]);
+        const source: FromInstance<T> = { items, slug: row.slug, name: row.name };
+        if (queued !== undefined) source.queued = queued;
+        return source;
       } catch (error) {
         failed = true;
         app.log.warn({ err: error, instance: row.slug }, `calendrier ${type} en échec`);
@@ -60,14 +75,25 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const now = () => new Date((options.now ?? Date.now)());
 
-  const fetchAll = (ahead: number, before: number) => {
+  const ids = (values: (number | null)[]) => values.filter((v): v is number => v !== null);
+  const fetchAll = (ahead: number, before: number, withQueue = false) => {
     const at = now();
     return Promise.all([
-      fanOut<Movie>(instance, 'radarr', (row) =>
-        radarrClient(instance, row).calendar(ahead, before, at),
+      fanOut<Movie>(
+        instance,
+        'radarr',
+        (row) => radarrClient(instance, row).calendar(ahead, before, at),
+        withQueue
+          ? async (row) => ids((await radarrClient(instance, row).queue()).map((q) => q.movieId))
+          : undefined,
       ),
-      fanOut<CalendarEpisode>(instance, 'sonarr', (row) =>
-        sonarrClient(instance, row).calendar(ahead, before, at),
+      fanOut<CalendarEpisode>(
+        instance,
+        'sonarr',
+        (row) => sonarrClient(instance, row).calendar(ahead, before, at),
+        withQueue
+          ? async (row) => ids((await sonarrClient(instance, row).queue()).map((q) => q.episodeId))
+          : undefined,
       ),
     ]);
   };
@@ -76,9 +102,9 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
     '/api/calendrier',
     { schema: { response: { 200: calendarResponseSchema } } },
     async () => {
-      const [radarr, sonarr] = await fetchAll(90, 90);
-      const films = movieEvents(radarr.sources);
-      const episodes = episodeEvents(sonarr.sources);
+      const [radarr, sonarr] = await fetchAll(90, 90, true);
+      const films = movieEvents(radarr.sources, now());
+      const episodes = episodeEvents(sonarr.sources, now());
       const radarrConfigured = listEnabledInstances(instance.db, 'radarr').length > 0;
       const sonarrConfigured = listEnabledInstances(instance.db, 'sonarr').length > 0;
       return {

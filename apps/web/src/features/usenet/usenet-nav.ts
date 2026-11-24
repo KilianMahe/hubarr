@@ -4,16 +4,16 @@
 // n'ont pas de pages d'administration dans l'original : pas d'onglet
 // « Serveur » (D138).
 
-import { mdiDownload, mdiHistory, mdiPlus } from '@mdi/js';
+import { msAdd, msDownload, msHistory } from '../../components/symbols';
 import type { BottomNavItem, RouteFab } from '../../app/navigation';
 
 export const USENET_BOTTOM_NAV: BottomNavItem[] = [
-  { labelKey: 'usenet.nav.queue', icon: mdiDownload, to: { name: 'usenet' } },
-  { labelKey: 'usenet.history.title', icon: mdiHistory, to: { name: 'usenet-history' } },
+  { labelKey: 'usenet.nav.queue', icon: msDownload, to: { name: 'usenet' } },
+  { labelKey: 'usenet.history.title', icon: msHistory, to: { name: 'usenet-history' } },
 ];
 
 export const USENET_FAB: RouteFab = {
-  icon: mdiPlus,
+  icon: msAdd,
   labelKey: 'usenet.toolbar.add_nzb',
   action: 'add',
   index: 'usenet',

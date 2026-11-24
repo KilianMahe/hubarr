@@ -5,7 +5,7 @@
 // colonne « Films » de l'original comptait les dossiers non associés sous un
 // libellé trompeur ; elle n'est pas reprise.
 import { rootFolderSchema, type RootFolder } from '@hubarr/shared';
-import { mdiAlertCircle, mdiDelete, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msErrorFill } from '../../../components/symbols';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -72,7 +72,7 @@ function askDelete(folder: RootFolder): void {
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="root-folder-add"
         @click="openAdd"
         >{{ t(ctx.key('add')) }}</v-btn
@@ -93,7 +93,7 @@ function askDelete(folder: RootFolder): void {
             <td class="font-monospace text-body-small">
               <v-icon
                 v-if="!folder.accessible"
-                :icon="mdiAlertCircle"
+                :icon="msErrorFill"
                 color="error"
                 size="small"
                 class="me-1"
@@ -107,7 +107,7 @@ function askDelete(folder: RootFolder): void {
             </td>
             <td class="text-end">
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

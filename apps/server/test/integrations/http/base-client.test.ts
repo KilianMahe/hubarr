@@ -199,6 +199,69 @@ describe('HttpClient', () => {
   });
 });
 
+describe('journal des appels en échec', () => {
+  function recorder() {
+    const lines: { level: string; obj: Record<string, unknown>; msg: string }[] = [];
+    return {
+      lines,
+      logger: {
+        warn: (obj: object, msg: string) =>
+          lines.push({ level: 'warn', obj: obj as Record<string, unknown>, msg }),
+        debug: (obj: object, msg: string) =>
+          lines.push({ level: 'debug', obj: obj as Record<string, unknown>, msg }),
+      },
+    };
+  }
+
+  it('erreur HTTP : service, instance, méthode, chemin, statut, type, durée, disjoncteur, corps', async () => {
+    const log = recorder();
+    agent
+      .get(ORIGIN)
+      .intercept({ path: '/api/v3/movie?apikey=secret', method: 'GET' })
+      .reply(500, { message: 'Database locked' });
+    await rejection(client({ logger: log.logger }).get('/api/v3/movie', { apikey: 'secret' }));
+    expect(log.lines).toHaveLength(1);
+    const [line] = log.lines;
+    expect(line?.level).toBe('warn');
+    expect(line?.msg).toBe('radarr/radarr-1: GET /api/v3/movie → HTTP 500 (Database locked)');
+    expect(line?.obj).toMatchObject({
+      service: 'radarr',
+      instance: 'radarr-1',
+      method: 'GET',
+      path: '/api/v3/movie',
+      kind: 'http',
+      status: 500,
+      circuit: 'closed',
+      body: '{"message":"Database locked"}',
+    });
+    expect(typeof line?.obj.durationMs).toBe('number');
+    // Le chemin journalisé ne porte jamais la requête (clé d'API).
+    expect(JSON.stringify(log.lines)).not.toContain('secret');
+  });
+
+  it('échec de connexion : code réseau et disjoncteur ouvert ; appels suivants en debug', async () => {
+    const log = recorder();
+    const refused = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    agent.get(ORIGIN).intercept({ path: '/api/v3/movie' }).replyWithError(refused);
+    await rejection(client({ logger: log.logger }).get('/api/v3/movie'));
+    await rejection(client({ logger: log.logger }).get('/api/v3/movie'));
+    expect(log.lines.map((line) => line.level)).toEqual(['warn', 'debug']);
+    expect(log.lines[0]?.obj).toMatchObject({
+      kind: 'network',
+      networkCode: 'ECONNREFUSED',
+      circuit: 'open',
+    });
+    expect(log.lines[1]?.obj).toMatchObject({ kind: 'circuit_open', circuit: 'open' });
+  });
+
+  it('JSON illisible journalisé', async () => {
+    const log = recorder();
+    agent.get(ORIGIN).intercept({ path: '/x' }).reply(200, '<html>');
+    await rejection(client({ logger: log.logger }).get('/x'));
+    expect(log.lines[0]?.obj).toMatchObject({ kind: 'invalid_response', status: 200 });
+  });
+});
+
 describe('stratégies d’authentification', () => {
   it('clé en paramètre, Basic et Bearer', async () => {
     const pool = agent.get(ORIGIN);

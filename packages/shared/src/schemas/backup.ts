@@ -2,8 +2,6 @@
 // Export et import de la configuration (`AdminSettingsController::export`,
 // `import`), au format propre à Hubarr (version 1). Aucun secret n'en sort
 // ni n'y entre : clés d'API et mots de passe sont à ressaisir après un import.
-// Les exports de Prismarr (`prismarr_export_version`) ne sont pas repris
-//.
 
 import { z } from 'zod';
 

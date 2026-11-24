@@ -3,7 +3,7 @@
 // Fiche détaillée d'un titre TMDB (`#tmdb-detail-modal` et `renderDetail`
 // d'origine) : dialogue sur grand écran, feuille du bas sur mobile ; le corps
 // est dans `TmdbDetailBody`. Les titres similaires remplacent la fiche.
-import type { TmdbCard } from '@hubarr/shared';
+import type { TmdbCard, TmdbDetail } from '@hubarr/shared';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -13,7 +13,8 @@ import { discoverApi, type DetailTarget } from './discover-api';
 import TmdbDetailBody from './TmdbDetailBody.vue';
 
 const target = defineModel<DetailTarget | null>({ required: true });
-const emit = defineEmits<{ viewed: [card: TmdbCard] }>();
+defineProps<{ inlineAdd?: boolean }>();
+const emit = defineEmits<{ viewed: [card: TmdbCard]; add: [detail: TmdbDetail] }>();
 const { t } = useI18n();
 const { smAndDown } = useDisplay();
 
@@ -76,7 +77,14 @@ function openSimilar(card: TmdbCard): void {
       <v-alert v-if="detail.isError.value" type="error" variant="tonal" class="ma-4">{{
         t('decouverte.error.not_found')
       }}</v-alert>
-      <TmdbDetailBody v-if="d" :d="d" @similar="openSimilar" @close="open = false" />
+      <TmdbDetailBody
+        v-if="d"
+        :d="d"
+        :inline-add="inlineAdd"
+        @similar="openSimilar"
+        @close="open = false"
+        @add="emit('add', $event)"
+      />
     </v-card>
   </component>
 </template>

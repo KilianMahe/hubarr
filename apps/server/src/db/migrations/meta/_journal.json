@@ -8,6 +8,13 @@
       "when": 1795022551314,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795478467175,
+      "tag": "0001_tracearr_watch",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Transferts Transmission (`_transmission.html.twig`) : vitesses globales,
 // compteurs, 5 téléchargements actifs les plus rapides ; relu toutes les 10 s.
-import { mdiDownload } from '@mdi/js';
+import { msDownload } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { useI18n } from 'vue-i18n';
 import { useFormat } from '../../../app/format';
@@ -30,7 +30,7 @@ const query = useQuery({
   <DashCard
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.transmission.title')"
-    :icon="mdiDownload"
+    :icon="msDownload"
     :to="session.isAdmin ? { name: 'transmission' } : undefined"
     :link-label="t('dashboard.transmission.open_cta')"
     data-test="card-transmission"

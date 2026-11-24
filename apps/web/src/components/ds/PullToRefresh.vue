@@ -3,7 +3,7 @@
 // Tirer pour rafraîchir (écrans tactiles) : un geste vers le bas depuis le
 // haut de la page, au-delà du seuil, émet `refresh` ; indicateur circulaire
 // pendant `loading`. Sans effet à la souris et quand la page a défilé.
-import { mdiRefresh } from '@mdi/js';
+import { msRefresh } from '../symbols';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { pullDistance, PULL_THRESHOLD } from './pull';
@@ -55,7 +55,7 @@ function onEnd(): void {
       <v-progress-circular v-if="loading" indeterminate size="24" width="3" color="service" />
       <v-icon
         v-else
-        :icon="mdiRefresh"
+        :icon="msRefresh"
         :color="ready ? 'service' : 'muted'"
         :style="{ transform: `rotate(${offset * 3}deg)` }"
       />

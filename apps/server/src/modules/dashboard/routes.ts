@@ -13,8 +13,12 @@
 import {
   HEALTH_FLAT_SERVICES,
   SERVICE_SETTINGS,
+  TORRENT_CLIENTS,
+  USENET_CLIENTS,
   addDays,
   dashboardActivitySchema,
+  dashboardDisksSchema,
+  dashboardDownloadsSchema,
   dashboardEmbySchema,
   dashboardHealthSchema,
   dashboardHeroSchema,
@@ -29,6 +33,8 @@ import {
   resolveActivitySource,
   type CalendarEpisode,
   type DashboardActivity,
+  type DashboardDisks,
+  type DashboardDownloads,
   type DashboardHealth,
   type DashboardRequests,
   type Movie,
@@ -54,8 +60,11 @@ import { getInstanceBySlug, listEnabledInstances, type InstanceRow } from '../in
 import { collectMovies, collectSeries, type Owned } from '../media/library';
 import { apiKeyServiceClient, radarrClient, sonarrClient } from '../services/clients';
 import { isServiceConfigured } from '../services/config';
+import { requireRole } from '../../plugins/access';
 import { readDashboardLayout, readResolvedPreferences } from '../settings/preferences';
 import { torrentClient } from '../torrents/clients';
+import { usenetClient } from '../usenet/routes';
+import { bytesPerDay, diskUsage, periodStart, type CompletedItem } from './stats';
 import {
   MAX_RECOMMENDATIONS,
   MAX_REQUESTS,
@@ -72,6 +81,11 @@ import {
 } from './widgets';
 
 export const WIDGET_CACHE_TTL_MS = 45_000;
+/** Statistiques (téléchargements par jour, disques) : relues au plus toutes les 5 min. */
+export const STATS_CACHE_TTL_MS = 300_000;
+/** Historique Usenet lu par pages, jusqu'au début de la période ou à la limite. */
+const USENET_HISTORY_PAGE = 200;
+const USENET_HISTORY_MAX = 2_000;
 
 export interface DashboardRoutesOptions {
   now?: () => number;
@@ -178,6 +192,7 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
           transmission: configured('transmission'),
           tracearr: configured('tracearr'),
           emby: configured('emby'),
+          downloads: [...TORRENT_CLIENTS, ...USENET_CLIENTS].some((id) => configured(id)),
         },
         watchlist: watchlist.map((w) => ({
           tmdbId: w.tmdbId,
@@ -447,6 +462,132 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
         },
         upcomingCount: coming.length,
       };
+    },
+  );
+
+  // Lot 13 : octets téléchargés par jour sur 30 jours, d'après les clients configurés (admins).
+  app.get(
+    '/api/tableau-de-bord/widget/downloads',
+    {
+      onRequest: requireRole('admin'),
+      schema: { response: { 200: dashboardDownloadsSchema } },
+    },
+    async (request): Promise<DashboardDownloads> => {
+      const torrents = TORRENT_CLIENTS.filter((id) => configured(id));
+      const usenet = USENET_CLIENTS.filter((id) => configured(id));
+      if (torrents.length + usenet.length === 0)
+        return { available: false, days: [], total: 0, average: 0, clients: [] };
+      const hit = instance.cache.store.get('dash.downloads');
+      if (hit !== undefined) return hit as DashboardDownloads;
+      const since = periodStart(nowDate().getTime());
+      const read = async (
+        id: DashboardDownloads['clients'][number]['id'],
+        load: () => Promise<CompletedItem[]>,
+      ) => {
+        try {
+          return { id, ok: true, items: await load() };
+        } catch (error) {
+          request.log.warn({ err: error, service: id }, 'dashboard : téléchargements en échec');
+          return { id, ok: false, items: [] as CompletedItem[] };
+        }
+      };
+      const results = await Promise.all([
+        ...torrents.map((id) =>
+          read(id, async () =>
+            (await torrentClient(instance, id).torrents())
+              .filter((t) => t.progress >= 100)
+              .map((t) => ({ completedAt: t.completedOn, bytes: t.size })),
+          ),
+        ),
+        ...usenet.map((id) =>
+          read(id, async () => {
+            const client = usenetClient(instance, id);
+            const items: CompletedItem[] = [];
+            // Historique du plus récent au plus ancien : arrêt au début de la période.
+            for (let offset = 0; offset < USENET_HISTORY_MAX; offset += USENET_HISTORY_PAGE) {
+              const page = await client.historyPage(offset, USENET_HISTORY_PAGE);
+              for (const item of page.items)
+                if (item.status === 'completed')
+                  items.push({ completedAt: item.completedAt, bytes: item.size });
+              const oldest = page.items.at(-1)?.completedAt ?? null;
+              if (
+                page.items.length < USENET_HISTORY_PAGE ||
+                offset + USENET_HISTORY_PAGE >= page.total ||
+                (oldest !== null && oldest < since)
+              )
+                break;
+            }
+            return items;
+          }),
+        ),
+      ]);
+      const days = bytesPerDay(
+        results.flatMap((r) => r.items),
+        today(),
+        timezone(),
+      );
+      const total = days.reduce((sum, d) => sum + d.bytes, 0);
+      const value: DashboardDownloads = {
+        available: true,
+        days,
+        total,
+        average: days.length === 0 ? 0 : Math.round(total / days.length),
+        clients: results.map(({ id, ok }) => ({ id, ok })),
+      };
+      if (results.every((r) => r.ok))
+        instance.cache.store.set('dash.downloads', value, STATS_CACHE_TTL_MS);
+      return value;
+    },
+  );
+
+  // Lot 13 : disques des dossiers racines Radarr et Sonarr (admins).
+  app.get(
+    '/api/tableau-de-bord/widget/disks',
+    {
+      onRequest: requireRole('admin'),
+      schema: { response: { 200: dashboardDisksSchema } },
+    },
+    async (request): Promise<DashboardDisks> => {
+      if (!libraries()) return { available: false, disks: [], failed: [] };
+      const hit = instance.cache.store.get('dash.disks');
+      if (hit !== undefined) return hit as DashboardDisks;
+      const rows = [
+        ...listEnabledInstances(instance.db, 'radarr').map((row) => ({
+          service: 'radarr' as const,
+          row,
+          client: radarrClient(instance, row),
+        })),
+        ...listEnabledInstances(instance.db, 'sonarr').map((row) => ({
+          service: 'sonarr' as const,
+          row,
+          client: sonarrClient(instance, row),
+        })),
+      ];
+      const failed: string[] = [];
+      const sources = await Promise.all(
+        rows.map(async ({ service, row, client }) => {
+          try {
+            const [disks, roots] = await Promise.all([client.diskSpace(), client.rootFolders()]);
+            return {
+              service,
+              instance: row.name,
+              disks,
+              roots: roots.map((r) => r.path ?? '').filter((p) => p !== ''),
+            };
+          } catch (error) {
+            request.log.warn({ err: error, instance: row.slug }, 'dashboard : disques en échec');
+            failed.push(row.name);
+            return null;
+          }
+        }),
+      );
+      const value: DashboardDisks = {
+        available: true,
+        disks: diskUsage(sources.filter((s) => s !== null)),
+        failed,
+      };
+      if (failed.length === 0) instance.cache.store.set('dash.disks', value, STATS_CACHE_TTL_MS);
+      return value;
     },
   );
 

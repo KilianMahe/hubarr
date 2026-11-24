@@ -6,6 +6,8 @@
 import {
   addDays,
   dashboardActivitySchema,
+  dashboardDisksSchema,
+  dashboardDownloadsSchema,
   dashboardEmbySchema,
   dashboardHealthSchema,
   dashboardHeroSchema,
@@ -37,6 +39,9 @@ export const dashboardApi = {
   transmission: (signal?: AbortSignal) =>
     api.get(widget('transmission'), dashboardTransmissionSchema, signal),
   recent: (signal?: AbortSignal) => api.get(widget('recent'), dashboardRecentSchema, signal),
+  downloads: (signal?: AbortSignal) =>
+    api.get(widget('downloads'), dashboardDownloadsSchema, signal),
+  disks: (signal?: AbortSignal) => api.get(widget('disks'), dashboardDisksSchema, signal),
   trending: (signal?: AbortSignal) =>
     api.get(widget('recommendations'), dashboardTrendingSchema, signal),
   quickLook: (target: DashboardRef, signal?: AbortSignal) =>
@@ -128,4 +133,27 @@ export function moveSection(
   const [moved] = next.splice(index, 1);
   if (moved !== undefined) next.splice(target, 0, moved);
   return next;
+}
+
+/** Barre du graphique des téléchargements : hauteur relative (0 à 1) au jour le plus chargé. */
+export interface DownloadBar {
+  day: string;
+  bytes: number;
+  ratio: number;
+}
+
+export function downloadBars(days: readonly { day: string; bytes: number }[]): DownloadBar[] {
+  const max = Math.max(0, ...days.map((d) => d.bytes));
+  return days.map((d) => ({ ...d, ratio: max > 0 ? d.bytes / max : 0 }));
+}
+
+/** Jour `YYYY-MM-DD` en libellé court (« 22 nov. »), sans décalage de fuseau. */
+export function shortDay(day: string, locale: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return day;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(date);
 }

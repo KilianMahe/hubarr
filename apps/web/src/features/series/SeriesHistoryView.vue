@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Historique de l'instance (`media/series_history.html.twig`) : série, épisode,
 // action, source, qualité, date ; 50 par page.
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -38,7 +38,7 @@ const records = computed(() => history.data.value?.records ?? []);
     <h2 class="text-title-medium mb-3">{{ t('media.series_history.title') }}</h2>
     <v-filter-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="t('media.arr_lists.search_series')"
       :aria-label="t('media.arr_lists.search_series')"
       density="compact"

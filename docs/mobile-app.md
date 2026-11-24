@@ -14,7 +14,15 @@ Installing requires an **HTTPS** connection (see [Reverse proxy](./reverse-proxy
 
 ## What is kept offline
 
-The service worker keeps the application **shell** (page, scripts, styles, icons) for a fast start. **Data** (libraries, downloads, activity) is never cached: without a network, the app opens but cannot show anything from your services. A new Hubarr version is picked up on the next launch.
+The service worker keeps the application **shell** (page, scripts, styles, icons) for a fast start. A new Hubarr version is picked up on the next launch.
+
+## Instant display on reopening
+
+The browser also keeps, for 24 hours, what you last viewed in the dashboard, Discover, the calendar, the libraries and the movie and series pages. When you reload or reopen Hubarr, these screens show this content straight away, then update it: a thin line at the top of the screen shows the update is in progress.
+
+- Logs, settings, your profile, activity and download queues are never kept: they always come from your services.
+- This copy belongs to your account and to the Hubarr version: it is cleared when you sign out, when your session ends, when another account signs in and when Hubarr is updated.
+- Without a network, the app opens on this content but cannot update it.
 
 ## Mobile gestures
 

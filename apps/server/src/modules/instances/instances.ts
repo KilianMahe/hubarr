@@ -103,7 +103,7 @@ export function hasAnyEnabledInstance(db: DbExecutor, type: InstanceType): boole
   return listEnabledInstances(db, type).length > 0;
 }
 
-/** Instance par défaut, toujours active (issue #15 de Prismarr). */
+/** Instance par défaut, toujours active. */
 export function getDefaultInstance(db: DbExecutor, type: InstanceType): InstanceRow | null {
   const enabled = listEnabledInstances(db, type);
   return enabled.find((row) => row.isDefault) ?? enabled[0] ?? null;

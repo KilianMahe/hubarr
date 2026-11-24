@@ -6,7 +6,14 @@
 // métadonnées : activer ou désactiver d'un clic (leurs réglages, n° 425-426,
 // n'ont pas d'écran dans l'original : API seule).
 import { providerListSchema, providerTestResponseSchema, type Provider } from '@hubarr/shared';
-import { mdiCheckCircle, mdiCloseCircle, mdiDelete, mdiFlask, mdiPencil, mdiPlus } from '@mdi/js';
+import {
+  msAdd,
+  msCancelFill,
+  msCheckCircleFill,
+  msDelete,
+  msEdit,
+  msScience,
+} from '../../components/symbols';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -189,7 +196,7 @@ const triggerLabel = (name: string) => {
         v-if="spec.canAdd"
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="provider-add"
         @click="edit(null)"
         >{{ t(ctx.key('add')) }}</v-btn
@@ -275,7 +282,7 @@ const triggerLabel = (name: string) => {
             <td class="text-end text-no-wrap">
               <v-btn
                 v-if="family === 'metadata'"
-                :icon="enabled(item) ? mdiCloseCircle : mdiCheckCircle"
+                :icon="enabled(item) ? msCancelFill : msCheckCircleFill"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key(enabled(item) ? 'btn_disable' : 'btn_enable'))"
@@ -285,7 +292,7 @@ const triggerLabel = (name: string) => {
               />
               <v-btn
                 v-if="spec.labels.test !== null"
-                :icon="mdiFlask"
+                :icon="msScience"
                 variant="text"
                 size="small"
                 :loading="testing === item.id"
@@ -295,7 +302,7 @@ const triggerLabel = (name: string) => {
                 @click="test(item)"
               />
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key(spec.labels.edit))"
@@ -304,7 +311,7 @@ const triggerLabel = (name: string) => {
                 @click="edit(item)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

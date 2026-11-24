@@ -19,6 +19,8 @@ export default tseslint.config(
       '**/dist/',
       '**/coverage/',
       'data-dev/',
+      // Maquettes internes (non publiées).
+      'design/',
       'pnpm-lock.yaml',
       'docs/.vitepress/cache/',
       // Artefacts Playwright (make e2e).
@@ -90,7 +92,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['apps/server/**/*.ts', 'tools/**/*.js', '*.js'],
+    files: ['apps/server/**/*.ts', 'tools/**/*.js', '.forgejo/**/*.js', '*.js'],
     languageOptions: { globals: globals.node },
   },
 

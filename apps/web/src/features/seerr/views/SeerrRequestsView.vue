@@ -6,7 +6,7 @@
 // sur la carte), actions approuver, refuser, relancer, supprimer (confirmée),
 // modification complète (dialogue) ; pagination de 20.
 import { SEERR_REQUEST_FILTERS, type SeerrRequest } from '@hubarr/shared';
-import { mdiInboxOutline, mdiMagnify } from '@mdi/js';
+import { msInbox, msSearch } from '../../../components/symbols';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -157,7 +157,7 @@ async function approve(
     <div class="seerr-toolbar mb-3">
       <v-filter-field
         v-model="search"
-        :prepend-inner-icon="mdiMagnify"
+        :prepend-inner-icon="msSearch"
         :placeholder="t('jellyseerr.index.filter_placeholder')"
         :aria-label="t('jellyseerr.index.filter_placeholder')"
         density="compact"
@@ -194,7 +194,7 @@ async function approve(
 
     <EmptyState
       v-if="page.data.value && visible.length === 0"
-      :icon="mdiInboxOutline"
+      :icon="msInbox"
       :title="
         t(
           params.filter === 'all' && !search

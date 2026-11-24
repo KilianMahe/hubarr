@@ -2,7 +2,7 @@
 <script setup lang="ts">
 // Filtres du cutoff (P5c.5, V6) : recherche par titre et profil de qualité,
 // pour Radarr et Sonarr.
-import { mdiMagnify } from '@mdi/js';
+import { msSearch } from '../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -24,7 +24,7 @@ const items = computed(() => [
   <div class="cutoff-filters mb-3">
     <v-filter-field
       v-model="search"
-      :prepend-inner-icon="mdiMagnify"
+      :prepend-inner-icon="msSearch"
       :placeholder="placeholder"
       :aria-label="placeholder"
       density="compact"

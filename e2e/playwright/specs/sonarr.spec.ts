@@ -61,7 +61,9 @@ test('fiche : recherche d’un épisode puis recherche interactive de la saison'
     'téléchargement(s) lancé(s)',
   );
 
-  await detail.getByTestId('season-interactive').first().click();
+  // Actions secondaires de la saison dans son menu « ⋮ » (téléporté).
+  await detail.getByTestId('season-menu').first().click();
+  await page.getByTestId('season-interactive').click();
   // Releases en feuille (bottom sheet sur mobile, dialogue sur desktop).
   const sheet = page.getByTestId('series-releases');
   await expect(sheet.getByTestId('release-row')).toHaveCount(2);
@@ -92,13 +94,13 @@ test('ajout d’une série depuis la recherche', async ({ page, isMobile }) => {
   const dialog = page.getByTestId('add-series');
   await dialog.getByTestId('add-series-search').locator('input').fill('Archipel');
   await expect(dialog.getByTestId('add-series-result-item')).toHaveCount(1);
-  await dialog.getByTestId('add-series-result-item').click();
+  await dialog.getByTestId('add-series-result-item').getByTestId('add-series-pick').click();
   await expect(dialog.getByTestId('add-series-form')).toContainText('Archipel Nord (2022)');
   await dialog.getByTestId('add-series-confirm').click();
   await expect(dialog.getByTestId('add-series-result')).toContainText('Série ajoutée');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
-  await librarySearch(page, isMobile, 'series-search').fill('Archipel');
+  await (await librarySearch(page, isMobile, 'series-search')).fill('Archipel');
   await expect(page.getByTestId('series-content')).toContainText('Archipel Nord');
 });
 

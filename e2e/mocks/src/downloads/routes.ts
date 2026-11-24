@@ -30,6 +30,14 @@ interface FakeTorrent {
   upspeed: number;
   added: number;
   savePath: string;
+  /** Terminé il y a tant de jours (graphique du tableau de bord, lot 13). */
+  doneDaysAgo?: number;
+}
+
+/** Fin d'un torrent terminé, relative à maintenant (secondes Unix), sinon `null`. */
+function doneAt(t: FakeTorrent): number | null {
+  if (t.progress < 1) return null;
+  return Math.floor(Date.now() / 1000) - (t.doneDaysAgo ?? 0) * 86_400 - 3_600;
 }
 
 function torrents(): FakeTorrent[] {
@@ -57,6 +65,7 @@ function torrents(): FakeTorrent[] {
       dlspeed: 0,
       upspeed: 120_000,
       added: 1_763_700_300,
+      doneDaysAgo: 1,
     },
     {
       ...base,
@@ -68,6 +77,7 @@ function torrents(): FakeTorrent[] {
       category: '',
       dlspeed: 0,
       added: 1_763_700_200,
+      doneDaysAgo: 3,
     },
     {
       ...base,
@@ -163,7 +173,7 @@ export const qbittorrentMock: FastifyPluginAsync = async (app) => {
     num_seeds: 12,
     num_leechs: 3,
     added_on: t.added,
-    completion_on: t.progress >= 1 ? t.added + 600 : -1,
+    completion_on: doneAt(t) ?? -1,
     save_path: t.savePath,
     downloaded: Math.round(t.size * t.progress),
     uploaded: 1000,
@@ -382,7 +392,7 @@ export const transmissionMock: FastifyPluginAsync = async (app) => {
               peersSendingToUs: 5,
               peersGettingFromUs: 1,
               addedDate: t.added,
-              doneDate: 0,
+              doneDate: doneAt(t) ?? 0,
               downloadDir: t.savePath,
               labels: t.category === '' ? [] : [t.category],
               trackers: [{ announce: 'udp://tracker.e2e.test:1337/announce' }],
@@ -490,7 +500,7 @@ export const delugeMock: FastifyPluginAsync = async (app) => {
                   num_peers: 2,
                   total_peers: 6,
                   time_added: t.added,
-                  completed_time: 0,
+                  completed_time: doneAt(t) ?? 0,
                   save_path: t.savePath,
                   label: t.category,
                   tracker_host: 'tracker.e2e.test',
@@ -605,8 +615,10 @@ const HISTORY = Array.from({ length: 64 }, (_, i) => ({
   name: `Historique.Element.${String(i + 1).padStart(2, '0')}`,
   ok: i % 9 !== 4,
   bytes: 1_000_000_000 + i * 10_000_000,
-  completed: 1_763_600_000 - i * 3_600,
+  /** Fin il y a i × 10 h : l'historique couvre les 30 derniers jours (lot 13). */
+  agoSeconds: i * 36_000,
 }));
+const completedAt = (h: { agoSeconds: number }) => Math.floor(Date.now() / 1000) - h.agoSeconds;
 
 export const sabnzbdMock: FastifyPluginAsync = async (app) => {
   formParser(app);
@@ -675,7 +687,7 @@ export const sabnzbdMock: FastifyPluginAsync = async (app) => {
               bytes: h.bytes,
               category: 'movies',
               fail_message: h.ok ? '' : 'Repair failed, not enough repair blocks',
-              completed: h.completed,
+              completed: completedAt(h),
             })),
           },
         };
@@ -777,7 +789,7 @@ export const nzbgetMock: FastifyPluginAsync = async (app) => {
             FileSizeLo: h.bytes % 4_294_967_296,
             FileSizeHi: Math.floor(h.bytes / 4_294_967_296),
             Category: 'tv',
-            HistoryTime: h.completed,
+            HistoryTime: completedAt(h),
           })),
         );
       case 'pausedownload':

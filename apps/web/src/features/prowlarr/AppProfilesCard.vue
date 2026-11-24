@@ -8,7 +8,7 @@ import {
   type ProwlarrAppProfile,
   type ProwlarrAppProfileRequest,
 } from '@hubarr/shared';
-import { mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msEdit } from '../../components/symbols';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -115,7 +115,7 @@ function askDelete(): void {
       <v-btn
         size="small"
         variant="tonal"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="app-profile-add"
         @click="edit(null)"
         >{{ t('prowlarr.common.add') }}</v-btn
@@ -156,7 +156,7 @@ function askDelete(): void {
           <td class="text-muted">{{ profile.minimumSeeders }}</td>
           <td class="text-end">
             <v-btn
-              :icon="mdiPencil"
+              :icon="msEdit"
               size="small"
               variant="text"
               :aria-label="t('prowlarr.common.edit')"

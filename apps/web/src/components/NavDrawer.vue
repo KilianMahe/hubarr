@@ -16,7 +16,7 @@ import {
   type NavItem,
 } from '../app/navigation';
 import { useSessionStore } from '../app/stores/session';
-import { mdiCalendar, mdiLogout, mdiPlayCircle } from '@mdi/js';
+import { msLogout, msPlayCircleFill } from './symbols';
 import { activitySchema, resolveActivitySource, seerrPendingCountSchema } from '@hubarr/shared';
 import { useQuery } from '@tanstack/vue-query';
 import { isConfigured, isVisibleInSidebar } from '../app/services';
@@ -24,7 +24,7 @@ import { tautulliApi, tracearrApi } from '../features/activity/activity-api';
 import { seerrApi } from '../features/seerr/seerr-api';
 import { useLiveQuery } from '../app/live';
 import ServiceLogo from '../features/settings/ServiceLogo.vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import HubarrLogo from './HubarrLogo.vue';
 import UserAvatar from './UserAvatar.vue';
 
@@ -33,12 +33,16 @@ defineProps<{ permanent: boolean }>();
 const { t, locale } = useI18n();
 const session = useSessionStore();
 const router = useRouter();
+const route = useRoute();
 async function logout(): Promise<void> {
   await session.logout().catch(() => undefined);
   await router.replace({ name: 'login' });
 }
 
 const visible = (item: NavItem) => item.requiresAdmin !== true || session.isAdmin;
+// Entrée d'un groupe (« Accueil ») : active sur chacune de ses routes.
+const activeProps = (item: NavItem) =>
+  item.activeRoutes ? { active: item.activeRoutes.has(String(route.name)) } : {};
 // Le lien d'aide suit la langue de l'interface.
 const footer = computed(() =>
   DRAWER_FOOTER.filter(visible).map((item) =>
@@ -119,7 +123,7 @@ const streamCount = computed(() => {
       <v-chip
         v-if="streamCount > 0"
         :to="{ name: 'dashboard' }"
-        :prepend-icon="mdiPlayCircle"
+        :prepend-icon="msPlayCircleFill"
         color="success"
         size="small"
         variant="tonal"
@@ -138,8 +142,10 @@ const streamCount = computed(() => {
           :to="item.to"
           :prepend-icon="item.icon"
           :title="t(item.labelKey)"
+          v-bind="activeProps(item)"
           rounded="xl"
           exact
+          :data-drawer-item="item.labelKey"
         />
       </template>
       <template v-for="section in serviceSections" :key="section.titleKey">
@@ -154,12 +160,7 @@ const streamCount = computed(() => {
                 :data-drawer-item="item.key"
               >
                 <template #prepend>
-                  <ServiceLogo
-                    v-if="item.service"
-                    :service="item.service"
-                    :size="24"
-                    class="me-4"
-                  />
+                  <ServiceLogo :service="item.service" :size="24" class="me-4" />
                 </template>
               </v-list-item>
             </template>
@@ -180,11 +181,10 @@ const streamCount = computed(() => {
             v-else
             :to="item.to"
             :title="label(item)"
-            :prepend-icon="item.service ? undefined : mdiCalendar"
             rounded="xl"
             :data-drawer-item="item.key"
           >
-            <template v-if="item.service" #prepend>
+            <template #prepend>
               <ServiceLogo :service="item.service" :size="24" class="me-4" />
             </template>
             <template #append>
@@ -205,7 +205,8 @@ const streamCount = computed(() => {
 
     <template #append>
       <v-divider />
-      <!-- Pied (maquette P0, E7) : profil et déconnexion, liens en une ligne, version. -->
+      <!-- Pied (maquette P0, E7) : profil et déconnexion, liens en liste verticale
+           (lot 9), version. -->
       <div v-if="session.user" class="drawer-profile">
         <router-link
           :to="{ name: 'profile' }"
@@ -216,7 +217,7 @@ const streamCount = computed(() => {
           <span class="text-body-medium text-truncate">{{ session.user.displayName }}</span>
         </router-link>
         <v-btn
-          :icon="mdiLogout"
+          :icon="msLogout"
           size="small"
           variant="text"
           :aria-label="t('topbar.profile.logout')"
@@ -225,8 +226,16 @@ const streamCount = computed(() => {
           @click="logout"
         />
       </div>
-      <nav class="drawer-links">
-        <v-btn
+      <v-list
+        tag="nav"
+        nav
+        density="compact"
+        color="on-service-container"
+        :aria-label="t('sidebar.footer.aria_label')"
+        class="drawer-links"
+        data-test="drawer-footer"
+      >
+        <v-list-item
           v-for="item in footer"
           :key="item.labelKey"
           :to="item.to"
@@ -234,12 +243,11 @@ const streamCount = computed(() => {
           :target="item.href ? '_blank' : undefined"
           :rel="item.href ? 'noopener' : undefined"
           :prepend-icon="item.icon"
-          size="small"
-          variant="text"
-          class="text-none"
-          >{{ t(item.labelKey) }}</v-btn
-        >
-      </nav>
+          :title="t(item.labelKey)"
+          rounded="xl"
+          :data-test="`drawer-footer-${item.labelKey}`"
+        />
+      </v-list>
       <div class="px-4 pb-3 text-label-small text-muted">
         {{ t('footer.version', { version: session.version }) }}
       </div>
@@ -275,8 +283,7 @@ const streamCount = computed(() => {
   min-width: 0;
 }
 .drawer-links {
-  display: flex;
-  flex-wrap: wrap;
-  padding: 4px 8px;
+  padding-block: 4px;
+  background: transparent;
 }
 </style>

@@ -9,7 +9,7 @@ import {
   SERVICE_SETTINGS,
   type ServicesHealthResponse,
 } from '@hubarr/shared';
-import { mdiHeartPulse } from '@mdi/js';
+import { msMonitorHeart } from './symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useServicesHealth } from '../app/health';
@@ -79,7 +79,7 @@ function stateColor(state: boolean): string {
     <template #activator="{ props }">
       <v-btn v-bind="props" icon :aria-label="t('topbar.health.title')" data-test="health-menu">
         <v-badge dot :color="color" data-test="health-dot" :data-color="color">
-          <v-icon :icon="mdiHeartPulse" />
+          <v-icon :icon="msMonitorHeart" />
         </v-badge>
       </v-btn>
     </template>

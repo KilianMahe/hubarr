@@ -120,8 +120,9 @@ SQL migrations (Drizzle) run **at startup**, after a `hubarr.db.bak` copy. The s
 - **Boot**: `GET /api/bootstrap` returns the user, the CSRF token, the language, the theme and the setup state; language and theme are applied before the first render (no color flash).
 - **Data**: TanStack Query for every read (cache, refetches, invalidation after mutations); the API client adds the CSRF token, replays once a request refused for an expired token and maps errors.
 - **Navigation**: page addresses are those shown in the browser bar; router guards handle setup, login, role and unavailable services.
-- **Interface**: Vuetify 4, mobile first. Navigation drawer, top bar, bottom bar and per-service action button on mobile; dark theme by default, 17 palettes, per-service accent.
+- **Interface**: Vuetify 4, mobile first. Navigation drawer, top bar, bottom bar and per-service action button on mobile; a route declares its bottom bar tabs (`meta.bottomNav`, filtered by an optional `visible` condition), which also give the **Home** group its tabs at the top on a computer (`app/home-tabs.ts`); dark theme by default, 17 palettes, per-service accent. Icons are **Material Symbols** (Rounded style, Apache-2.0): only the paths in use are kept in `apps/web/src/components/symbols.ts`, drawn by a Vuetify icon set (`app/plugins/material-symbols.ts`) that also covers Vuetify's own icons. To add an icon, copy the path of `rounded/<name>.svg` (or `<name>-fill.svg`) from `@material-symbols/svg-400` into that file.
 - **Translations**: FR/EN JSON catalogs in ICU format in `packages/shared/src/i18n`, loaded per language. An ESLint rule forbids hard-coded text in components.
+- **Persistent cache**: an allowlist of TanStack Query queries (dashboard, Discover, calendar, Radarr/Sonarr libraries and pages) is saved to IndexedDB (`app/query-persist.ts`, `@tanstack/query-persist-client-core`) and restored before mounting, then revalidated; a thin bar at the top shows the refresh. The cache key combines `HUBARR_VERSION` and the user id, with a 24-hour maximum age; it is cleared from memory and storage as soon as the session ends or changes user. Logs, settings, profile and real-time feeds are never persisted; images are not stored (only their URLs: public TMDB ones, or Hubarr's image proxy), and no address of the user's services is kept.
 - **PWA**: manifest, icons and a service worker (`public/sw.js`) that only caches the application shell, never data.
 
 ## Security
@@ -142,7 +143,7 @@ The multi-stage `docker/Dockerfile` produces the final image:
 2. **prune**: `pnpm deploy --prod` keeps runtime dependencies only; native binaries (SQLite, argon2) are loaded during the build, which fails if they are missing;
 3. **runtime**: `node:24-alpine`, `tini`, `/data` volume, port 7070, `HEALTHCHECK` on `/api/health`. The entrypoint hands `/data` to `PUID:PGID` (1000 by default) then starts Hubarr under that identity with `su-exec`: the server never runs as root, and the application code belongs to root, read-only for the server.
 
-The image is published on Docker Hub (`naroner/hubarr`, amd64); `make build` builds it from source for the machine's architecture. All configuration goes through environment variables (see [Installation](./installation.md#environment-variables)). Logs go to standard output (level `HUBARR_LOG_LEVEL`).
+The image is published on Docker Hub (`naroner/hubarr`, amd64); `make build` builds it from source for the machine's architecture. All configuration goes through environment variables (see [Installation](./installation.md#environment-variables)). Logs go to standard output (level `HUBARR_LOG_LEVEL`), secrets masked; the last 1,000 entries are also kept in memory for the **Logs** page (`GET /api/admin/logs`, level `HUBARR_LOG_BUFFER_LEVEL`).
 
 **Backup**: Hubarr's whole state lives in the folder mounted on `/data` (database, automatic backup, avatars). The settings JSON export also carries the service configuration to another install.
 
@@ -151,4 +152,4 @@ The image is published on Docker Hub (`naroner/hubarr`, amd64); `make build` bui
 - **Vitest** for the server (services, HTTP clients against mock agents, cache, routes via `fastify.inject`) and the front end (components, composables).
 - **Playwright** against the real production image and a **fake services** server (`e2e/mocks`), on desktop and mobile, with accessibility checks.
 - **ESLint** (type-aware rules, SPDX license header, no hard-coded text), **Prettier**, `vue-tsc`, and dependency license checks.
-- These checks run in Docker through `make check` and `make e2e`, and git hooks run them before every commit and push.
+- These checks run in Docker through `make check` and `make e2e`, and a git hook runs lint and type checks before every commit.

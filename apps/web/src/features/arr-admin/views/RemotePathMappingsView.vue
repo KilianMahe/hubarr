@@ -3,7 +3,7 @@
 // Chemins distants (`radarr/remote_path_mappings.html.twig`) : hôte, chemin
 // distant, chemin local ; ajout, modification, suppression confirmée.
 import { remotePathMappingSchema, type RemotePathMapping } from '@hubarr/shared';
-import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js';
+import { msAdd, msDelete, msEdit } from '../../../components/symbols';
 import { reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -81,7 +81,7 @@ function askDelete(mapping: RemotePathMapping): void {
       <v-btn
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         data-test="mapping-add"
         @click="edit(null)"
         >{{ t(ctx.key('add')) }}</v-btn
@@ -104,7 +104,7 @@ function askDelete(mapping: RemotePathMapping): void {
             <td class="font-monospace text-body-small">{{ mapping.localPath }}</td>
             <td class="text-end text-no-wrap">
               <v-btn
-                :icon="mdiPencil"
+                :icon="msEdit"
                 variant="text"
                 size="small"
                 :aria-label="t(ctx.key('edit'))"
@@ -113,7 +113,7 @@ function askDelete(mapping: RemotePathMapping): void {
                 @click="edit(mapping)"
               />
               <v-btn
-                :icon="mdiDelete"
+                :icon="msDelete"
                 variant="text"
                 color="error"
                 size="small"

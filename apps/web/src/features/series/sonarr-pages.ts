@@ -2,27 +2,27 @@
 // Pages d'une instance Sonarr : onglets (`SonarrNav`) et barre basse mobile.
 
 import {
-  mdiAlertOctagonOutline,
-  mdiHistory,
-  mdiMagnify,
-  mdiPlus,
-  mdiServerNetwork,
-  mdiTelevisionClassic,
-  mdiTrayArrowDown,
-  mdiTrendingDown,
-  mdiCalendarClock,
-} from '@mdi/js';
+  msAdd,
+  msDownload,
+  msEventUpcoming,
+  msHistory,
+  msLan,
+  msReport,
+  msSearch,
+  msTrendingDown,
+  msTv,
+} from '../../components/symbols';
 import type { ArrPage, BottomNavItem, RouteFab } from '../../app/navigation';
 
 export const SONARR_PAGES: ArrPage[] = [
-  { name: 'sonarr', labelKey: 'media.nav.series', icon: mdiTelevisionClassic },
+  { name: 'sonarr', labelKey: 'media.nav.series', icon: msTv },
   // Onglets dédiés (P5c.6, V17, V18, D143).
-  { name: 'sonarr-upcoming', labelKey: 'media.upcoming.tab', icon: mdiCalendarClock },
-  { name: 'sonarr-queue', labelKey: 'media.queue_page.title', icon: mdiTrayArrowDown },
-  { name: 'sonarr-history', labelKey: 'media.item.history', icon: mdiHistory },
-  { name: 'sonarr-blocklist', labelKey: 'media.item.blocklist', icon: mdiAlertOctagonOutline },
-  { name: 'sonarr-missing', labelKey: 'media.item.missing', icon: mdiMagnify },
-  { name: 'sonarr-cutoff', labelKey: 'media.item.cutoff', icon: mdiTrendingDown },
+  { name: 'sonarr-upcoming', labelKey: 'media.upcoming.tab', icon: msEventUpcoming },
+  { name: 'sonarr-queue', labelKey: 'media.queue_page.title', icon: msDownload },
+  { name: 'sonarr-history', labelKey: 'media.item.history', icon: msHistory },
+  { name: 'sonarr-blocklist', labelKey: 'media.item.blocklist', icon: msReport },
+  { name: 'sonarr-missing', labelKey: 'media.item.missing', icon: msSearch },
+  { name: 'sonarr-cutoff', labelKey: 'media.item.cutoff', icon: msTrendingDown },
 ];
 
 /**
@@ -45,7 +45,7 @@ export const SONARR_BOTTOM_NAV: BottomNavItem[] = [
   }),
   {
     labelKey: 'server.tab',
-    icon: mdiServerNetwork,
+    icon: msLan,
     to: { name: 'sonarr-server' },
     // Toutes les autres pages de l'instance (manquants, historique, liste de blocage…).
     matches: (route) =>
@@ -55,7 +55,7 @@ export const SONARR_BOTTOM_NAV: BottomNavItem[] = [
 
 /** FAB du service (mobile) : ajout, exécuté par la bibliothèque (`?action=add`). */
 export const SONARR_FAB: RouteFab = {
-  icon: mdiPlus,
+  icon: msAdd,
   labelKey: 'media.series.actions.add',
   action: 'add',
   index: 'sonarr',

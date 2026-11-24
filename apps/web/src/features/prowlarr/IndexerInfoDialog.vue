@@ -10,6 +10,7 @@ import { useDisplay } from 'vuetify';
 import { useFormat } from '../../app/format';
 import { capabilityRows, categoryRows, indexerLinks, paramLabelKey } from './indexers';
 import { prowlarrApi, prowlarrKeys } from './prowlarr-api';
+import DialogTitle from '../../components/DialogTitle.vue';
 import EmptyState from '../../components/EmptyState.vue';
 
 const props = defineProps<{ indexerId: number | null }>();
@@ -78,9 +79,7 @@ const eventLabel = (type: string | null) =>
     scrollable
   >
     <v-card data-test="indexer-info">
-      <v-card-title class="text-title-large pt-4 text-wrap">{{
-        data?.name ?? t('prowlarr.nav.indexers')
-      }}</v-card-title>
+      <DialogTitle :title="data?.name ?? t('prowlarr.nav.indexers')" @close="open = false" />
       <v-tabs v-model="tab" color="service-text" grow density="compact">
         <v-tab value="details" data-test="indexer-info-tab-details">{{
           t('prowlarr.index.info_tab_details')

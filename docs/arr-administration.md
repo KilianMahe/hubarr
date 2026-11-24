@@ -4,7 +4,7 @@ Hubarr exposes the settings of your [Radarr](https://radarr.video) and [Sonarr](
 
 ## Opening the settings
 
-An instance's configuration and system pages open from **Settings → Services**, with the instance's **Settings** icon (cog) in the Radarr or Sonarr card. Each page keeps its address (`/medias/<slug>/radarr/qualite`…) and shows a **Back to settings** button, then two rows of tabs: the groups below, then the group's pages. Day-to-day pages (commands, Sonarr calendar, library import, suggestions, exclusions) stay in the instance navigation: **More** menu on a computer, **Server** tab on mobile. Pages are grouped as in Radarr and Sonarr:
+An instance's configuration and system pages open from **Settings → Services**, with the instance's **Settings** icon (cog) in the Radarr or Sonarr card. Each page keeps its address (`/medias/<slug>/radarr/qualite`…) and shows a **Back to settings** button, then two rows of tabs: the groups below, then the group's pages. On mobile, the groups are in the bottom bar, and a tap on a group lists its pages. Day-to-day pages (commands, Sonarr calendar, library import, suggestions, exclusions) stay in the instance navigation: **More** menu on a computer, **Server** tab on mobile. Pages are grouped as in Radarr and Sonarr:
 
 | Group        | Pages                                                                                        |
 | ------------ | -------------------------------------------------------------------------------------------- |

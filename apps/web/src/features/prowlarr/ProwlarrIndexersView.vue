@@ -14,16 +14,16 @@ import {
   type ProwlarrOverview,
 } from '@hubarr/shared';
 import {
-  mdiAlertOutline,
-  mdiCheck,
-  mdiCheckAll,
-  mdiClose,
-  mdiDelete,
-  mdiFlask,
-  mdiPencil,
-  mdiPlus,
-  mdiSync,
-} from '@mdi/js';
+  msAdd,
+  msCheck,
+  msClose,
+  msDelete,
+  msDoneAll,
+  msEdit,
+  msScience,
+  msSync,
+  msWarning,
+} from '../../components/symbols';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -326,7 +326,7 @@ const healthTitle = (indexer: ProwlarrIndexer) =>
       })
     : undefined;
 const testIcon = (id: number) =>
-  rowTests.get(id) === 'ok' ? mdiCheck : rowTests.get(id) === 'failed' ? mdiClose : mdiFlask;
+  rowTests.get(id) === 'ok' ? msCheck : rowTests.get(id) === 'failed' ? msClose : msScience;
 const testColor = (id: number) =>
   rowTests.get(id) === 'ok' ? 'success' : rowTests.get(id) === 'failed' ? 'error' : undefined;
 </script>
@@ -343,7 +343,7 @@ const testColor = (id: number) =>
       <v-btn
         variant="text"
         size="small"
-        :prepend-icon="mdiCheckAll"
+        :prepend-icon="msDoneAll"
         :loading="testingAll"
         :title="t('prowlarr.index.test_all_title')"
         :disabled="data === null"
@@ -354,7 +354,7 @@ const testColor = (id: number) =>
       <v-btn
         variant="text"
         size="small"
-        :prepend-icon="mdiSync"
+        :prepend-icon="msSync"
         :loading="sync.running && sync.label === null"
         :disabled="data === null || sync.running"
         :title="t('prowlarr.index.sync_apps_title')"
@@ -375,7 +375,7 @@ const testColor = (id: number) =>
         v-if="!smAndDown"
         color="service"
         size="small"
-        :prepend-icon="mdiPlus"
+        :prepend-icon="msAdd"
         :disabled="data === null"
         data-test="prowlarr-add"
         @click="openEditor(null)"
@@ -427,7 +427,7 @@ const testColor = (id: number) =>
         data-test="prowlarr-health"
       >
         <v-card-title class="text-title-medium d-flex align-center ga-2">
-          <v-icon :icon="mdiAlertOutline" color="warning" size="small" />
+          <v-icon :icon="msWarning" color="warning" size="small" />
           {{ t('prowlarr.index.health_title') }}
           <v-chip size="x-small" color="warning" variant="tonal">{{ data.health.length }}</v-chip>
         </v-card-title>
@@ -562,7 +562,7 @@ const testColor = (id: number) =>
               </td>
               <td class="text-end text-no-wrap">
                 <v-btn
-                  :icon="mdiPencil"
+                  :icon="msEdit"
                   variant="text"
                   size="small"
                   :aria-label="t('prowlarr.common.edit')"
@@ -599,7 +599,7 @@ const testColor = (id: number) =>
                   >{{ t(indexer.enabled ? 'prowlarr.common.on' : 'prowlarr.common.off') }}</v-btn
                 >
                 <v-btn
-                  :icon="mdiDelete"
+                  :icon="msDelete"
                   variant="text"
                   color="error"
                   size="small"
@@ -701,7 +701,7 @@ const testColor = (id: number) =>
           <v-divider />
           <div class="d-flex justify-end pa-1">
             <v-btn
-              :icon="mdiPencil"
+              :icon="msEdit"
               variant="text"
               size="small"
               :aria-label="t('prowlarr.common.edit')"
@@ -719,7 +719,7 @@ const testColor = (id: number) =>
               @click="testIndexer(indexer)"
             />
             <v-btn
-              :icon="mdiDelete"
+              :icon="msDelete"
               variant="text"
               color="error"
               size="small"

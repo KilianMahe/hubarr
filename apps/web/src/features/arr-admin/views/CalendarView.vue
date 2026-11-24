@@ -5,7 +5,7 @@
 // l'épisode, l'heure et l'état (fichier présent, suivi). L'original rendait
 // cette page avec le gabarit des commandes.
 import { calendarEpisodeSchema } from '@hubarr/shared';
-import { mdiCheckCircle } from '@mdi/js';
+import { msCheckCircleFill } from '../../../components/symbols';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { z } from 'zod';
@@ -69,7 +69,7 @@ const pad = (value: number) => String(value).padStart(2, '0');
             <span class="text-body-small text-muted me-2">{{
               episode.airDateUtc === null ? '' : (format.time(episode.airDateUtc) ?? '')
             }}</span>
-            <v-icon v-if="episode.hasFile" :icon="mdiCheckCircle" color="success" size="small" />
+            <v-icon v-if="episode.hasFile" :icon="msCheckCircleFill" color="success" size="small" />
             <v-chip v-else-if="!episode.monitored" size="x-small" variant="tonal">{{
               t('media.arr_admin.calendar.unmonitored')
             }}</v-chip>

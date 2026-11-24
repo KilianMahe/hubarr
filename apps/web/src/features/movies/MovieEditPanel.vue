@@ -11,7 +11,7 @@ import {
   type MovieDetail,
   type MovieEditRequest,
 } from '@hubarr/shared';
-import { mdiPlus } from '@mdi/js';
+import { msAdd } from '../../components/symbols';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import FolderPathField from '../../components/FolderPathField.vue';
@@ -178,7 +178,7 @@ function save(): void {
     >
       <template #append-inner>
         <v-btn
-          :icon="mdiPlus"
+          :icon="msAdd"
           size="small"
           variant="text"
           :aria-label="t('common.action.add')"
