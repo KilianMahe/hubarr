@@ -107,7 +107,7 @@ SQLite in WAL mode in `HUBARR_DATA_DIR` (`/data/hubarr.db`). Five tables:
 
 | Table              | Content                                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `user`             | Accounts: e-mail, argon2id hash, role, name, avatar                                                   |
+| `user`             | Accounts: e-mail, argon2id hash, role, name, avatar, display preferences                              |
 | `session`          | Sessions: SHA-256 hash of the token, data, sliding expiry                                             |
 | `setting`          | Key-value settings as validated JSON (preferences, theme, dashboard, setup state)                     |
 | `service_instance` | One row per service or instance: type, slug, name, URL, credentials, options, default, enabled, order |
@@ -129,7 +129,7 @@ SQL migrations (Drizzle) run **at startup**, after a `hubarr.db.bak` copy. The s
 
 - **Passwords** hashed with argon2id; **sessions** use a random 256-bit token of which only the hash is stored; `HttpOnly`, `SameSite=Lax` cookie, `Secure` over HTTPS.
 - **CSRF**: synchronizer token on every mutation, login included, plus `Sec-Fetch-Site` and `Origin` checks.
-- **Login throttling**: 5 attempts in 15 minutes per account and IP, 25 per IP, and 50 per account whatever the IP (a client trusted as a proxy can change its `X-Forwarded-For` at will). Checking the current password from the profile has the same 5-attempt limit.
+- **Login throttling**: 5 attempts in 15 minutes per account and IP, 25 per IP, and 50 per account whatever the IP (a client trusted as a proxy can change its `X-Forwarded-For` at will). An IP address from which the account has signed in within the last 30 days is exempt from this last limit, so that attempts from elsewhere cannot lock the account out. Checking the current password from the profile has the same 5-attempt limit.
 - **Headers**: strict CSP (`script-src 'self'`, no inline script in the application), configurable `frame-ancestors` (`HUBARR_FRAME_ANCESTORS`), `X-Content-Type-Options`, `Referrer-Policy`, HSTS, `Permissions-Policy`.
 - **Service secrets** stored server side and never sent back to the browser; an import that changes the origin (scheme, host, port) of a service clears its stored secrets.
 - **Image proxy** restricted to the expected paths of each service.

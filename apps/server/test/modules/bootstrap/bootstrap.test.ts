@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // `GET /api/bootstrap` (P0.7) : état initial du shell.
 import {
+  DEFAULT_USER_PREFERENCES,
   SESSION_COOKIE_NAME,
   defaultDisplayValues,
   resolveTheme,
@@ -33,6 +34,7 @@ describe('GET /api/bootstrap', () => {
       theme: resolveTheme(undefined, undefined),
       services: { states: {}, instances: { radarr: [], sonarr: [] }, sidebar: {} },
       preferences: defaultDisplayValues(systemTimezone()),
+      userPreferences: DEFAULT_USER_PREFERENCES,
     });
     expect(response.cookies.map((cookie) => cookie.name)).toContain(SESSION_COOKIE_NAME);
     await app.close();

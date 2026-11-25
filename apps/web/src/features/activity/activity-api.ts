@@ -16,7 +16,9 @@ import {
   tracearrStatsSchema,
   tracearrUserDetailSchema,
   tracearrUsersSchema,
+  arrOkSchema,
   type Chart,
+  type TerminateSessionRequest,
 } from '@hubarr/shared';
 import { api } from '../../app/api/client';
 
@@ -70,6 +72,13 @@ export const tracearrApi = {
   users: (signal?: AbortSignal) => api.get('/api/tracearr/users', tracearrUsersSchema, signal),
   user: (key: string, signal?: AbortSignal) =>
     api.get(`/api/tracearr/users/${encodeURIComponent(key)}`, tracearrUserDetailSchema, signal),
+  /** Arrête une lecture en cours (admins), avec un message facultatif pour le spectateur. */
+  terminate: (sessionId: string, request: TerminateSessionRequest) =>
+    api.post(
+      `/api/tracearr/streams/${encodeURIComponent(sessionId)}/terminate`,
+      request,
+      arrOkSchema,
+    ),
 };
 
 /** Couleurs des séries (thème) : une par série, dans l'ordre. */

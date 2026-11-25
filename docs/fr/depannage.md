@@ -37,7 +37,7 @@ La commande demande le nouveau mot de passe deux fois, puis ferme toutes les ses
 
 ## « Trop de tentatives » à la connexion
 
-Après 5 échecs en 15 minutes, la connexion est bloquée pour ce compte et cette adresse IP jusqu'à la fin de la fenêtre ; après 50 échecs sur le même compte, toutes adresses confondues, elle l'est pour toutes les adresses. Une session ouverte ou `hubarr user:reset-password` restent utilisables. Derrière un reverse proxy, vérifiez que `HUBARR_TRUST_PROXY` couvre bien le proxy : sinon tous les visiteurs semblent venir de la même adresse, celle du proxy.
+Après 5 échecs en 15 minutes, la connexion est bloquée pour ce compte et cette adresse IP jusqu'à la fin de la fenêtre ; après 50 échecs sur le même compte, toutes adresses confondues, elle l'est pour toutes les adresses, sauf celles depuis lesquelles le compte s'est connecté dans les 30 derniers jours. Une session ouverte ou `hubarr user:reset-password` restent utilisables. Derrière un reverse proxy, vérifiez que `HUBARR_TRUST_PROXY` couvre bien le proxy : sinon tous les visiteurs semblent venir de la même adresse, celle du proxy.
 
 ## Un service apparaît injoignable
 

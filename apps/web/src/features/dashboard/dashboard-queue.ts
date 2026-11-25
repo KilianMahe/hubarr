@@ -19,14 +19,33 @@ export interface QueueSource {
 export interface DashboardQueueRow {
   key: string;
   service: 'radarr' | 'sonarr';
+  slug: string;
   instance: string;
   title: string;
   /** Épisode (Sonarr) ou année (Radarr). */
   detail: string | null;
   progress: number;
   state: QueueState;
-  /** Fiche du film ou de la série. */
+  /** Fiche du film ou de la série ; page « File d'attente » pendant le téléchargement ou l'attente de l'import. */
   to: RouteLocationRaw | null;
+  /** Élément de la file, pour la gestion de l'import. */
+  item: MovieQueueItem | SeriesQueueItem;
+  /** Problème à traiter (import bloqué, avertissement, erreur) : la ligne ouvre la gestion. */
+  manageable: boolean;
+}
+
+/** États dont la ligne ouvre la gestion de l'import plutôt que la fiche. */
+export const MANAGEABLE_STATES: ReadonlySet<QueueState> = new Set(['blocked', 'warning', 'error']);
+
+/**
+ * États dont la ligne mène à la page « File d'attente » du service plutôt qu'à
+ * la fiche : téléchargement en cours, ou import en attente (par exemple un
+ * épisode au titre encore inconnu, « TBA », que Sonarr n'importe pas tout de suite).
+ */
+export const QUEUE_PAGE_STATES: ReadonlySet<QueueState> = new Set(['downloading', 'pending']);
+
+function queuePageLocation(service: 'radarr' | 'sonarr', slug: string): RouteLocationRaw {
+  return { name: service === 'radarr' ? 'radarr-queue' : 'sonarr-queue', params: { slug } };
 }
 
 const RANK: Record<QueueState, number> = {
@@ -55,22 +74,46 @@ function isSeriesItem(item: MovieQueueItem | SeriesQueueItem): item is SeriesQue
   return 'seriesTitle' in item;
 }
 
+/** Ligne d'un élément de la file (tableau de bord, gestion depuis les pages de file). */
+export function queueRow(
+  service: 'radarr' | 'sonarr',
+  slug: string,
+  instance: string,
+  item: MovieQueueItem | SeriesQueueItem,
+  index = 0,
+): DashboardQueueRow {
+  const series = isSeriesItem(item);
+  const mediaId = series ? item.seriesId : item.movieId;
+  const state = queueState(item, false);
+  return {
+    key: `${service}-${slug}-${item.id ?? `i${index}`}`,
+    service,
+    slug,
+    instance,
+    title: series ? item.seriesTitle : item.title,
+    detail: series ? item.episode : item.year === null ? null : String(item.year),
+    progress: queueProgress(item),
+    state,
+    to: QUEUE_PAGE_STATES.has(state)
+      ? queuePageLocation(service, slug)
+      : mediaId === null
+        ? null
+        : mediaDetailLocation(service, slug, mediaId),
+    item,
+    manageable: isManageable(item),
+  };
+}
+
+/** Problème à traiter (import bloqué, avertissement, erreur) sur un élément identifié. */
+export function isManageable(item: MovieQueueItem | SeriesQueueItem): boolean {
+  return item.id !== null && MANAGEABLE_STATES.has(queueState(item, false));
+}
+
 export function dashboardQueueRows(sources: readonly QueueSource[]): DashboardQueueRow[] {
   const rows = sources.flatMap((source) =>
-    source.items.map((item, index): DashboardQueueRow => {
-      const series = isSeriesItem(item);
-      const mediaId = series ? item.seriesId : item.movieId;
-      return {
-        key: `${source.service}-${source.slug}-${item.id ?? `i${index}`}`,
-        service: source.service,
-        instance: source.instance,
-        title: series ? item.seriesTitle : item.title,
-        detail: series ? item.episode : item.year === null ? null : String(item.year),
-        progress: queueProgress(item),
-        state: queueState(item, false),
-        to: mediaId === null ? null : mediaDetailLocation(source.service, source.slug, mediaId),
-      };
-    }),
+    source.items.map((item, index) =>
+      queueRow(source.service, source.slug, source.instance, item, index),
+    ),
   );
   return rows.sort(
     (a, b) =>

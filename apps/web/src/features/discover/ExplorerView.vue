@@ -6,7 +6,7 @@
 // « Charger plus » ; recherche d'une collection ou d'un acteur, dont les
 // titres s'ouvrent dans une feuille. Fiche par `?detail=…`.
 import { ANIME_GENRE_ID, type PersonHit, type TmdbCard, type TmdbMediaType } from '@hubarr/shared';
-import { msArrowBack, msExplore } from '../../components/symbols';
+import { msExplore } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -164,11 +164,6 @@ const actorId = computed({
 <template>
   <v-container fluid class="py-4" data-test="explorer-view">
     <ServiceDownBanner service="tmdb" />
-    <div class="d-flex align-center ga-2 mb-2">
-      <v-btn :to="{ name: 'tmdb' }" variant="text" :prepend-icon="msArrowBack">{{
-        t('decouverte.explorer.back_to_discover')
-      }}</v-btn>
-    </div>
     <p class="text-body-medium text-muted mb-4">{{ t('decouverte.explorer.subtitle') }}</p>
 
     <v-row>

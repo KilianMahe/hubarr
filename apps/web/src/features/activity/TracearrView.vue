@@ -386,7 +386,7 @@ const chartList = computed(() =>
       </p>
     </section>
 
-    <SessionDetailDialog :session="detail" @close="detail = null" />
+    <SessionDetailDialog :session="detail" terminable @close="detail = null" />
   </v-container>
 </template>
 

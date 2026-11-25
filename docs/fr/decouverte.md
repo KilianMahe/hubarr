@@ -40,11 +40,11 @@ Les administrateurs ajoutent un titre à Radarr ou Sonarr depuis une affiche, un
 
 TMDB n'a pas de type « animé » : Hubarr considère comme animés les titres du genre Animation dont la langue originale est le japonais, comme lorsqu'il règle le type d'une série sur « anime » avant de l'ajouter à Sonarr.
 
-`/decouverte/explorer` filtre TMDB par type (films, séries, ou **Animés** avec un choix séries / films), genres, décennie ou **année** précise (choisir l'une efface l'autre) et tri (populaires, mieux notés, plus récents, box-office), et recherche une **collection** ou un **acteur** pour afficher tous ses titres.
+`/decouverte/explorer` (onglet **Explorer** de l'accueil) filtre TMDB par type (films, séries, ou **Animés** avec un choix séries / films), genres, décennie ou **année** précise (choisir l'une efface l'autre) et tri (populaires, mieux notés, plus récents, box-office), et recherche une **collection** ou un **acteur** pour afficher tous ses titres.
 
 ## Watchlist
 
-L'étoile d'une affiche ajoute le titre à la **watchlist**, commune à tous les utilisateurs. La page `/decouverte/watchlist` la filtre (films, séries, texte), la trie, permet d'y noter un commentaire et d'en retirer un titre.
+L'étoile d'une affiche ajoute le titre à la **watchlist**, commune à tous les utilisateurs. La page `/decouverte/watchlist` (onglet **Watchlist** de l'accueil) la filtre (films, séries, texte), la trie, permet d'y noter un commentaire et d'en retirer un titre.
 
 ## Recherche globale
 

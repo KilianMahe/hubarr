@@ -51,11 +51,11 @@ import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import LibraryPagination from '../../components/LibraryPagination.vue';
 import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
-import { browserStorage, useViewMode } from '../../app/view-mode';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import {
   mapLimit,
   reportedDownloads,
+  initialViewMode,
   toggleSelection,
   VIEW_MODES,
   type ViewMode,
@@ -79,7 +79,6 @@ import PullToRefresh from '../../components/ds/PullToRefresh.vue';
 import StatTile from '../../components/ds/StatTile.vue';
 import {
   SERIES_TRACKED_COMMANDS,
-  SERIES_VIEW_STORAGE_KEY,
   seriesApiParamsOf,
   seriesQueryFromRoute,
   seriesRouteQueryOf,
@@ -225,13 +224,8 @@ const activeFilter = computed(() => hasActiveSeriesFilter(query.value));
 
 // ── Vues ────────────────────────────────────────────────────────────────────
 
-const storage = browserStorage();
-const viewMode = useViewMode<ViewMode>(
-  SERIES_VIEW_STORAGE_KEY,
-  VIEW_MODES,
-  mdAndUp.value ? 'grid' : 'extended',
-  storage,
-);
+// Préférence du compte à chaque ouverture ; un changement ne vaut que pour la visite.
+const viewMode = ref<ViewMode>(initialViewMode(session.userPreferences.seriesView, mdAndUp.value));
 const VIEW_ICONS: Record<ViewMode, string> = {
   grid: msGridViewFill,
   wall: msViewModule,

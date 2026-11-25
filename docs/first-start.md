@@ -18,13 +18,13 @@ All that is left is to connect your services (Radarr, Sonarr, qBittorrent…) fr
 
 ## Home
 
-**Home**, at the top of the side menu, gathers three pages linked by tabs: **Dashboard**, **Discover** and **Calendar**. On a computer the tabs sit at the top of the page; on mobile they form the bottom bar. Each page keeps its address (`/tableau-de-bord`, `/decouverte`, `/calendrier`). Discover is shown when TMDB is configured, the calendar when Radarr or Sonarr is; both can be hidden in **Settings → Display**. The home page chosen in the settings (`/`, also opened by the logo) is unchanged.
+**Home**, at the top of the side menu, gathers five pages linked by tabs: **Dashboard**, **Discover**, **Explorer**, **Watchlist** and **Calendar**. On a computer the tabs sit at the top of the page; on mobile they form the bottom bar. Each page keeps its address (`/tableau-de-bord`, `/decouverte`, `/decouverte/explorer`, `/decouverte/watchlist`, `/calendrier`). Discover, Explorer and Watchlist are shown when TMDB is configured, the calendar when Radarr or Sonarr is; Discover (with Explorer and Watchlist) and the calendar can be hidden in **Settings → Display**. The home page chosen in the settings (`/`, also opened by the logo) is unchanged.
 
 ## On mobile
 
 The interface adapts to narrow screens:
 
-- **Bottom bar**: on the Home pages, the Dashboard, Discover and Calendar tabs; in each service with several pages (Radarr, Sonarr, Prowlarr, Bazarr, Seerr, SABnzbd, NZBGet), its main pages, with the main action button in the middle (add a movie, a series, an indexer, an NZB). Torrent clients have a floating add button.
+- **Bottom bar**: on the Home pages, the Dashboard, Discover, Explorer, Watchlist and Calendar tabs; in each service with several pages (Radarr, Sonarr, Prowlarr, Bazarr, Seerr, SABnzbd, NZBGet), its main pages, with the main action button in the middle (add a movie, a series, an indexer, an NZB). Torrent clients have a floating add button.
 - **Settings**: on the **Settings** page, the bottom bar holds its five sections. On a service's settings pages, it holds the groups (profiles, integrations, general, system…): a tap on a group lists its pages. The top bar names the service and the page, for example "Sonarr · Tasks" or "Settings · Backup".
 - **Server tab** (Radarr, Sonarr): service version, library counters, other instance pages and commands. Service configuration opens from **Settings → Services**.
 - **Top bar**: the menu, the service and the page (for example "Radarr · Films"), then the magnifier: global search, or in a library its own search, which opens in the bar (the cross clears it).

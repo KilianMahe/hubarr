@@ -18,6 +18,7 @@ import {
   upcomingByDay,
   weekdayKey,
 } from '../src/features/dashboard/dashboard-api';
+import { ACTIVITY } from './activity-fixtures';
 import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle, type FakeHandler } from './helpers';
 
 beforeAll(async () => {
@@ -231,7 +232,12 @@ describe('page', () => {
       routes({
         'GET /api/tableau-de-bord': () => ({ body: page({ layout }) }),
         'GET /api/medias/films/films/queue': () => ({
-          body: [queueItem(1, { sizeleft: 10 }), queueItem(2, { trackedStatus: 'warning' })],
+          body: [
+            queueItem(1, { sizeleft: 10 }),
+            queueItem(2, { trackedStatus: 'warning' }),
+            queueItem(3, { trackedState: 'importPending' }),
+            queueItem(4, { trackedState: 'importing' }),
+          ],
         }),
       }),
     );
@@ -241,11 +247,17 @@ describe('page', () => {
     const rows = wrapper.findAll('[data-test="dashboard-queue-row"]');
     expect(rows.map((row) => row.text())).toEqual([
       expect.stringContaining('Film 2'),
+      expect.stringContaining('Film 4'),
+      expect.stringContaining('Film 3'),
       expect.stringContaining('Film 1'),
     ]);
     expect(rows[0]?.text()).toContain(t('dashboard.queue.state.warning'));
-    expect(rows[1]?.text()).toContain('90 %');
-    expect(rows[1]?.attributes('href')).toBe('/medias/films/films/1');
+    // Import en cours : la fiche ; en attente d'import ou en téléchargement :
+    // la file d'attente de l'instance.
+    expect(rows[1]?.attributes('href')).toBe('/medias/films/films/4');
+    expect(rows[2]?.attributes('href')).toBe('/medias/films/films/file-attente');
+    expect(rows[3]?.text()).toContain('90 %');
+    expect(rows[3]?.attributes('href')).toBe('/medias/films/films/file-attente');
     expect(wrapper.get('[data-test="dashboard-queue-link"]').attributes('href')).toBe(
       '/medias/films/films/file-attente',
     );
@@ -260,6 +272,48 @@ describe('page', () => {
     mounted.push(user.wrapper);
     await settle();
     expect(user.wrapper.find('[data-test="card-queue"]').exists()).toBe(false);
+  });
+
+  it('lecture en cours : la fenêtre de la page Tracearr ou Tautulli', async () => {
+    const layout = [{ key: 'plex', visible: true }] as DashboardPage['layout'];
+    const metadata = { metadata: null };
+    const mountWith = async (source: 'tautulli' | 'tracearr') => {
+      fakeFetch(
+        routes({
+          'GET /api/tableau-de-bord': () => ({
+            body: page({ layout, configured: { ...page().configured, [source]: true } }),
+          }),
+          'GET /api/tableau-de-bord/widget/plex': () => ({
+            body: { available: true, source, activity: ACTIVITY, history: [] },
+          }),
+          'GET /api/tautulli/metadata/42': () => ({ body: metadata }),
+        }),
+      );
+      const app = await mountApp('/tableau-de-bord', bootstrapOf({ user: ADMIN, services }));
+      mounted.push(app.wrapper);
+      await settle();
+      await app.wrapper
+        .get('[data-test="card-activity"] [data-test="activity-row"] button')
+        .trigger('click');
+      await settle();
+      return app.wrapper;
+    };
+
+    // Tracearr : détail de la lecture (flux, lecteur, réseau).
+    let wrapper = await mountWith('tracearr');
+    expect(document.querySelector('[data-test="session-detail-title"]')?.textContent).toBe(
+      'Orbite Basse',
+    );
+    expect(document.querySelector('[data-test="tautulli-metadata"]')).toBeNull();
+    wrapper.unmount();
+    mounted.pop();
+    document.body.innerHTML = '';
+
+    // Tautulli : métadonnées Plex du titre.
+    wrapper = await mountWith('tautulli');
+    expect(document.querySelector('[data-test="tautulli-metadata"]')).not.toBeNull();
+    expect(document.querySelector('[data-test="session-detail"]')).toBeNull();
+    expect(wrapper.find('[data-test="card-activity"]').exists()).toBe(true);
   });
 
   it('sections dans l’ordre, masquées ou sans service absentes, carte en panne isolée', async () => {

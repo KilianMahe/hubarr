@@ -301,6 +301,49 @@ describe('Tracearr', () => {
     }>();
     expect(charts.plays).toEqual({ categories: [], series: [] });
   });
+
+  it('arrêt d’une lecture : admins seulement, message transmis, lecture terminée → 404', async () => {
+    const SESSION = '33333333-4444-5555-6666-777777777777';
+    const GONE = '44444444-5555-6666-7777-888888888888';
+    const path = (id: string) => `/api/tracearr/streams/${id}/terminate`;
+
+    const user = await open('user');
+    expect((await user.browser.post(path(SESSION), {})).statusCode).toBe(403);
+    await user.close();
+
+    const current = await open('admin');
+    const pool = current.agent.get(TRACEARR);
+    const bodies: unknown[] = [];
+    pool
+      .intercept({
+        path: `/api/v1/public/streams/${SESSION}/terminate`,
+        method: 'POST',
+        headers: { authorization: 'Bearer trr_pub_x' },
+      })
+      .reply((options) => {
+        bodies.push(typeof options.body === 'string' ? JSON.parse(options.body) : null);
+        return { statusCode: 200, data: { success: true, sessionId: SESSION } };
+      })
+      .times(2);
+    pool
+      .intercept({ path: `/api/v1/public/streams/${GONE}/terminate`, method: 'POST' })
+      .reply(409, { error: 'Session already stopped' });
+
+    const done = await current.browser.post(path(SESSION), { reason: '  Pause dîner  ' });
+    expect(done.statusCode).toBe(200);
+    expect(done.json()).toEqual({ ok: true });
+    expect((await current.browser.post(path(SESSION), {})).statusCode).toBe(200);
+    expect(bodies).toEqual([{ reason: 'Pause dîner' }, {}]);
+
+    expect((await current.browser.post(path(GONE), {})).json()).toMatchObject({
+      code: 'NOT_FOUND',
+      service: 'tracearr',
+    });
+    expect((await current.browser.post(path('s1'), {})).statusCode).toBe(400);
+    expect(
+      (await current.browser.post(path(SESSION), { reason: 'x'.repeat(201) })).statusCode,
+    ).toBe(400);
+  });
 });
 
 describe('Emby', () => {

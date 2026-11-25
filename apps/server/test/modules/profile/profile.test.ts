@@ -2,12 +2,18 @@
 // Routes `/api/profil/*` (P0.8, `ProfileController` d'origine).
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { AVATAR_MAX_BYTES, type ProfileResponse } from '@hubarr/shared';
+import {
+  AVATAR_MAX_BYTES,
+  DEFAULT_USER_PREFERENCES,
+  type BootstrapResponse,
+  type ProfileResponse,
+} from '@hubarr/shared';
+import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../../../src/app';
 import type { AppDatabase } from '../../../src/db/client';
-import { watchlistItems } from '../../../src/db/schema';
+import { users, watchlistItems } from '../../../src/db/schema';
 import {
   TestBrowser,
   createClock,
@@ -169,6 +175,44 @@ describe('POST /api/profil', () => {
     const fresh = new TestBrowser(() => app);
     expect((await fresh.login({ email: EMAIL, password: PASSWORD })).statusCode).toBe(401);
     expect((await fresh.login({ email: EMAIL, password: 'new-password-1' })).statusCode).toBe(200);
+  });
+});
+
+describe('POST /api/profil/preferences', () => {
+  const PREFS = {
+    moviesView: 'table',
+    seriesView: 'shelf',
+    torrentsView: 'compact',
+    torrentsFilter: 'downloading',
+  } as const;
+
+  it('enregistre les préférences du compte, relues par le bootstrap', async () => {
+    const bootstrap = async () =>
+      (await browser.get('/api/bootstrap')).json<BootstrapResponse>().userPreferences;
+    expect(await bootstrap()).toEqual(DEFAULT_USER_PREFERENCES);
+    const response = await browser.post('/api/profil/preferences', PREFS);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(PREFS);
+    expect(await bootstrap()).toEqual(PREFS);
+  });
+
+  it('refuse une valeur inconnue et exige le jeton CSRF', async () => {
+    const invalid = await browser.post('/api/profil/preferences', { ...PREFS, moviesView: 'x' });
+    expect(invalid.statusCode).toBe(400);
+    browser.csrf = undefined;
+    expect((await browser.post('/api/profil/preferences', PREFS)).statusCode).toBe(403);
+    const anonymous = new TestBrowser(() => app);
+    expect((await anonymous.post('/api/profil/preferences', PREFS)).statusCode).toBe(403);
+  });
+
+  it('une valeur enregistrée devenue inconnue reprend sa valeur par défaut', async () => {
+    database.db
+      .update(users)
+      .set({ preferences: { moviesView: 'mosaic', seriesView: 'wall', torrentsFilter: 7 } })
+      .where(eq(users.email, EMAIL))
+      .run();
+    const prefs = (await browser.get('/api/bootstrap')).json<BootstrapResponse>().userPreferences;
+    expect(prefs).toEqual({ ...DEFAULT_USER_PREFERENCES, seriesView: 'wall' });
   });
 });
 

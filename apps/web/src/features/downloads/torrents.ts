@@ -4,8 +4,10 @@
 // dates relatives, choix des clés i18n par client.
 
 import {
+  TORRENT_CAPABILITIES,
   TORRENT_SORTS,
   type TorrentClientId,
+  type TorrentFilter,
   type TorrentSort,
   type TorrentState,
 } from '@hubarr/shared';
@@ -25,12 +27,13 @@ import {
 export const TORRENT_POLL_MS = 3_000;
 export const VPN_POLL_MS = 30_000;
 export const PER_PAGE_OPTIONS = [25, 50, 100, 200, 500] as const;
-export const TORRENT_VIEWS = ['list', 'table', 'compact'] as const;
-export type TorrentView = (typeof TORRENT_VIEWS)[number];
+export { TORRENT_VIEWS, type TorrentView } from '@hubarr/shared';
 
-/** Préférences de la liste (`qbt_view`, `qbt_per_page`, `qbt_sort_*` de l'original), par client. */
+/**
+ * Préférences de la liste mémorisées par appareil et par client (nombre par
+ * page, tri). Le mode d'affichage et le filtre viennent des préférences du compte.
+ */
 export interface TorrentPrefs {
-  view: TorrentView;
   perPage: number;
   sort: TorrentSort;
   desc: boolean;
@@ -38,19 +41,13 @@ export interface TorrentPrefs {
 
 const prefsKey = (client: TorrentClientId) => `hubarr.torrents.${client}`;
 
-export function loadPrefs(
-  client: TorrentClientId,
-  storage: Storage = localStorage,
-  defaultView: TorrentView = 'table',
-): TorrentPrefs {
-  const fallback: TorrentPrefs = { view: defaultView, perPage: 50, sort: 'added', desc: true };
+export function loadPrefs(client: TorrentClientId, storage: Storage = localStorage): TorrentPrefs {
+  const fallback: TorrentPrefs = { perPage: 50, sort: 'added', desc: true };
   try {
     const raw = JSON.parse(storage.getItem(prefsKey(client)) ?? '{}') as Partial<TorrentPrefs>;
-    const view = TORRENT_VIEWS.find((value) => value === raw.view);
     const perPage = PER_PAGE_OPTIONS.find((value) => value === raw.perPage);
     const sort = TORRENT_SORTS.find((value) => value === raw.sort);
     return {
-      view: view ?? fallback.view,
       perPage: perPage ?? fallback.perPage,
       sort: sort ?? fallback.sort,
       desc: typeof raw.desc === 'boolean' ? raw.desc : fallback.desc,
@@ -66,6 +63,14 @@ export function savePrefs(
   storage: Storage = localStorage,
 ): void {
   storage.setItem(prefsKey(client), JSON.stringify(prefs));
+}
+
+/** Filtre d'ouverture : celui du compte, `all` si ce client ne le propose pas. */
+export function initialTorrentFilter(
+  client: TorrentClientId,
+  filter: TorrentFilter,
+): TorrentFilter {
+  return filter === 'stalled' && !TORRENT_CAPABILITIES[client].stalled ? 'all' : filter;
 }
 
 /** Couleur Vuetify d'un état (barre de progression, puce). */

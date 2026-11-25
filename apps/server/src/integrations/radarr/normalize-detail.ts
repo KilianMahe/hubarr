@@ -180,12 +180,27 @@ export function normalizeRelease(
   };
 }
 
-/** Ordre de l'original : acceptées d'abord, puis score décroissant, puis seeders décroissants. */
-export function sortReleases<R extends ArrRelease>(releases: R[]): R[] {
+/** Champs bruts d'une release Radarr ou Sonarr utiles au classement. */
+interface RankedRelease {
+  approved?: boolean;
+  releaseWeight?: number;
+  customFormatScore?: number;
+  seeders?: number | null;
+}
+
+/**
+ * Ordre de pertinence : acceptées d'abord, puis le classement du moteur de
+ * décision de Radarr/Sonarr (`releaseWeight`, croissant : qualité, score des
+ * formats, protocole, priorité de l'indexeur, seeders…). À défaut de poids,
+ * score décroissant puis seeders décroissants.
+ */
+export function sortReleases<R extends RankedRelease>(releases: readonly R[]): R[] {
+  const weight = (release: R): number => release.releaseWeight ?? Number.MAX_SAFE_INTEGER;
   return [...releases].sort(
     (a, b) =>
-      Number(b.approved) - Number(a.approved) ||
-      b.customFormatScore - a.customFormatScore ||
+      Number(b.approved ?? false) - Number(a.approved ?? false) ||
+      weight(a) - weight(b) ||
+      (b.customFormatScore ?? 0) - (a.customFormatScore ?? 0) ||
       (b.seeders ?? -1) - (a.seeders ?? -1),
   );
 }

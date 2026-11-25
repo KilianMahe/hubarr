@@ -5,10 +5,12 @@
 
 import {
   DEFAULT_MOVIE_LIBRARY_QUERY,
+  DEFAULT_USER_PREFERENCES,
   type MovieDetail,
   type MovieLibraryItem,
   type MovieLibraryResponse,
   type TmdbCard,
+  type UserPreferences,
 } from '@hubarr/shared';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
@@ -19,7 +21,7 @@ import {
   downloadedCount,
   pageRange,
   paginationLinks,
-  readViewMode,
+  initialViewMode,
   routeQueryOf,
   searchedTitle,
   shelvesOf,
@@ -134,12 +136,11 @@ describe('logique de la bibliothèque', () => {
     expect(commandOutcome('unknown')).toBe('running');
   });
 
-  it('vue mémorisée, repli si la valeur est inconnue', () => {
-    localStorage.setItem('hubarr.films-view', 'table');
-    expect(readViewMode('grid', localStorage)).toBe('table');
-    localStorage.setItem('hubarr.films-view', 'mosaic');
-    expect(readViewMode('grid', localStorage)).toBe('grid');
-    expect(readViewMode('grid', null)).toBe('grid');
+  it('vue d’ouverture : préférence du compte, ou grille / étendu selon la largeur', () => {
+    expect(initialViewMode('table', true)).toBe('table');
+    expect(initialViewMode('shelf', false)).toBe('shelf');
+    expect(initialViewMode('auto', true)).toBe('grid');
+    expect(initialViewMode('auto', false)).toBe('extended');
   });
 
   it('affiche TMDB réduite', () => {
@@ -187,6 +188,7 @@ const MOVIES = [
 async function mountMovies(
   path = '/medias/radarr/films',
   routes: Parameters<typeof fakeFetch>[0] = {},
+  prefs: Partial<UserPreferences> = {},
 ) {
   const fetch = fakeFetch({
     'GET /api/health/services': () => ({
@@ -204,7 +206,14 @@ async function mountMovies(
     }),
     ...routes,
   });
-  const app = await mountApp(path, bootstrapOf({ user: ADMIN, services: RADARR_SERVICES }));
+  const app = await mountApp(
+    path,
+    bootstrapOf({
+      user: ADMIN,
+      services: RADARR_SERVICES,
+      userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
+    }),
+  );
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };
@@ -236,9 +245,8 @@ describe('MoviesView', () => {
     localStorage.removeItem('hubarr.dismissed-alerts.radarr.radarr');
   });
 
-  it('affiche les statistiques, l’avertissement et les films (vue mémorisée)', async () => {
-    localStorage.setItem('hubarr.films-view', 'extended');
-    const { wrapper } = await mountMovies();
+  it('affiche les statistiques, l’avertissement et les films (vue du compte)', async () => {
+    const { wrapper } = await mountMovies(undefined, undefined, { moviesView: 'extended' });
     expect(wrapper.find('[data-test="movies-stats"]').text()).toContain('12.5');
     expect(wrapper.find('[data-test="movies-warning"]').text()).toBe(t('media.api.no_indexer'));
     const text = wrapper.find('[data-test="movies-content"]').text();
@@ -267,21 +275,33 @@ describe('MoviesView', () => {
     expect(wrapper.find('[data-test="search-filtered"]').exists()).toBe(true);
   });
 
-  it('change de vue par le menu (desktop comme mobile, V14) et mémorise le choix', async () => {
+  it('change de vue par le menu (V14), le temps de la visite seulement', async () => {
     const { wrapper } = await mountMovies();
     await wrapper.get('[data-test="movies-view-menu"]').trigger('click');
     await settle();
     document.querySelector<HTMLElement>('[data-test="view-table"]')?.click();
     await settle();
     expect(wrapper.find('.movie-table').exists()).toBe(true);
-    expect(localStorage.getItem('hubarr.films-view')).toBe('table');
+    wrapper.unmount();
+    mounted.length = 0;
+    // Nouvelle visite : la préférence du compte (grille par défaut sur grand écran).
+    const again = await mountMovies();
+    expect(again.wrapper.find('.movie-table').exists()).toBe(false);
+  });
+
+  it('s’ouvre sur le mode choisi dans les préférences du compte', async () => {
+    const { wrapper } = await mountMovies(undefined, undefined, { moviesView: 'table' });
+    expect(wrapper.find('.movie-table').exists()).toBe(true);
   });
 
   it('sélection puis suppression en masse : corps envoyé et bibliothèque rechargée', async () => {
-    localStorage.setItem('hubarr.films-view', 'extended');
-    const { wrapper, fetch } = await mountMovies('/medias/radarr/films', {
-      'POST /api/medias/radarr/films/bulk/delete': () => ({ body: { ok: true } }),
-    });
+    const { wrapper, fetch } = await mountMovies(
+      '/medias/radarr/films',
+      {
+        'POST /api/medias/radarr/films/bulk/delete': () => ({ body: { ok: true } }),
+      },
+      { moviesView: 'extended' },
+    );
     await wrapper.find('[data-test="movies-select-mode"]').trigger('click');
     await settle();
     const rows = wrapper.findAll('.movie-row .media-item__hit');
@@ -618,6 +638,51 @@ describe('Recherche, releases et renommage (P2.5)', () => {
     );
   });
 
+  it('recherche interactive : ordre du serveur (pertinence), tri en trois clics, formats résumés', async () => {
+    const formats = ['HDR', 'x265', 'FR', 'MULTI'].map((name) => ({ name, score: 10 }));
+    await mountMovies('/medias/radarr/films?open=1', {
+      ...base,
+      'GET /api/medias/radarr/films/1/releases': () => ({
+        body: [
+          release('a', true, { customFormatScore: 10, scoreDetails: formats }),
+          release('b', true, { customFormatScore: 90 }),
+          release('c', false, { customFormatScore: 50 }),
+        ],
+      }),
+    });
+    clickIn('[data-test="movie-interactive"]');
+    await settle();
+    const order = () =>
+      [...document.querySelectorAll('[data-test="release-row"] .release-list__title')].map((cell) =>
+        cell.textContent.trim(),
+      );
+    const toolbar = () => document.querySelector('[data-test="release-toolbar"]')?.textContent;
+    expect(order()).toEqual(['Release a', 'Release b', 'Release c']);
+    expect(toolbar()).toContain(t('media.films.detail.sorted_by_relevance'));
+    expect(toolbar()).toContain(t('media.films.detail.releases_count', { count: 3 }));
+    expect(document.querySelector('[data-test="release-more-formats"]')?.textContent).toBe('+2');
+
+    const scoreHeader = () =>
+      [...document.querySelectorAll<HTMLElement>('.release-list__table th')].find(
+        (th) => th.textContent.trim() === t('media.films.detail.score_col'),
+      );
+    scoreHeader()?.click();
+    await settle();
+    expect(order()).toEqual(['Release b', 'Release c', 'Release a']);
+    scoreHeader()?.click();
+    await settle();
+    expect(order()).toEqual(['Release a', 'Release c', 'Release b']);
+    scoreHeader()?.click();
+    await settle();
+    expect(order()).toEqual(['Release a', 'Release b', 'Release c']);
+
+    scoreHeader()?.click();
+    await settle();
+    clickIn('[data-test="release-sort-relevance"]');
+    await settle();
+    expect(order()).toEqual(['Release a', 'Release b', 'Release c']);
+  });
+
   it('recherche automatique sans résultat : interrogation directe puis grab de la meilleure', async () => {
     const { fetch } = await mountMovies('/medias/radarr/films?open=1', {
       ...base,
@@ -658,14 +723,17 @@ describe('Recherche, releases et renommage (P2.5)', () => {
   });
 
   it('renommage en masse : prévisualisation puis RenameMovie pour les films à renommer', async () => {
-    localStorage.setItem('hubarr.films-view', 'extended');
-    const { wrapper, fetch } = await mountMovies('/medias/radarr/films', {
-      'GET /api/medias/radarr/films/1/rename-preview': () => ({
-        body: [{ movieFileId: 1, existingPath: 'a/old.mkv', newPath: 'a/The Matrix (1999).mkv' }],
-      }),
-      'GET /api/medias/radarr/films/2/rename-preview': () => ({ body: [] }),
-      'POST /api/medias/radarr/films/1/rename': () => ({ body: { ok: true, cmdId: 8 } }),
-    });
+    const { wrapper, fetch } = await mountMovies(
+      '/medias/radarr/films',
+      {
+        'GET /api/medias/radarr/films/1/rename-preview': () => ({
+          body: [{ movieFileId: 1, existingPath: 'a/old.mkv', newPath: 'a/The Matrix (1999).mkv' }],
+        }),
+        'GET /api/medias/radarr/films/2/rename-preview': () => ({ body: [] }),
+        'POST /api/medias/radarr/films/1/rename': () => ({ body: { ok: true, cmdId: 8 } }),
+      },
+      { moviesView: 'extended' },
+    );
     await wrapper.find('[data-test="movies-select-mode"]').trigger('click');
     await settle();
     const rows = wrapper.findAll('.movie-row .media-item__hit');

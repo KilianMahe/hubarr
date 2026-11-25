@@ -566,6 +566,31 @@ export class TracearrClient {
     };
   }
 
+  /**
+   * Arrête une lecture en cours (API v1 seulement : la v2 n'a pas de route
+   * d'arrêt). Contrairement aux lectures, lève : `false` si Tracearr ne
+   * connaît plus la session (404) ou l'a déjà arrêtée (409), une
+   * `UpstreamError` pour toute autre panne.
+   */
+  async terminate(sessionId: string, reason: string | undefined): Promise<boolean> {
+    if (this.http === null) throw new UpstreamError('not_configured', { service: 'tracearr' });
+    try {
+      await this.http.post(
+        `${TRACEARR_API_V1}/streams/${encodeURIComponent(sessionId)}/terminate`,
+        reason === undefined || reason === '' ? {} : { reason },
+      );
+      return true;
+    } catch (error) {
+      if (
+        error instanceof UpstreamError &&
+        error.kind === 'http' &&
+        (error.info.status === 404 || error.info.status === 409)
+      )
+        return false;
+      throw error;
+    }
+  }
+
   async stats(): Promise<TracearrStats> {
     const [overview, today] = await Promise.all([
       this.#v1('/stats'),

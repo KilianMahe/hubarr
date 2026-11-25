@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Accueil à onglets (lot 11) : Tableau de bord, Découverte, Calendrier reliés
-// par des onglets (haut de page sur grand écran, barre basse sur mobile), une
+// Accueil à onglets (lot 11) : Tableau de bord, Découverte, Explorateur,
+// Watchlist, Calendrier reliés par des onglets (haut de page sur grand écran, barre basse sur mobile), une
 // entrée « Accueil » dans le tiroir, URL et page d'accueil inchangées.
 import type { BootstrapServices } from '@hubarr/shared';
 import { defaultDisplayValues } from '@hubarr/shared';
@@ -46,7 +46,13 @@ const names = (services: BootstrapServices, isAdmin = true) =>
 
 describe('onglets de l’accueil', () => {
   it('n’affiche que les pages utilisables', () => {
-    expect(names(servicesOf())).toEqual(['dashboard', 'tmdb', 'calendar']);
+    expect(names(servicesOf())).toEqual([
+      'dashboard',
+      'tmdb',
+      'tmdb-explorer',
+      'tmdb-watchlist',
+      'calendar',
+    ]);
     const noTmdb = servicesOf();
     noTmdb.states.tmdb = { configured: false, disabled: false };
     expect(names(noTmdb)).toEqual(['dashboard', 'calendar']);
@@ -62,19 +68,20 @@ describe('onglets de l’accueil', () => {
     ).toHaveLength(RADARR_BOTTOM_NAV.length);
   });
 
-  it('explorateur et watchlist relèvent de l’onglet Découverte', () => {
+  it('explorateur et watchlist ont chacun leur onglet', () => {
     const active = (name: string) =>
       HOME_TABS.filter((item) => bottomNavActive(item, routeNamed(name))).map(
         (item) => item.to.name,
       );
-    expect(active('tmdb-explorer')).toEqual(['tmdb']);
-    expect(active('tmdb-watchlist')).toEqual(['tmdb']);
+    expect(active('tmdb')).toEqual(['tmdb']);
+    expect(active('tmdb-explorer')).toEqual(['tmdb-explorer']);
+    expect(active('tmdb-watchlist')).toEqual(['tmdb-watchlist']);
     expect(active('calendar')).toEqual(['calendar']);
   });
 });
 
 describe('shell', () => {
-  it('grand écran : onglets en haut, entrée « Accueil » active sur les trois pages', async () => {
+  it('grand écran : onglets en haut, entrée « Accueil » active sur ses pages', async () => {
     fakeFetch({});
     const { wrapper, router } = await mountApp(
       '/calendrier',
@@ -85,6 +92,8 @@ describe('shell', () => {
     expect(tabs.findAll('.v-tab').map((tab) => tab.text())).toEqual([
       'Dashboard',
       'Discover',
+      'Explorer',
+      'Watchlist',
       'Calendar',
     ]);
     expect(tabs.get('[data-test="home-tab-calendar"]').classes()).toContain('v-tab--selected');
@@ -99,7 +108,10 @@ describe('shell', () => {
 
     await router.push('/decouverte/watchlist');
     await settle();
-    expect(wrapper.get('[data-test="home-tab-discover"]').classes()).toContain('v-tab--selected');
+    expect(wrapper.get('[data-test="home-tab-watchlist"]').classes()).toContain('v-tab--selected');
+    expect(wrapper.get('[data-test="home-tab-discover"]').classes()).not.toContain(
+      'v-tab--selected',
+    );
     expect(wrapper.get('[data-drawer-item="sidebar.nav.home"]').classes()).toContain(
       'v-list-item--active',
     );
@@ -112,7 +124,7 @@ describe('shell', () => {
     );
   });
 
-  it('mobile : barre basse à trois onglets, sans onglets en haut', async () => {
+  it('mobile : barre basse à cinq onglets, sans onglets en haut', async () => {
     setViewportWidth(412);
     fakeFetch({});
     const { wrapper } = await mountApp(
@@ -122,10 +134,10 @@ describe('shell', () => {
     await settle();
     const bar = wrapper.get('[data-test="service-bottom-nav"]');
     expect(
-      ['dashboard', 'discover', 'calendar'].map((tab) =>
+      ['dashboard', 'discover', 'explorer', 'watchlist', 'calendar'].map((tab) =>
         bar.find(`[data-test="home-tab-${tab}"]`).exists(),
       ),
-    ).toEqual([true, true, true]);
+    ).toEqual([true, true, true, true, true]);
     expect(bar.get('[data-test="home-tab-dashboard"]').classes()).toContain('v-btn--active');
     expect(wrapper.find('[data-test="home-tabs"]').exists()).toBe(false);
   });

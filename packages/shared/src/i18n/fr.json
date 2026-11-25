@@ -561,6 +561,40 @@
         "completed": "Terminé",
         "downloading": "En cours",
         "other": "En file"
+      },
+      "manage": {
+        "open": "Gérer l'import de {title}",
+        "reason": "Motif",
+        "reason_line": "{title} : {text}",
+        "no_reason": "L'instance n'a pas indiqué de motif.",
+        "open_queue": "File d'attente",
+        "files": "Fichiers du téléchargement",
+        "files_help": "Cochez les fichiers à importer et corrigez au besoin la correspondance, la qualité et les langues.",
+        "preview_failed": "Impossible de lire le contenu du téléchargement.",
+        "no_files": "Aucun fichier importable dans ce téléchargement.",
+        "select_file": "Importer {name}",
+        "movie": "Film",
+        "series": "Série",
+        "season": "Saison",
+        "season_n": "Saison {n}",
+        "specials": "Spéciaux",
+        "episodes": "Épisodes",
+        "quality": "Qualité",
+        "languages": "Langues",
+        "release_group": "Groupe de release",
+        "search_library": "Rechercher dans la bibliothèque",
+        "search_empty": "Aucun résultat",
+        "import": "{count, plural, =0 {Importer} one {Importer # fichier} other {Importer # fichiers}}",
+        "import_done": "Import terminé : {title}",
+        "import_failed": "L'import a échoué.",
+        "remove": "Retirer de la file",
+        "remove_title": "Retirer « {title} » de la file :",
+        "remove_client": "Supprimer aussi du client de téléchargement",
+        "remove_blocklist": "Ajouter la release à la liste de blocage",
+        "remove_confirm": "Retirer",
+        "cancel": "Annuler",
+        "removed": "Retiré de la file : {title}",
+        "remove_failed": "Impossible de retirer l'élément de la file."
       }
     },
     "downloads": {
@@ -765,6 +799,16 @@
       "days_short": "{count} j",
       "months_short": "{count} mois",
       "years_short": "{count, plural, one {# an} other {# ans}}"
+    },
+    "preferences": {
+      "section": "Préférences d'affichage",
+      "hint": "Chaque page s'ouvre sur ces réglages, sur tous vos appareils. Un changement fait sur la page ne vaut que pour la visite en cours.",
+      "movies_view": "Affichage des films (Radarr)",
+      "series_view": "Affichage des séries (Sonarr)",
+      "torrents_view": "Affichage des torrents",
+      "torrents_filter": "Filtre des torrents",
+      "view_auto": "Automatique (grille sur ordinateur, étendu sur mobile)",
+      "stalled_hint": "qBittorrent seulement : les autres clients s'ouvrent sur « Tous »."
     },
     "watchlist_preview": {
       "title": "Derniers ajouts à ma watchlist",
@@ -1326,9 +1370,7 @@
     "title": "Recherche",
     "search_placeholder": "Rechercher un film ou une série sur TMDb…",
     "actions": {
-      "filters": "Filtres",
-      "watchlist": "Watchlist",
-      "explorer": "Explorer"
+      "filters": "Filtres"
     },
     "filters": {
       "drawer_title": "Filtres",
@@ -1550,7 +1592,6 @@
       "title": "Explorer",
       "subtitle": "Filtrer TMDb par genre, année, note, langue, popularité.",
       "no_results": "Aucun résultat pour ces filtres.",
-      "back_to_discover": "Recherche",
       "section": {
         "type": "Type",
         "anime_type": "Format",
@@ -1651,6 +1692,7 @@
       "no_movie": "Aucun film",
       "no_series": "Aucune série",
       "queue_item_not_found": "Item non trouvé dans la queue",
+      "manual_import_unknown_file": "Ce fichier ne fait pas partie du téléchargement",
       "raw_movie_failed": "Impossible de récupérer le film brut",
       "tmdb_id_missing": "ID TMDb manquant",
       "tmdb_person_schema_missing": "Schema TMDbPerson non trouvé",
@@ -1907,6 +1949,9 @@
         "seeds_col": "Seeds",
         "langs_col": "Langs",
         "age_col": "Âge",
+        "releases_count": "{count, plural, one {# release} other {# releases}}",
+        "sorted_by_relevance": "Triées par pertinence",
+        "sort_by_relevance": "Trier par pertinence",
         "no_release_found": "Aucune release trouvée.",
         "loading_error": "Erreur lors du chargement (timeout ou indexeurs indisponibles).",
         "synopsis": "Synopsis",
@@ -2690,6 +2735,8 @@
       },
       "episode": {
         "status_downloaded": "Téléchargé",
+        "status_downloading": "En téléchargement",
+        "status_downloading_progress": "En téléchargement · {progress} %",
         "status_missing": "Manquant",
         "status_upcoming": "À venir",
         "status_unmonitored": "Non suivi",
@@ -6479,7 +6526,8 @@
       "avatar_too_big": "L'image dépasse 2 Mo.",
       "avatar_upload_failed": "L'image n'a pas pu être enregistrée.",
       "avatar_no_file": "Aucun fichier reçu ou upload invalide.",
-      "avatar_not_found": "Avatar introuvable."
+      "avatar_not_found": "Avatar introuvable.",
+      "preferences_updated": "Préférences d'affichage enregistrées."
     },
     "password": {
       "current_wrong": "Mot de passe actuel incorrect.",
@@ -6547,6 +6595,18 @@
       "some": "{watched}/{total} vus",
       "episodes": "{count, plural, one {# épisode vu} other {# épisodes vus}}",
       "title": "Vu sur votre compte Tracearr"
+    },
+    "terminate": {
+      "action": "Arrêter la lecture",
+      "title": "Arrêter la lecture",
+      "message": "Interrompre « {title} » ? Le spectateur verra la lecture s'arrêter.",
+      "reason": "Message au spectateur (facultatif)",
+      "reason_hint": "Affiché sur son lecteur au moment de l'arrêt.",
+      "confirm": "Arrêter",
+      "done": "Lecture arrêtée",
+      "gone": "Cette lecture est déjà terminée",
+      "error_reason": "Impossible d'arrêter la lecture : {reason}",
+      "error_unknown": "erreur inconnue"
     }
   }
 }

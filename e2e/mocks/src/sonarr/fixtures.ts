@@ -320,6 +320,7 @@ export function releasesFor(seasonNumber: number, episodeNumbers: number[], full
   return [
     {
       guid: `sonarr-${base}-1080p`,
+      releaseWeight: 0,
       indexerId: 1,
       indexer: 'IndexeurTest',
       title: `Release.${base}.1080p.WEB-DL.x265-HUBARR`,
@@ -343,6 +344,7 @@ export function releasesFor(seasonNumber: number, episodeNumbers: number[], full
     },
     {
       guid: `sonarr-${base}-720p`,
+      releaseWeight: 1,
       indexerId: 1,
       indexer: 'IndexeurTest',
       title: `Release.${base}.720p.HDTV-OLD`,

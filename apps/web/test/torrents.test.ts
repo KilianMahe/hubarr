@@ -4,12 +4,19 @@
 // actions, suppression groupée ; Transmission sans étiquettes, « tout
 // reprendre » par sa route dédiée).
 
-import type { Torrent, TorrentListResponse, TorrentStats } from '@hubarr/shared';
+import {
+  DEFAULT_USER_PREFERENCES,
+  type Torrent,
+  type TorrentListResponse,
+  type TorrentStats,
+  type UserPreferences,
+} from '@hubarr/shared';
 import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { setLocale } from '../src/app/plugins/i18n';
 import {
   bytesToMbps,
+  initialTorrentFilter,
   keepSelection,
   loadPrefs,
   mbpsToBytes,
@@ -33,26 +40,19 @@ afterEach(() => {
 });
 
 describe('logique', () => {
-  it('préférences mémorisées par client (tableau par défaut, V7), valeurs inconnues ignorées', () => {
-    expect(loadPrefs('qbittorrent')).toEqual({
-      view: 'table',
-      perPage: 50,
-      sort: 'added',
-      desc: true,
-    });
-    savePrefs('qbittorrent', { view: 'table', perPage: 100, sort: 'name', desc: false });
-    expect(loadPrefs('qbittorrent')).toEqual({
-      view: 'table',
-      perPage: 100,
-      sort: 'name',
-      desc: false,
-    });
-    expect(loadPrefs('deluge').view).toBe('table');
-    localStorage.setItem(
-      'hubarr.torrents.deluge',
-      '{"view":"x","perPage":7,"sort":"zz","desc":"1"}',
-    );
-    expect(loadPrefs('deluge')).toEqual({ view: 'table', perPage: 50, sort: 'added', desc: true });
+  it('préférences mémorisées par client, valeurs inconnues ignorées', () => {
+    expect(loadPrefs('qbittorrent')).toEqual({ perPage: 50, sort: 'added', desc: true });
+    savePrefs('qbittorrent', { perPage: 100, sort: 'name', desc: false });
+    expect(loadPrefs('qbittorrent')).toEqual({ perPage: 100, sort: 'name', desc: false });
+    expect(loadPrefs('deluge').perPage).toBe(50);
+    localStorage.setItem('hubarr.torrents.deluge', '{"perPage":7,"sort":"zz","desc":"1"}');
+    expect(loadPrefs('deluge')).toEqual({ perPage: 50, sort: 'added', desc: true });
+  });
+
+  it('filtre d’ouverture : celui du compte, « Tous » si le client ne le propose pas', () => {
+    expect(initialTorrentFilter('qbittorrent', 'stalled')).toBe('stalled');
+    expect(initialTorrentFilter('deluge', 'stalled')).toBe('all');
+    expect(initialTorrentFilter('transmission', 'downloading')).toBe('downloading');
   });
 
   it('durées, âges relatifs, Mo/s', () => {
@@ -150,7 +150,11 @@ function listOf(
   };
 }
 
-async function mount(path: string, routes: Parameters<typeof fakeFetch>[0]) {
+async function mount(
+  path: string,
+  routes: Parameters<typeof fakeFetch>[0],
+  prefs: Partial<UserPreferences> = {},
+) {
   const services = {
     states: {
       qbittorrent: { configured: true, disabled: false },
@@ -171,7 +175,14 @@ async function mount(path: string, routes: Parameters<typeof fakeFetch>[0]) {
     }),
     ...routes,
   });
-  const app = await mountApp(path, bootstrapOf({ user: ADMIN, services }));
+  const app = await mountApp(
+    path,
+    bootstrapOf({
+      user: ADMIN,
+      services,
+      userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
+    }),
+  );
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };
@@ -213,6 +224,25 @@ describe('pages', () => {
     ).toBe(true);
   });
 
+  it('s’ouvre sur le mode et le filtre des préférences du compte', async () => {
+    const { fetch } = await mount(
+      '/qbittorrent',
+      {
+        'GET /api/qbittorrent/torrents': () => ({ body: listOf([torrent(H1)]) }),
+        'GET /api/qbittorrent/vpn': () => ({ status: 503, body: { code: 'SERVICE_UNREACHABLE' } }),
+      },
+      { torrentsView: 'list', torrentsFilter: 'downloading' },
+    );
+    const list = fetch.calls.find((call) => call.url.startsWith('/api/qbittorrent/torrents?'));
+    expect(list?.url).toContain('filter=downloading');
+    expect(document.querySelector('[data-test="torrent-rows"]')?.getAttribute('data-view')).toBe(
+      'list',
+    );
+    expect(document.querySelector('[data-test="torrent-filter-downloading"]')?.className).toMatch(
+      /active|selected/,
+    );
+  });
+
   it('suppression groupée avec les fichiers', async () => {
     const { fetch } = await mount('/qbittorrent', {
       'GET /api/qbittorrent/torrents': () => ({ body: listOf([torrent(H1), torrent(H2)]) }),
@@ -245,6 +275,59 @@ describe('pages', () => {
     click('[data-test="torrent-resume-all"]');
     await settle();
     expect(fetch.calls.some((call) => call.url === '/api/transmission/resume-all')).toBe(true);
+  });
+
+  it('fiche : l’onglet choisi survit à l’actualisation de la liste', async () => {
+    // La vitesse change à chaque appel, comme lors d'un vrai téléchargement.
+    let speed = 0;
+    const app = await mount('/qbittorrent', {
+      'GET /api/qbittorrent/torrents': () => ({
+        body: listOf([torrent(H1, { dlSpeed: (speed += 1024) })]),
+      }),
+      'GET /api/qbittorrent/vpn': () => ({ status: 503, body: { code: 'SERVICE_UNREACHABLE' } }),
+      [`GET /api/qbittorrent/torrent/${H1}`]: () => ({
+        body: {
+          properties: {
+            name: 'Torrent aa',
+            savePath: '/dl',
+            totalSize: 1,
+            pieceSize: 1,
+            pieces: 1,
+            comment: '',
+            downloaded: 0,
+            uploaded: 0,
+            ratio: 0,
+            addedOn: null,
+            completedOn: null,
+            timeElapsed: 0,
+            seedingTime: 0,
+            eta: null,
+            seeds: 0,
+            seedsTotal: 0,
+            peers: 0,
+            peersTotal: 0,
+            dlSpeed: 0,
+            upSpeed: 0,
+          },
+          files: [],
+          trackers: [],
+          peers: [],
+        },
+      }),
+    });
+    click('[data-test="torrent-row"]');
+    await settle();
+    click('[data-test="torrent-tab-trackers"]');
+    await settle();
+    const selected = () =>
+      document.querySelector('[data-test="torrent-tab-trackers"]')?.getAttribute('aria-selected');
+    expect(selected()).toBe('true');
+    // Actualisation : la liste renvoie un nouvel objet pour le même torrent.
+    await app.queryClient.invalidateQueries({ queryKey: ['torrents', 'qbittorrent'] });
+    await settle();
+    const listCalls = app.fetch.calls.filter((c) => c.url.startsWith('/api/qbittorrent/torrents'));
+    expect(listCalls.length).toBeGreaterThan(1);
+    expect(selected()).toBe('true');
   });
 
   it('client injoignable : alerte', async () => {

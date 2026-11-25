@@ -5,6 +5,7 @@
 import {
   DASHBOARD_SECTIONS,
   SERVICE_IDS,
+  DEFAULT_USER_PREFERENCES,
   defaultDisplayValues,
   resolveTheme,
   type AuthUser,
@@ -42,6 +43,7 @@ export function bootstrapOf(overrides: Partial<BootstrapResponse> = {}): Bootstr
     theme: resolveTheme(undefined, undefined),
     services: { states: {}, instances: { radarr: [], sonarr: [] }, sidebar: {} },
     preferences: defaultDisplayValues(),
+    userPreferences: { ...DEFAULT_USER_PREFERENCES },
     ...overrides,
   };
 }
@@ -111,7 +113,7 @@ export async function mountApp(path: string, bootstrap: BootstrapResponse | null
     global: { plugins: [pinia, i18n, vuetify.plugin, router, [VueQueryPlugin, { queryClient }]] },
   });
   await flushPromises();
-  return { wrapper, router, session: useSessionStore(pinia), vuetify };
+  return { wrapper, router, session: useSessionStore(pinia), vuetify, queryClient };
 }
 
 /** Laisse passer les promesses et les imports dynamiques des vues (transformés à la volée). */

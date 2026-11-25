@@ -46,8 +46,12 @@ const location = ref('');
 const category = ref<string | null>(null);
 const dlLimit = ref('');
 const upLimit = ref('');
+// Sources séparées : l'actualisation de la liste remplace l'objet `torrent`,
+// mais l'onglet et les champs ne se réinitialisent qu'à l'ouverture ou au
+// changement de torrent (un getter renvoyant un tableau se déclencherait à
+// chaque actualisation).
 watch(
-  () => [open.value, props.torrent?.hash] as const,
+  [open, () => props.torrent?.hash],
   ([isOpen]) => {
     if (!isOpen || props.torrent === null) return;
     tab.value = 'general';
@@ -132,10 +136,18 @@ const setPriority = (fileId: number, priority: number) =>
   >
     <div data-test="torrent-detail">
       <v-tabs v-model="tab" density="compact" color="service-text" class="mb-3">
-        <v-tab value="general">{{ tk('modal_detail.tab_general') }}</v-tab>
-        <v-tab value="files">{{ tk('modal_detail.tab_files') }}</v-tab>
-        <v-tab value="trackers">{{ tk('modal_detail.tab_trackers') }}</v-tab>
-        <v-tab value="peers">{{ tk('modal_detail.tab_peers') }}</v-tab>
+        <v-tab value="general" data-test="torrent-tab-general">{{
+          tk('modal_detail.tab_general')
+        }}</v-tab>
+        <v-tab value="files" data-test="torrent-tab-files">{{
+          tk('modal_detail.tab_files')
+        }}</v-tab>
+        <v-tab value="trackers" data-test="torrent-tab-trackers">{{
+          tk('modal_detail.tab_trackers')
+        }}</v-tab>
+        <v-tab value="peers" data-test="torrent-tab-peers">{{
+          tk('modal_detail.tab_peers')
+        }}</v-tab>
       </v-tabs>
       <v-progress-linear v-if="detail.isPending.value" indeterminate color="service" />
       <v-alert v-else-if="detail.isError.value" type="error" variant="tonal" density="compact">{{

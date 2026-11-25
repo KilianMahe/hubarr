@@ -45,6 +45,8 @@ import {
   type SeriesBulkDeleteRequest,
   type SeriesBulkEditRequest,
   type SeriesLibraryQuery,
+  episodeManualImportPreviewSchema,
+  type EpisodeManualImportRequest,
 } from '@hubarr/shared';
 import { z } from 'zod';
 import { api } from '../../app/api/client';
@@ -64,6 +66,8 @@ export const seriesKeys = {
     ['sonarr', slug, 'series', id, section] as const,
   qualityDefinitions: (slug: string) => ['sonarr', slug, 'quality-definitions'] as const,
   queue: (slug: string) => ['sonarr', slug, 'queue'] as const,
+  manualImport: (slug: string, queueId: number) =>
+    ['sonarr', slug, 'manual-import', queueId] as const,
   page: (slug: string, name: string, params: string) =>
     ['sonarr', slug, 'page', name, params] as const,
 };
@@ -169,6 +173,14 @@ export const seriesApi = {
   // ── File d'attente et pages (P3a.3) ──
   queue: (slug: string, signal?: AbortSignal) =>
     api.get(`${base(slug)}/queue`, z.array(seriesQueueItemSchema), signal),
+  manualImportPreview: (slug: string, queueId: number, signal?: AbortSignal) =>
+    api.get(
+      `${base(slug)}/queue/${queueId}/manual-import`,
+      episodeManualImportPreviewSchema,
+      signal,
+    ),
+  manualImport: (slug: string, queueId: number, body: EpisodeManualImportRequest) =>
+    api.post(`${base(slug)}/queue/${queueId}/manual-import`, body, commandStartedResponseSchema),
   queueDelete: (slug: string, queueId: number, body: QueueDeleteRequest) =>
     api.post(`${base(slug)}/queue/${queueId}/delete`, body, okResponseSchema),
   queueGrab: (slug: string, queueId: number) =>

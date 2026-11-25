@@ -4,6 +4,7 @@
 // CSRF est tenu par le client API (`api.setCsrfToken`).
 
 import {
+  DEFAULT_USER_PREFERENCES,
   bootstrapResponseSchema,
   defaultDisplayValues,
   loginResponseSchema,
@@ -13,6 +14,7 @@ import {
   type DisplayValues,
   type LoginRequest,
   type SetupAdminResponse,
+  type UserPreferences,
 } from '@hubarr/shared';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -31,6 +33,9 @@ export const useSessionStore = defineStore('session', () => {
     defaultDisplayValues(Intl.DateTimeFormat().resolvedOptions().timeZone),
   );
 
+  /** Préférences du compte connecté (modes et filtre d'ouverture des pages). */
+  const userPreferences = ref<UserPreferences>({ ...DEFAULT_USER_PREFERENCES });
+
   const authenticated = computed(() => user.value !== null);
   const isAdmin = computed(() => user.value?.role === 'admin');
 
@@ -42,11 +47,16 @@ export const useSessionStore = defineStore('session', () => {
     version.value = bootstrap.version;
     services.value = bootstrap.services;
     preferences.value = bootstrap.preferences;
+    userPreferences.value = bootstrap.userPreferences;
     api.setCsrfToken(bootstrap.csrfToken);
   }
 
   function setPreferences(next: DisplayValues): void {
     preferences.value = next;
+  }
+
+  function setUserPreferences(next: UserPreferences): void {
+    userPreferences.value = next;
   }
 
   function setServices(next: BootstrapServices): void {
@@ -59,6 +69,7 @@ export const useSessionStore = defineStore('session', () => {
       const bootstrap = await api.get('/api/bootstrap', bootstrapResponseSchema);
       services.value = bootstrap.services;
       preferences.value = bootstrap.preferences;
+      userPreferences.value = bootstrap.userPreferences;
     } catch {
       // Le shell reste utilisable ; les gardes se fient à l'état connu.
     }
@@ -78,6 +89,7 @@ export const useSessionStore = defineStore('session', () => {
     } finally {
       user.value = null;
       services.value = emptyServices();
+      userPreferences.value = { ...DEFAULT_USER_PREFERENCES };
       // Nouveau jeton pour la session anonyme (connexion suivante).
       await api.refreshCsrfToken().catch(() => undefined);
     }
@@ -113,6 +125,7 @@ export const useSessionStore = defineStore('session', () => {
     serverReachable,
     services,
     preferences,
+    userPreferences,
     authenticated,
     isAdmin,
     hydrate,
@@ -122,6 +135,7 @@ export const useSessionStore = defineStore('session', () => {
     setUser,
     setServices,
     setPreferences,
+    setUserPreferences,
     refreshServices,
     expire,
     requireSetup,

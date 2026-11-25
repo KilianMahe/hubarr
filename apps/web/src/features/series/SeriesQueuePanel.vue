@@ -9,9 +9,11 @@
 // importer les autres (aperçu de Sonarr) avec le bilan et ses motifs.
 // `standalone` (onglet « File d'attente », P5c.6, V18) : toujours dépliée,
 // affichée même vide ; la série mène à sa fiche ; « Actualiser » et
-// « Scanner » la série depuis la ligne.
+// « Scanner » la série depuis la ligne. Un élément bloqué, en avertissement ou
+// en erreur ouvre la gestion de l'import (import manuel détaillé, retrait).
 import type { SeriesQueueItem } from '@hubarr/shared';
 import {
+  msBuild,
   msClose,
   msDownload,
   msFolderOpen,
@@ -24,6 +26,8 @@ import { useI18n } from 'vue-i18n';
 import ConfirmDialog from '../../components/ConfirmDialog.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import { mediaDetailLocation } from '../../app/media-links';
+import QueueItemDialog from '../dashboard/QueueItemDialog.vue';
+import { isManageable, queueRow, type DashboardQueueRow } from '../dashboard/dashboard-queue';
 import { queueActions, queueProgress } from '../movies/queue';
 import { seriesSize } from './library';
 import { seriesApi, seriesKeys } from './series-api';
@@ -190,6 +194,14 @@ async function importBlocked(): Promise<void> {
   }
 }
 
+// Gestion de l'import : la ligne survit à la fermeture (animation du dialogue).
+const managed = ref<DashboardQueueRow | null>(null);
+const manageOpen = ref(false);
+function manage(item: SeriesQueueItem): void {
+  managed.value = queueRow('sonarr', props.slug, '', item);
+  manageOpen.value = true;
+}
+
 function statusLabel(item: SeriesQueueItem): string {
   return item.trackedState === 'importing'
     ? t('media.series.queue.status_import')
@@ -272,7 +284,7 @@ function statusLabel(item: SeriesQueueItem): string {
           >
         </div>
       </v-alert>
-      <v-table density="compact">
+      <v-table density="compact" class="series-queue__table">
         <thead>
           <tr>
             <th>{{ t('media.series.queue.col_series_episode') }}</th>
@@ -284,7 +296,7 @@ function statusLabel(item: SeriesQueueItem): string {
         </thead>
         <tbody>
           <tr v-for="(item, index) in items" :key="item.id ?? index" data-test="series-queue-row">
-            <td>
+            <td class="series-queue__title">
               <router-link
                 v-if="item.seriesId !== null"
                 :to="mediaDetailLocation('sonarr', slug, item.seriesId)"
@@ -296,7 +308,7 @@ function statusLabel(item: SeriesQueueItem): string {
               <div v-else class="font-weight-medium">{{ item.seriesTitle }}</div>
               <div class="text-body-small text-muted">{{ item.episode }}</div>
             </td>
-            <td>
+            <td class="series-queue__quality">
               <v-chip size="x-small" label variant="tonal" color="info">{{ item.quality }}</v-chip>
             </td>
             <td class="series-queue__progress">
@@ -313,7 +325,7 @@ function statusLabel(item: SeriesQueueItem): string {
                 {{ seriesSize(t, item.size - item.sizeleft) }} / {{ seriesSize(t, item.size) }}
               </div>
             </td>
-            <td>
+            <td class="series-queue__status">
               <v-chip
                 size="x-small"
                 label
@@ -329,7 +341,7 @@ function statusLabel(item: SeriesQueueItem): string {
                 {{ item.statusMessages[0]?.title }}
               </div>
             </td>
-            <td class="text-end text-no-wrap">
+            <td class="text-end text-no-wrap series-queue__actions">
               <template v-if="standalone && item.seriesId !== null">
                 <v-btn
                   :icon="msRefresh"
@@ -352,6 +364,17 @@ function statusLabel(item: SeriesQueueItem): string {
                   @click="seriesCommand(item, 'rescan')"
                 />
               </template>
+              <v-btn
+                v-if="isManageable(item)"
+                :icon="msBuild"
+                size="small"
+                variant="text"
+                color="warning"
+                :aria-label="t('dashboard.queue.manage.open', { title: item.seriesTitle })"
+                :title="t('dashboard.queue.manage.open', { title: item.seriesTitle })"
+                data-test="series-queue-manage"
+                @click="manage(item)"
+              />
               <v-btn
                 v-if="queueActions(item).grab"
                 :icon="msDownload"
@@ -379,6 +402,7 @@ function statusLabel(item: SeriesQueueItem): string {
         </tbody>
       </v-table>
     </template>
+    <QueueItemDialog v-if="managed" v-model="manageOpen" :row="managed" in-queue />
     <ConfirmDialog
       v-model="deleteOpen"
       :message="t('media.series.queue.confirm_delete')"
@@ -429,5 +453,58 @@ function statusLabel(item: SeriesQueueItem): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Mobile : chaque ligne devient une carte (titre et actions, qualité et
+   statut, progression) pour que le titre garde toute la largeur. */
+@media (max-width: 599px) {
+  .series-queue__table thead {
+    display: none;
+  }
+  .series-queue__table table,
+  .series-queue__table tbody {
+    display: block;
+  }
+  .series-queue__table tbody tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title title actions'
+      'quality status status'
+      'progress progress progress';
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 16px;
+    border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+  }
+  .series-queue__table tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .series-queue__table tbody td {
+    height: auto;
+    padding: 0;
+    border-bottom: 0;
+    min-width: 0;
+  }
+  .series-queue__title {
+    grid-area: title;
+    overflow-wrap: anywhere;
+  }
+  .series-queue__quality {
+    grid-area: quality;
+  }
+  .series-queue__status {
+    grid-area: status;
+  }
+  .series-queue__status .series-queue__message {
+    max-width: none;
+  }
+  .series-queue__table .series-queue__progress {
+    grid-area: progress;
+    min-width: 0;
+  }
+  .series-queue__actions {
+    grid-area: actions;
+    align-self: start;
+  }
 }
 </style>

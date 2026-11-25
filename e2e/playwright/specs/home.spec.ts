@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Accueil à onglets (lot 11) : Tableau de bord, Découverte et Calendrier
-// gardent leurs URL ; onglets en haut de page sur desktop, barre basse sur
+// Accueil à onglets (lot 11) : Tableau de bord, Découverte, Explorateur,
+// Watchlist et Calendrier gardent leurs URL ; onglets en haut de page sur desktop, barre basse sur
 // mobile ; une seule entrée « Accueil » dans le tiroir.
 
 import { expect, test } from '@playwright/test';
@@ -15,6 +15,14 @@ test('accueil : navigation entre les onglets', async ({ page, isMobile }) => {
   await tabs.getByTestId('home-tab-discover').click();
   await expect(page).toHaveURL(/\/decouverte$/);
   await expect(page.getByTestId('discover-view')).toBeVisible();
+
+  await tabs.getByTestId('home-tab-explorer').click();
+  await expect(page).toHaveURL(/\/decouverte\/explorer$/);
+  await expect(page.getByTestId('explorer-view')).toBeVisible();
+
+  await tabs.getByTestId('home-tab-watchlist').click();
+  await expect(page).toHaveURL(/\/decouverte\/watchlist$/);
+  await expect(page.getByTestId('watchlist-view')).toBeVisible();
 
   await tabs.getByTestId('home-tab-calendar').click();
   await expect(page).toHaveURL(/\/calendrier$/);

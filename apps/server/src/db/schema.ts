@@ -31,6 +31,8 @@ export const users = sqliteTable('user', {
   avatarFile: text('avatar_file'),
   /** Identité Tracearr associée (lectures « Vu »), jamais envoyée au navigateur. */
   tracearrUserId: text('tracearr_user_id'),
+  /** Préférences du compte (`UserPreferences`), relues avec `parseUserPreferences`. */
+  preferences: text('preferences', { mode: 'json' }).$type<unknown>(),
   createdAt: createdAt(),
   lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' }),
 });

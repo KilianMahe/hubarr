@@ -2,8 +2,9 @@
 <script setup lang="ts">
 // Profil (`profile/index.html.twig`) : avatar (envoi, suppression, initiales à
 // défaut), informations, nom affiché et mot de passe (un seul envoi, tout ou
-// rien : MEMOIRE D45), statistiques, aperçu de la watchlist et compte
-// Tracearr (« Vu », lot 7) quand le service est configuré.
+// rien : MEMOIRE D45), statistiques, préférences d'affichage du compte,
+// aperçu de la watchlist et compte Tracearr (« Vu », lot 7) quand le service
+// est configuré.
 import {
   AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
@@ -24,6 +25,7 @@ import EmptyState from '../../components/EmptyState.vue';
 import PasswordField from '../../components/PasswordField.vue';
 import UserAvatar from '../../components/UserAvatar.vue';
 import { avatarProblem, membershipOf } from './membership';
+import DisplayPreferencesCard from './DisplayPreferencesCard.vue';
 import TracearrLinkCard from './TracearrLinkCard.vue';
 
 const PROFILE_KEY = ['profile'] as const;
@@ -300,6 +302,8 @@ const dateOf = (iso: string | null) =>
             </v-card-actions>
           </v-form>
         </v-card>
+
+        <DisplayPreferencesCard class="mt-4" />
 
         <TracearrLinkCard v-if="isConfigured(session.services, 'tracearr')" class="mt-4" />
 

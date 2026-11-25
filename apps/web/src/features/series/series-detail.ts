@@ -7,6 +7,7 @@ import type {
   Episode,
   EpisodeFile,
   EpisodeFilesBulkUpdateRequest,
+  SeriesQueueItem,
   SeriesRelease,
   SeriesRenameProposal,
 } from '@hubarr/shared';
@@ -56,18 +57,21 @@ export function initiallyOpenSeason(groups: readonly SeasonGroup[]): number | nu
   return first !== undefined && first.seasonNumber > 0 ? first.seasonNumber : null;
 }
 
-export type EpisodeStatus = 'downloaded' | 'missing' | 'upcoming' | 'unmonitored';
+export type EpisodeStatus = 'downloaded' | 'downloading' | 'missing' | 'upcoming' | 'unmonitored';
 
 /**
- * État d'un épisode (pastille et libellé de sa ligne) : présent, suivi et
- * diffusé sans fichier (manquant), suivi et pas encore diffusé (à venir), non
- * suivi. Sans date de diffusion, un épisode suivi est « à venir ».
+ * État d'un épisode (pastille et libellé de sa ligne) : présent, dans la file
+ * de Sonarr (en téléchargement ou en attente d'import), suivi et diffusé sans
+ * fichier (manquant), suivi et pas encore diffusé (à venir), non suivi. Sans
+ * date de diffusion, un épisode suivi est « à venir ».
  */
 export function episodeStatus(
   episode: Pick<Episode, 'hasFile' | 'monitored' | 'airDateUtc'>,
   now: number = Date.now(),
+  queued = false,
 ): EpisodeStatus {
   if (episode.hasFile) return 'downloaded';
+  if (queued) return 'downloading';
   if (!episode.monitored) return 'unmonitored';
   const aired = episode.airDateUtc === null ? Number.NaN : Date.parse(episode.airDateUtc);
   return Number.isFinite(aired) && aired <= now ? 'missing' : 'upcoming';
@@ -75,10 +79,36 @@ export function episodeStatus(
 
 export const EPISODE_STATUS_COLORS: Record<EpisodeStatus, string> = {
   downloaded: 'success',
+  downloading: 'primary',
   missing: 'warning',
   upcoming: 'info',
   unmonitored: 'muted',
 };
+
+/**
+ * Épisodes de la série présents dans la file de Sonarr, avec leur progression
+ * en pourcentage (`null` : taille inconnue). Un même épisode présent deux fois
+ * garde la progression la plus avancée.
+ */
+export function queuedEpisodes(
+  items: readonly Pick<SeriesQueueItem, 'seriesId' | 'episodeId' | 'size' | 'sizeleft'>[],
+  seriesId: number,
+): Map<number, number | null> {
+  const queued = new Map<number, number | null>();
+  for (const item of items) {
+    if (item.seriesId !== seriesId || item.episodeId === null) continue;
+    const progress =
+      item.size > 0
+        ? Math.min(100, Math.max(0, Math.round(((item.size - item.sizeleft) / item.size) * 100)))
+        : null;
+    const previous = queued.get(item.episodeId);
+    queued.set(
+      item.episodeId,
+      previous === undefined || previous === null ? progress : Math.max(previous, progress ?? 0),
+    );
+  }
+  return queued;
+}
 
 export function seasonLabel(t: Translate, seasonNumber: number): string {
   return seasonNumber === 0

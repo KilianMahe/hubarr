@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Accès aux comptes et conversion vers le contrat public `AuthUser`.
 
-import type { AuthUser } from '@hubarr/shared';
+import { parseUserPreferences, type AuthUser, type UserPreferences } from '@hubarr/shared';
 import { count, eq } from 'drizzle-orm';
 import type { Db, DbExecutor } from '../../db/client';
 import { users } from '../../db/schema';
@@ -36,6 +36,20 @@ export function avatarUrl(file: string): string {
 
 export function findUserById(db: Db, id: number): UserRow | undefined {
   return db.select().from(users).where(eq(users.id, id)).get();
+}
+
+/** Préférences d'un compte ; valeurs par défaut pour un compte inconnu. */
+export function readUserPreferences(db: Db, id: number): UserPreferences {
+  const row = db
+    .select({ preferences: users.preferences })
+    .from(users)
+    .where(eq(users.id, id))
+    .get();
+  return parseUserPreferences(row?.preferences);
+}
+
+export function saveUserPreferences(db: Db, id: number, preferences: UserPreferences): void {
+  db.update(users).set({ preferences }).where(eq(users.id, id)).run();
 }
 
 export function toAuthUser(user: UserRow): AuthUser {

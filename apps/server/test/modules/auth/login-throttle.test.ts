@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { LOGIN_THROTTLE } from '@hubarr/shared';
 import { describe, expect, it } from 'vitest';
-import { LoginThrottle, SlidingWindowLimiter } from '../../../src/modules/auth/login-throttle';
+import {
+  KNOWN_IP_TTL_MS,
+  LoginThrottle,
+  SlidingWindowLimiter,
+} from '../../../src/modules/auth/login-throttle';
 import { createClock } from '../../helpers';
 
 const MINUTE = 60 * 1000;
@@ -68,5 +72,44 @@ describe('LoginThrottle', () => {
     expect(throttle.attempt('10.9.9.9', 'admin@x')).toBeGreaterThan(0);
     // Les autres comptes ne sont pas concernés.
     expect(throttle.attempt('10.9.9.9', 'autre@x')).toBe(0);
+  });
+
+  it('laisse se connecter depuis une IP connue malgré la limite par e-mail', () => {
+    const throttle = new LoginThrottle(createClock().now);
+    throttle.succeeded('192.0.2.1', 'admin@x');
+    // Attaque répartie sur de nombreuses adresses : l'e-mail est bloqué partout ailleurs.
+    for (let i = 0; i < LOGIN_THROTTLE.maxAttemptsPerAccount; i++) {
+      throttle.attempt(`10.0.${String(Math.floor(i / 4))}.${String(i % 4)}`, 'admin@x');
+    }
+    expect(throttle.attempt('10.9.9.9', 'admin@x')).toBeGreaterThan(0);
+    expect(throttle.attempt('192.0.2.1', 'admin@x')).toBe(0);
+  });
+
+  it('garde la limite IP + e-mail pour une IP connue', () => {
+    const throttle = new LoginThrottle(createClock().now);
+    throttle.succeeded('ip', 'e');
+    for (let i = 0; i < LOGIN_THROTTLE.maxAttempts; i++)
+      expect(throttle.attempt('ip', 'e')).toBe(0);
+    expect(throttle.attempt('ip', 'e')).toBeGreaterThan(0);
+  });
+
+  it('n’épargne pas la limite par e-mail à une IP connue d’un autre compte', () => {
+    const throttle = new LoginThrottle(createClock().now);
+    throttle.succeeded('192.0.2.1', 'autre@x');
+    for (let i = 0; i < LOGIN_THROTTLE.maxAttemptsPerAccount; i++) {
+      throttle.attempt(`10.0.${String(Math.floor(i / 4))}.${String(i % 4)}`, 'admin@x');
+    }
+    expect(throttle.attempt('192.0.2.1', 'admin@x')).toBeGreaterThan(0);
+  });
+
+  it('oublie une IP connue après 30 jours', () => {
+    const clock = createClock();
+    const throttle = new LoginThrottle(clock.now);
+    throttle.succeeded('192.0.2.1', 'admin@x');
+    clock.advance(KNOWN_IP_TTL_MS);
+    for (let i = 0; i < LOGIN_THROTTLE.maxAttemptsPerAccount; i++) {
+      throttle.attempt(`10.0.${String(Math.floor(i / 4))}.${String(i % 4)}`, 'admin@x');
+    }
+    expect(throttle.attempt('192.0.2.1', 'admin@x')).toBeGreaterThan(0);
   });
 });

@@ -45,6 +45,8 @@ import {
   type MovieLibraryQuery,
   type MoviesBulkDeleteRequest,
   type MoviesBulkEditRequest,
+  movieManualImportPreviewSchema,
+  type MovieManualImportRequest,
 } from '@hubarr/shared';
 import { z } from 'zod';
 import { api } from '../../app/api/client';
@@ -63,6 +65,8 @@ export const moviesKeys = {
   qualityDefinitions: (slug: string) => ['radarr', slug, 'quality-definitions'] as const,
   following: (slug: string) => ['radarr', slug, 'person-following'] as const,
   queue: (slug: string) => ['radarr', slug, 'queue'] as const,
+  manualImport: (slug: string, queueId: number) =>
+    ['radarr', slug, 'manual-import', queueId] as const,
   page: (slug: string, name: string, params: string) =>
     ['radarr', slug, 'page', name, params] as const,
 };
@@ -169,6 +173,10 @@ export const moviesApi = {
     api.post(`${base(slug)}/command/refresh-downloads`, undefined, okResponseSchema),
   queueImport: (slug: string, queueId: number) =>
     api.post(`${base(slug)}/queue/${queueId}/import`, undefined, commandStartedResponseSchema),
+  manualImportPreview: (slug: string, queueId: number, signal?: AbortSignal) =>
+    api.get(`${base(slug)}/queue/${queueId}/manual-import`, movieManualImportPreviewSchema, signal),
+  manualImport: (slug: string, queueId: number, body: MovieManualImportRequest) =>
+    api.post(`${base(slug)}/queue/${queueId}/manual-import`, body, commandStartedResponseSchema),
   queueDelete: (slug: string, queueId: number, body: QueueDeleteRequest) =>
     api.post(`${base(slug)}/queue/${queueId}/delete`, body, okResponseSchema),
   queueGrab: (slug: string, queueId: number) =>

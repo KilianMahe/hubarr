@@ -3,8 +3,9 @@
 // Activité en cours (`_plex_activity.html.twig`) : Tautulli, ou Tracearr selon
 // la préférence ; onglets « En cours » / « Récemment vus » (le premier par
 // défaut s'il y a des flux, le choix est gardé entre deux relectures), relu
-// toutes les 10 s (onglet visible). Une lecture ouvre l'aperçu TMDB quand il
-// est connu.
+// toutes les 10 s (onglet visible). Une lecture en cours ouvre la même fenêtre
+// que la page de la source : détail de la lecture (Tracearr) ou métadonnées
+// Plex (Tautulli) ; un titre récemment vu ouvre l'aperçu TMDB quand il est connu.
 import { resolveActivitySource, type ActivitySession } from '@hubarr/shared';
 import { msPlayCircleFill } from '../../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
@@ -13,6 +14,8 @@ import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../../app/overlays';
 import { useSessionStore } from '../../../app/stores/session';
 import ActivityPanel from '../../activity/ActivityPanel.vue';
+import SessionDetailDialog from '../../activity/SessionDetailDialog.vue';
+import TautulliMetadataDialog from '../../activity/TautulliMetadataDialog.vue';
 import { LIVE_POLL_MS, dashboardApi, relativeDate } from '../dashboard-api';
 import DashCard from './DashCard.vue';
 import { useLiveQuery } from '../../../app/live';
@@ -49,10 +52,12 @@ const ago = (seconds: number) => {
   const rel = relativeDate(new Date(seconds * 1000).toISOString(), new Date());
   return rel ? t(rel.key, rel.count === undefined ? {} : { count: rel.count }) : '';
 };
+const detail = ref<ActivitySession | null>(null);
+const metadataKey = ref<string | null>(null);
 function openSession(item: ActivitySession): void {
-  if (item.quickLook?.type && item.quickLook.id) {
-    openQuickLook({ kind: 'tmdb', type: item.quickLook.type, id: item.quickLook.id });
-  }
+  if (source.value === 'tautulli') {
+    if (item.ratingKey) metadataKey.value = item.ratingKey;
+  } else detail.value = item;
 }
 </script>
 
@@ -106,5 +111,7 @@ function openSession(item: ActivitySession): void {
         </v-list-item>
       </v-list>
     </template>
+    <SessionDetailDialog :session="detail" terminable @close="detail = null" />
+    <TautulliMetadataDialog :rating-key="metadataKey" @close="metadataKey = null" />
   </DashCard>
 </template>

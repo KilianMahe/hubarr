@@ -10,3 +10,11 @@ export type AvatarMimeType = (typeof AVATAR_MIME_TYPES)[number];
 
 /** Longueur maximale du nom affiché (colonne `display_name`). */
 export const DISPLAY_NAME_MAX_LENGTH = 100;
+
+/** Modes d'affichage des bibliothèques Radarr et Sonarr. */
+export const LIBRARY_VIEW_MODES = ['grid', 'wall', 'extended', 'table', 'shelf'] as const;
+export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
+
+/** Modes d'affichage de la liste des torrents. */
+export const TORRENT_VIEWS = ['list', 'table', 'compact'] as const;
+export type TorrentView = (typeof TORRENT_VIEWS)[number];

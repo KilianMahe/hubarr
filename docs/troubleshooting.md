@@ -37,7 +37,7 @@ The command asks for the new password twice, then closes all of the account's se
 
 ## "Too many attempts" at login
 
-After 5 failures in 15 minutes, login is blocked for that account and IP address until the window ends; after 50 failures on the same account, from any address, it is blocked for every address. An active session or `hubarr user:reset-password` remain available. Behind a reverse proxy, check that `HUBARR_TRUST_PROXY` covers the proxy: otherwise every visitor seems to come from the same address, the proxy's.
+After 5 failures in 15 minutes, login is blocked for that account and IP address until the window ends; after 50 failures on the same account, from any address, it is blocked for every address, except those from which the account has signed in within the last 30 days. An active session or `hubarr user:reset-password` remain available. Behind a reverse proxy, check that `HUBARR_TRUST_PROXY` covers the proxy: otherwise every visitor seems to come from the same address, the proxy's.
 
 ## A service shows as unreachable
 

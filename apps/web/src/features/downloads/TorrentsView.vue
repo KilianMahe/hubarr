@@ -42,6 +42,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
 import { useRouter } from 'vue-router';
 import { apiErrorText } from '../../app/api/error-text';
+import { useSessionStore } from '../../app/stores/session';
 import { useFabQueryAction } from '../../app/service-chrome';
 import EmptyState from '../../components/EmptyState.vue';
 import BulkActionBar from '../../components/ds/BulkActionBar.vue';
@@ -61,6 +62,7 @@ import {
   PER_PAGE_OPTIONS,
   TORRENT_POLL_MS,
   VPN_POLL_MS,
+  initialTorrentFilter,
   keepSelection,
   loadPrefs,
   savePrefs,
@@ -72,18 +74,25 @@ import { useLiveQuery } from '../../app/live';
 
 const props = defineProps<{ client: TorrentClientId }>();
 const router = useRouter();
+const session = useSessionStore();
 const queryClient = useQueryClient();
 const { t, tk, tl, say } = useTorrentI18n(() => props.client);
 const caps = computed(() => TORRENT_CAPABILITIES[props.client]);
 const api = computed(() => torrentsApi(props.client));
 
 const { mdAndUp } = useDisplay();
-// Tableau par défaut sur toutes les largeurs (P5c.7, V7, D142) ; le choix est mémorisé.
+// Nombre par page et tri mémorisés par appareil ; mode d'affichage et filtre
+// repris des préférences du compte à chaque ouverture, le temps de la visite.
 const prefs = reactive(loadPrefs(props.client, localStorage));
 watch(prefs, () => {
   savePrefs(props.client, { ...prefs });
 });
-const state = reactive({ page: 1, filter: 'all', search: '', category: '', tag: '' });
+const view = ref<TorrentView>(session.userPreferences.torrentsView);
+const initialFilter: string = initialTorrentFilter(
+  props.client,
+  session.userPreferences.torrentsFilter,
+);
+const state = reactive({ page: 1, filter: initialFilter, search: '', category: '', tag: '' });
 const searchInput = ref('');
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchInput, (value) => {
@@ -580,7 +589,7 @@ const tagOptions = computed(() => [
               />
             </template>
             <v-filter-select
-              v-if="prefs.view !== 'table'"
+              v-if="view !== 'table'"
               v-model="sortValue"
               :items="sortItems"
               :label="tk('filters.sort_label')"
@@ -593,7 +602,7 @@ const tagOptions = computed(() => [
             <v-spacer />
             <!-- Même sélecteur que Radarr et Sonarr (P5d.6, V28) -->
             <ViewModeMenu
-              v-model="prefs.view"
+              v-model="view"
               :options="viewOptions"
               :label="t('common.view_mode')"
               test-id="torrent-view"
@@ -612,7 +621,7 @@ const tagOptions = computed(() => [
                 v-else
                 :client="client"
                 :torrents="torrents"
-                :view="prefs.view"
+                :view="view"
                 :selected="selected"
                 :sort="prefs.sort"
                 :desc="prefs.desc"

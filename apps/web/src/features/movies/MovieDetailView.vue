@@ -1162,7 +1162,7 @@ function onFilesChanged(): void {
     <ResponsiveDialog
       v-model="releasesPanel.open"
       :title="t('media.films.detail.releases_available')"
-      :max-width="1000"
+      :max-width="1280"
     >
       <div data-test="movie-releases">
         <div v-if="releasesPanel.loading" class="pa-4 text-center text-body-medium text-muted">

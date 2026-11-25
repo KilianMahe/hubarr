@@ -5,6 +5,7 @@
 
 import {
   DEFAULT_LOCALE,
+  DEFAULT_USER_PREFERENCES,
   SERVICE_IDS,
   bootstrapResponseSchema,
   isLocale,
@@ -20,6 +21,7 @@ import { readResolvedPreferences } from '../settings/preferences';
 import { readSidebarVisibility } from '../settings/routes';
 import { SETTING_KEYS, getSetting } from '../settings/settings';
 import { readTheme } from '../theme/theme';
+import { readUserPreferences } from '../users/users';
 
 export interface BootstrapRoutesOptions {
   version: string;
@@ -79,6 +81,10 @@ export const bootstrapRoutes: FastifyPluginAsync<BootstrapRoutesOptions> = async
             ? NO_SERVICES
             : readBootstrapServices(app.db),
         preferences: readResolvedPreferences(app.db),
+        userPreferences:
+          request.user === null
+            ? DEFAULT_USER_PREFERENCES
+            : readUserPreferences(app.db, request.user.id),
       };
     },
   );

@@ -60,6 +60,8 @@ test('fiche : recherche d’un épisode puis recherche interactive de la saison'
   await expect(detail.getByTestId('series-detail-banner')).toContainText(
     'téléchargement(s) lancé(s)',
   );
+  // L'épisode mis en file n'est plus « Manquant » : il est en téléchargement.
+  await expect(rows.first().locator('.episode__status')).toHaveText('En téléchargement · 25 %');
 
   // Actions secondaires de la saison dans son menu « ⋮ » (téléporté).
   await detail.getByTestId('season-menu').first().click();

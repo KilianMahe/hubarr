@@ -3,16 +3,24 @@
 // Files d'attente Radarr et Sonarr (P5d.1, V21) : téléchargements de toutes
 // les instances activées, problèmes d'abord, relus toutes les 10 s ; titre
 // vers la fiche, progression et état, puis un lien vers l'onglet « File
-// d'attente » de chaque instance. Réservée aux admins, comme les files.
+// d'attente » de chaque instance. Une ligne à problème (import bloqué,
+// avertissement, erreur) montre son motif et ouvre la gestion de l'import.
+// Réservée aux admins, comme les files.
 import { msDownload } from '../../../components/symbols';
 import { useQueries } from '@tanstack/vue-query';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSessionStore } from '../../../app/stores/session';
 import { moviesApi, moviesKeys } from '../../movies/movies-api';
 import { seriesApi, seriesKeys } from '../../series/series-api';
 import { LIVE_POLL_MS } from '../dashboard-api';
-import { QUEUE_STATE_COLORS, dashboardQueueRows, type QueueSource } from '../dashboard-queue';
+import {
+  QUEUE_STATE_COLORS,
+  dashboardQueueRows,
+  type DashboardQueueRow,
+  type QueueSource,
+} from '../dashboard-queue';
+import QueueItemDialog from '../QueueItemDialog.vue';
 import DashCard from './DashCard.vue';
 
 const { t } = useI18n();
@@ -52,6 +60,23 @@ const rows = computed(() =>
   ),
 );
 const multiple = computed(() => instances.value.length > 1);
+
+/** Premier motif donné par l'instance, affiché sous une ligne à problème. */
+function firstReason(row: DashboardQueueRow): string | null {
+  for (const message of row.item.statusMessages) {
+    const text = message.messages.find((line) => line.trim() !== '') ?? message.title;
+    if (text.trim() !== '') return text;
+  }
+  return null;
+}
+
+// Ligne gérée : gardée à part, la ligne peut quitter la file pendant la gestion.
+const managed = ref<DashboardQueueRow | null>(null);
+const manageOpen = ref(false);
+function manage(row: DashboardQueueRow): void {
+  managed.value = row;
+  manageOpen.value = true;
+}
 </script>
 
 <template>
@@ -73,14 +98,27 @@ const multiple = computed(() => instances.value.length > 1);
       <v-list-item
         v-for="row in rows.slice(0, MAX_SHOWN)"
         :key="row.key"
-        :to="row.to ?? undefined"
+        :to="row.manageable ? undefined : (row.to ?? undefined)"
+        :link="row.manageable || row.to !== null"
+        :aria-label="
+          row.manageable ? t('dashboard.queue.manage.open', { title: row.title }) : undefined
+        "
         class="px-0"
         data-test="dashboard-queue-row"
+        :data-manageable="row.manageable || undefined"
+        @click="row.manageable ? manage(row) : undefined"
       >
         <v-list-item-title class="font-weight-medium">{{ row.title }}</v-list-item-title>
         <v-list-item-subtitle>
           {{ [row.detail, multiple ? row.instance : null].filter(Boolean).join(' · ') }}
         </v-list-item-subtitle>
+        <div
+          v-if="row.manageable && firstReason(row)"
+          class="text-body-small text-warning queue-reason"
+          data-test="dashboard-queue-reason"
+        >
+          {{ firstReason(row) }}
+        </div>
         <div class="d-flex align-center ga-2 mt-1">
           <v-progress-linear
             :model-value="row.progress"
@@ -120,5 +158,14 @@ const multiple = computed(() => instances.value.length > 1);
         >{{ t('dashboard.queue.open', { instance: source.instance }) }}</v-btn
       >
     </div>
+    <QueueItemDialog v-if="managed" v-model="manageOpen" :row="managed" />
   </DashCard>
 </template>
+
+<style scoped>
+.queue-reason {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

@@ -91,6 +91,17 @@ describe('GET :id/releases', () => {
     expect(env.radarr.callsTo('GET', '/api/v3/release')[0]?.query.get('movieId')).toBe('1');
   });
 
+  it('suit le classement de Radarr (`releaseWeight`) après les acceptées, avant le score', async () => {
+    env.radarr.on('GET', '/api/v3/release', [
+      release({ guid: 'refusée', approved: false, releaseWeight: 0 }),
+      release({ guid: '1080p', customFormatScore: 200, releaseWeight: 3 }),
+      release({ guid: '2160p', customFormatScore: 50, releaseWeight: 1 }),
+      release({ guid: 'sans-poids', customFormatScore: 900 }),
+    ]);
+    const releases = (await env.browser.get(env.url('/1/releases'))).json<ArrRelease[]>();
+    expect(releases.map((r) => r.guid)).toEqual(['2160p', '1080p', 'sans-poids', 'refusée']);
+  });
+
   it('infoUrl : seulement http(s), casse indifférente (MediaReleasesSearchTest)', async () => {
     env.radarr.on('GET', '/api/v3/release', [
       release({ guid: 'a', infoUrl: 'https://tracker.example/torrent/1' }),

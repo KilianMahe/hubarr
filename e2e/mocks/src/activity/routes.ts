@@ -14,6 +14,8 @@ export const EMBY_API_KEY = 'e2e-emby-key';
 export const TRACEARR_SERVER = '11111111-2222-3333-4444-555555555555';
 /** Série « Les Veilleurs » côté Tracearr (fiche v2 `/media/:id`). */
 export const TRACEARR_SHOW = '22222222-3333-4444-5555-666666666666';
+/** Lecture en cours côté Tracearr (identifiant de session, arrêt en v1). */
+export const TRACEARR_SESSION = '33333333-4444-5555-6666-777777777777';
 
 /** PNG transparent d'un pixel. */
 const PIXEL = Buffer.from(
@@ -224,7 +226,7 @@ export const tracearrMock: FastifyPluginAsync = async (app) => {
       await reply.code(401).send({ error: 'unauthorized' });
   });
   const stream = {
-    id: 's1',
+    id: TRACEARR_SESSION,
     mediaType: 'episode',
     showTitle: 'Les Veilleurs',
     seasonNumber: 1,
@@ -260,6 +262,18 @@ export const tracearrMock: FastifyPluginAsync = async (app) => {
     data: [stream],
     summary: { total: 1, transcodes: 1 },
   }));
+  // Arrêt d'une lecture (v1 seulement) : sans état, la lecture reste listée.
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/public/streams/:id/terminate',
+    async (request, reply) =>
+      request.params.id === TRACEARR_SESSION
+        ? {
+            success: true,
+            sessionId: request.params.id,
+            message: 'Session terminated successfully',
+          }
+        : reply.code(404).send({ error: 'Session not found' }),
+  );
   app.get('/api/v1/public/stats', async () => ({
     activeStreams: 1,
     totalUsers: 4,

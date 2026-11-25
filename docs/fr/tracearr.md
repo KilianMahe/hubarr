@@ -12,7 +12,7 @@
 
 Un onglet par partie, en haut sur ordinateur et dans la barre du bas sur mobile : **Résumé** (`/tracearr` : compteurs, lectures en cours en lignes, cinq dernières lectures), **En cours**, **Statistiques**, **Historique** et **Utilisateurs**.
 
-- **En cours** : une carte par lecture, avec le nom du serveur, relue toutes les 10 secondes. Toucher une lecture ouvre son détail : média, utilisateur et serveur, lecteur et appareil, réseau, qualité, décision de flux et codecs par piste, plage dynamique, débit et progression ; **Voir la fiche** ouvre l'aperçu du titre quand Tracearr le connaît.
+- **En cours** : une carte par lecture, avec le nom du serveur, relue toutes les 10 secondes. Toucher une lecture ouvre son détail : média, utilisateur et serveur, lecteur et appareil, réseau, qualité, décision de flux et codecs par piste, plage dynamique, débit et progression ; **Voir la fiche** ouvre l'aperçu du titre quand Tracearr le connaît. Les administrateurs disposent aussi de **Arrêter la lecture** : après confirmation, Tracearr interrompt le flux et peut afficher au spectateur un message facultatif (200 caractères au plus).
 - **Statistiques** : lectures et heures regardées aujourd'hui, utilisateurs actifs, lectures sur 30 jours, utilisateurs, violations sur 7 jours.
 - **Graphiques** par période (7 jours, 30 jours, 1 an) : lectures dans le temps, par heure, par jour, par plateforme, flux simultanés, et la répartition Direct Play / Direct Stream / transcodage.
 - **Historique** : 24 lectures, puis **Charger plus**.

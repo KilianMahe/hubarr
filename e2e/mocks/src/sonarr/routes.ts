@@ -635,12 +635,16 @@ export const sonarrMock: FastifyPluginAsync = async (app) => {
     const downloadId = (request.query as { downloadId?: string }).downloadId;
     const item = state.queue.find((candidate) => candidate.downloadId === downloadId);
     if (item === undefined) return [];
+    const episode = episodeRef(item.episodeId);
     return [
       {
         path: `${item.outputPath}/episode.mkv`,
+        relativePath: 'episode.mkv',
         folderName: item.outputPath,
-        series: { id: item.seriesId },
-        episodes: [{ id: item.episodeId }],
+        size: item.size,
+        series: { id: item.seriesId, title: findSeries(item.seriesId)?.title },
+        seasonNumber: episode?.seasonNumber,
+        episodes: episode === undefined ? [] : [episode],
         quality: item.quality,
         languages: [{ id: 2, name: 'French' }],
         releaseGroup: 'HUBARR',

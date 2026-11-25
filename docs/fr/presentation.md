@@ -24,7 +24,7 @@ Hubarr ne remplace aucun de ces services : il les **pilote** par leurs API. Il a
 | **Administrateur** | Créé par l'assistant d'installation | Tout : configuration des services, paramètres, administration de Radarr/Sonarr/Prowlarr/Bazarr/Seerr, clients de téléchargement, ajouts et suppressions |
 | **Utilisateur**    | Compte non administrateur           | Consulter : tableau de bord, calendrier, découverte et watchlist, activité, profil. Les modules d'administration lui sont fermés                        |
 
-En pratique, une installation compte souvent un seul compte, l'administrateur. Chaque compte gère son **profil** (nom affiché, e-mail, mot de passe, avatar).
+En pratique, une installation compte souvent un seul compte, l'administrateur. Chaque compte gère son **profil** (nom affiché, e-mail, mot de passe, avatar) et ses **préférences d'affichage** : la vue d'ouverture des bibliothèques Radarr et Sonarr, la vue et le filtre de la liste des torrents. Ces préférences suivent le compte sur tous ses appareils.
 
 ## Notions clés
 

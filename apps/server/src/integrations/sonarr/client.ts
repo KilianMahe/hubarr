@@ -250,6 +250,11 @@ export class SonarrClient extends ArrClient<SonarrPaths> {
     return (await this.api.get('/api/v3/qualitydefinition')) ?? [];
   }
 
+  /** Lance l'import des fichiers choisis (mode `auto`) ; renvoie l'id de la commande. */
+  manualImport(files: readonly Record<string, unknown>[]): Promise<number | null> {
+    return this.commandId('ManualImport', { importMode: 'auto', files: [...files] });
+  }
+
   /** Étiquettes et leur usage (types propres à Sonarr : `seriesIds`, `restrictionIds`). */
   async seriesTagDetails(): Promise<SonarrTagDetailsResource[]> {
     return (await this.api.get('/api/v3/tag/detail')) ?? [];

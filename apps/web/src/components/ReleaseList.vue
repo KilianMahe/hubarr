@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-// Releases d'une recherche interactive (Radarr, puis Sonarr en P3a) : tableau
-// triable sur desktop (release, indexeur, qualité, score, formats, taille,
-// seeds, langues, âge), cartes sur mobile. Une release refusée montre ses
+// Releases d'une recherche interactive (Radarr, Sonarr) : tableau triable sur
+// desktop (release, indexeur, qualité, score, formats, taille, seeds, langues,
+// âge), cartes sur mobile. L'ordre par défaut est celui du serveur (pertinence :
+// acceptées, puis classement Radarr/Sonarr) ; un en-tête trie la colonne, un
+// troisième clic revient à la pertinence. Une release refusée montre ses
 // motifs ; le score détaille les formats personnalisés du profil.
 import type { ArrRelease } from '@hubarr/shared';
 import {
@@ -31,14 +33,20 @@ const { t } = useI18n();
 const format = useFormat();
 const { mdAndUp } = useDisplay();
 
+/** Nombre de formats affichés en puces ; les suivants se résument en « +N ». */
+const VISIBLE_FORMATS = 2;
+
 const sortKey = ref<ReleaseSortKey | null>(null);
 const ascending = ref(true);
+/** Colonnes dont le premier clic trie en décroissant (le plus grand d'abord). */
+const DESCENDING_FIRST: readonly ReleaseSortKey[] = ['score', 'size', 'seeders'];
 function sortBy(key: ReleaseSortKey): void {
-  if (sortKey.value === key) ascending.value = !ascending.value;
-  else {
+  const firstAscending = !DESCENDING_FIRST.includes(key);
+  if (sortKey.value !== key) {
     sortKey.value = key;
-    ascending.value = true;
-  }
+    ascending.value = firstAscending;
+  } else if (ascending.value === firstAscending) ascending.value = !firstAscending;
+  else sortKey.value = null;
 }
 const sorted = computed(() =>
   sortKey.value === null
@@ -70,6 +78,9 @@ function scoreClass(score: number): string {
   if (score > 0) return 'text-success font-weight-medium';
   return score < 0 ? 'text-error' : 'text-muted';
 }
+function hiddenFormatsTip(release: ArrRelease): string {
+  return release.scoreDetails.slice(VISIBLE_FORMATS).map(detailTip).join('\n');
+}
 function seeds(release: ArrRelease): string {
   if (release.protocol !== 'torrent') return 'usenet';
   return release.seeders === null ? '—' : String(release.seeders);
@@ -96,7 +107,24 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
 
 <template>
   <div class="release-list" data-test="release-list">
-    <v-table v-if="mdAndUp" density="compact" fixed-header height="360" class="release-list__table">
+    <div
+      v-if="mdAndUp"
+      class="d-flex align-center ga-2 mb-1 text-body-small text-muted"
+      data-test="release-toolbar"
+    >
+      <span>{{ t('media.films.detail.releases_count', { count: releases.length }) }}</span>
+      <v-spacer />
+      <span v-if="sortKey === null">{{ t('media.films.detail.sorted_by_relevance') }}</span>
+      <v-btn
+        v-else
+        size="small"
+        variant="text"
+        data-test="release-sort-relevance"
+        @click="sortKey = null"
+        >{{ t('media.films.detail.sort_by_relevance') }}</v-btn
+      >
+    </div>
+    <v-table v-if="mdAndUp" density="compact" fixed-header class="release-list__table">
       <thead>
         <tr>
           <th
@@ -162,15 +190,23 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
           >
             {{ release.customFormatScore }}
           </td>
-          <td>
+          <td class="text-no-wrap">
             <v-chip
-              v-for="detail in release.scoreDetails"
+              v-for="detail in release.scoreDetails.slice(0, VISIBLE_FORMATS)"
               :key="detail.name"
               size="x-small"
               variant="tonal"
               class="mr-1"
               :title="detailTip(detail)"
               >{{ detail.name }}</v-chip
+            >
+            <v-chip
+              v-if="release.scoreDetails.length > VISIBLE_FORMATS"
+              size="x-small"
+              variant="outlined"
+              :title="hiddenFormatsTip(release)"
+              data-test="release-more-formats"
+              >+{{ release.scoreDetails.length - VISIBLE_FORMATS }}</v-chip
             >
             <span v-if="release.scoreDetails.length === 0" class="text-muted">—</span>
           </td>
@@ -272,12 +308,16 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
 .release-list__table {
   font-size: 0.8rem;
 }
+/* Hauteur suivant la fenêtre : titre, barre et actions du dialogue déduits. */
+.release-list__table :deep(.v-table__wrapper) {
+  max-height: max(320px, calc(100dvh - 300px));
+}
 .release-list__sortable {
   cursor: pointer;
   user-select: none;
 }
 .release-list__title {
-  max-width: 260px;
+  max-width: 380px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

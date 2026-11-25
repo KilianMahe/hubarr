@@ -44,6 +44,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { ApiError } from '../../app/api/client';
+import { useLiveQuery } from '../../app/live';
 import { useServiceFab } from '../../app/service-chrome';
 import BulkDeleteDialog from '../../components/BulkDeleteDialog.vue';
 import ConfirmDialog from '../../components/ConfirmDialog.vue';
@@ -69,7 +70,8 @@ import SeriesRenamePanel from './SeriesRenamePanel.vue';
 import SeriesSeasons from './SeriesSeasons.vue';
 import { episodeCode } from './library';
 import { seriesApi, seriesKeys } from './series-api';
-import { releaseLabels, type SearchState } from './series-detail';
+import { queuedEpisodes, releaseLabels, type SearchState } from './series-detail';
+import { SERIES_QUEUE_POLL_MS } from './series-queue';
 
 const route = useRoute();
 const router = useRouter();
@@ -128,6 +130,28 @@ const files = useQuery({
   queryFn: ({ signal }) => seriesApi.files(props.value.slug, id.value, signal),
   enabled: open,
   retry: false,
+});
+// File de Sonarr (partagée avec l'onglet File d'attente) : épisodes en
+// téléchargement ou en attente d'import, affichés comme tels plutôt que manquants.
+const queue = useQuery({
+  queryKey: computed(() => seriesKeys.queue(props.value.slug)),
+  queryFn: ({ signal }) => seriesApi.queue(props.value.slug, signal),
+  enabled: open,
+  refetchInterval: useLiveQuery({
+    topic: () => (open.value ? `queue.sonarr.${props.value.slug}` : null),
+    queryKey: () => seriesKeys.queue(props.value.slug),
+    fallbackMs: SERIES_QUEUE_POLL_MS,
+  }),
+  retry: false,
+});
+const queued = computed(() => queuedEpisodes(queue.data.value ?? [], id.value));
+// Un épisode sorti de la file vient d'être importé : épisodes et fichiers à relire.
+watch(queued, (current, previous) => {
+  if (![...previous.keys()].some((key) => !current.has(key))) return;
+  for (const section of ['episodes', 'files'] as const)
+    void queryClient.invalidateQueries({
+      queryKey: seriesKeys.seriesSection(props.value.slug, id.value, section),
+    });
 });
 const configWanted = ref(false);
 const config = useQuery({
@@ -807,6 +831,7 @@ useServiceFab(() =>
               :series-monitored="series.monitored"
               :searches="searches"
               :watched="watchedEpisodes"
+              :queued="queued"
               @season-monitor="seasonMonitor"
               @episode-monitor="episodeMonitor"
               @search-episode="searchEpisode"
@@ -880,7 +905,7 @@ useServiceFab(() =>
     <ResponsiveDialog
       :model-value="panel !== null"
       :title="panelTitle"
-      :max-width="1000"
+      :max-width="panel?.kind === 'releases' ? 1280 : 1000"
       @update:model-value="(v: boolean) => !v && (panel = null)"
     >
       <div v-if="panel && series" data-test="series-panel">

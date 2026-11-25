@@ -6,7 +6,8 @@
 // libellé, épisodes présents et progression, suivi, recherche, puis les autres
 // actions dans un menu (recherche interactive, fichiers, renommage,
 // historique). Ligne d'épisode : suivi (Maj+clic pour une plage), pastille
-// « E06 » à la couleur de son état (présent, manquant, à venir, non suivi),
+// « E06 » à la couleur de son état (présent, en téléchargement avec sa
+// progression, manquant, à venir, non suivi),
 // titre, puis date, état, qualité et score ; infos média, recherche,
 // recherche interactive, suppression du fichier. Le suivi d'une saison ou
 // d'un épisode est désactivé quand la série n'est pas suivie (comme l'original).
@@ -50,6 +51,8 @@ const props = defineProps<{
   searches: Record<string, SearchState>;
   /** Épisodes vus par l'utilisateur connecté (Tracearr), `null` : aucun. */
   watched?: WatchedEpisodes | null;
+  /** Épisodes dans la file de Sonarr et leur progression (`null` : inconnue). */
+  queued?: ReadonlyMap<number, number | null>;
 }>();
 const emit = defineEmits<{
   seasonMonitor: [season: number, monitored: boolean];
@@ -108,10 +111,14 @@ function monitorTitle(monitored: boolean): string {
 }
 const now = Date.now();
 function statusOf(episode: Episode) {
-  const status = episodeStatus(episode, now);
+  const progress = props.queued?.get(episode.id);
+  const status = episodeStatus(episode, now, props.queued?.has(episode.id) === true);
   return {
     color: EPISODE_STATUS_COLORS[status],
-    label: t(`media.series_detail.episode.status_${status}`),
+    label:
+      status === 'downloading' && progress !== undefined && progress !== null
+        ? t('media.series_detail.episode.status_downloading_progress', { progress })
+        : t(`media.series_detail.episode.status_${status}`),
   };
 }
 const pad = (value: number) => String(value).padStart(2, '0');

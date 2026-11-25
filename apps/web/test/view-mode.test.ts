@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Mode d'affichage mémorisé par appareil (P5c.2, V15) et sélecteur commun (V14).
+// Choix mémorisé par appareil (P5c.2, V15) et sélecteur commun des modes (V14).
 
 import { mount } from '@vue/test-utils';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { nextTick, ref } from 'vue';
-import { readStoredChoice, storeChoice, useViewMode } from '../src/app/view-mode';
+import { readStoredChoice, storeChoice } from '../src/app/view-mode';
 import ViewModeMenu from '../src/components/ds/ViewModeMenu.vue';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
 import { createHubarrVuetify } from '../src/app/plugins/vuetify';
@@ -44,15 +44,6 @@ describe('mode d’affichage mémorisé (V15)', () => {
     expect(() => {
       storeChoice('k', 'grid', failing);
     }).not.toThrow();
-  });
-
-  it('useViewMode enregistre chaque changement, relu au montage suivant', async () => {
-    const mode = useViewMode('hubarr.test-view', MODES, 'grid');
-    expect(mode.value).toBe('grid');
-    mode.value = 'table';
-    await nextTick();
-    expect(localStorage.getItem('hubarr.test-view')).toBe('table');
-    expect(useViewMode('hubarr.test-view', MODES, 'grid').value).toBe('table');
   });
 });
 

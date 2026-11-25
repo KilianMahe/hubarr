@@ -4,14 +4,21 @@
 // lecteur et appareil, réseau, qualité, décision de flux par piste (vidéo,
 // audio, sous-titres) et codecs source → flux, plage dynamique, débit,
 // progression. Dialogue sur desktop, bottom sheet sur mobile ; « Voir la
-// fiche » ouvre l'aperçu TMDB quand il est connu.
+// fiche » ouvre l'aperçu TMDB quand il est connu ; « Arrêter la lecture »
+// (admins, `terminable`) demande confirmation puis interrompt le flux.
 import type { ActivitySession } from '@hubarr/shared';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { openQuickLook } from '../../app/overlays';
+import { useSessionStore } from '../../app/stores/session';
 import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
+import TerminateSessionDialog from './TerminateSessionDialog.vue';
 
-const props = defineProps<{ session: ActivitySession | null }>();
+const props = defineProps<{
+  session: ActivitySession | null;
+  /** La source sait arrêter une lecture (Tracearr). */
+  terminable?: boolean;
+}>();
 const emit = defineEmits<{ close: [] }>();
 const { t } = useI18n();
 const open = computed({
@@ -77,6 +84,16 @@ const rows = computed(() => {
   return all.filter((row): row is [string, string] => row[1] !== null && row[1] !== '');
 });
 
+const account = useSessionStore();
+const terminating = ref(false);
+const canTerminate = computed(
+  () =>
+    props.terminable &&
+    account.isAdmin &&
+    Boolean(props.session?.sessionKey) &&
+    props.session?.state !== 'stopped',
+);
+
 function openMedia(): void {
   const look = props.session?.quickLook;
   if (look?.type && look.id) {
@@ -136,6 +153,14 @@ function openMedia(): void {
     </div>
     <template #actions>
       <v-btn
+        v-if="canTerminate"
+        color="error"
+        variant="tonal"
+        data-test="session-detail-terminate"
+        @click="terminating = true"
+        >{{ t('activity.terminate.action') }}</v-btn
+      >
+      <v-btn
         v-if="session?.quickLook?.type && session.quickLook.id"
         variant="tonal"
         data-test="session-detail-open"
@@ -145,6 +170,13 @@ function openMedia(): void {
       <v-btn variant="text" @click="open = false">{{ t('common.action.close') }}</v-btn>
     </template>
   </ResponsiveDialog>
+  <TerminateSessionDialog
+    v-if="session?.sessionKey"
+    v-model="terminating"
+    :session-id="session.sessionKey"
+    :title="title"
+    @terminated="open = false"
+  />
 </template>
 
 <style scoped>

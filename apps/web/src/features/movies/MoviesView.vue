@@ -70,7 +70,6 @@ import RadarrNav from './RadarrNav.vue';
 import type { ImportedMovie } from './queue';
 import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
 import { ViewModeMenu } from '../../components/ds';
-import { browserStorage, useViewMode } from '../../app/view-mode';
 import {
   apiParamsOf,
   downloadedCount,
@@ -79,8 +78,8 @@ import {
   queryFromRoute,
   routeQueryOf,
   searchedTitle,
+  initialViewMode,
   toggleSelection,
-  VIEW_MODE_STORAGE_KEY,
   VIEW_MODES,
   type ViewMode,
 } from './library';
@@ -229,13 +228,8 @@ const activeFilter = computed(() => hasActiveLibraryFilter(query.value));
 
 // ── Vues ────────────────────────────────────────────────────────────────────
 
-const storage = browserStorage();
-const viewMode = useViewMode<ViewMode>(
-  VIEW_MODE_STORAGE_KEY,
-  VIEW_MODES,
-  mdAndUp.value ? 'grid' : 'extended',
-  storage,
-);
+// Préférence du compte à chaque ouverture ; un changement ne vaut que pour la visite.
+const viewMode = ref<ViewMode>(initialViewMode(session.userPreferences.moviesView, mdAndUp.value));
 const VIEW_ICONS: Record<ViewMode, string> = {
   grid: msGridViewFill,
   wall: msViewModule,

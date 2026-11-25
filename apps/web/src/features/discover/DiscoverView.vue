@@ -17,7 +17,7 @@
 //   vous », ou « Tendances » s'il n'a rien à montrer.
 // - Fiche par `?detail=movie/603`, filmographie d'une personne.
 import type { SearchPerson, SmartSearch, TmdbCard } from '@hubarr/shared';
-import { msExplore, msSearch, msStarFill } from '../../components/symbols';
+import { msExplore, msSearch } from '../../components/symbols';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -357,12 +357,6 @@ const initials = (name: string) =>
         @update:model-value="schedule"
         @keydown.enter="run()"
       />
-      <v-btn :to="{ name: 'tmdb-watchlist' }" variant="tonal" :prepend-icon="msStarFill">{{
-        t('decouverte.actions.watchlist')
-      }}</v-btn>
-      <v-btn :to="{ name: 'tmdb-explorer' }" variant="tonal" :prepend-icon="msExplore">{{
-        t('decouverte.actions.explorer')
-      }}</v-btn>
     </div>
     <div class="d-flex flex-wrap align-center ga-2 mb-4">
       <v-btn-toggle v-model="search.type" mandatory density="compact" variant="outlined" divided>

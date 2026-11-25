@@ -24,7 +24,7 @@ Hubarr replaces none of these services: it **drives** them through their APIs. I
 | **Administrator** | Created by the setup wizard | Everything: service configuration, settings, Radarr/Sonarr/Prowlarr/Bazarr/Seerr administration, download clients, additions and deletions |
 | **User**          | Non-administrator account   | Browse: dashboard, calendar, discover and watchlist, activity, profile. Administration modules are closed to them                          |
 
-In practice, an install often has a single account, the administrator. Each account manages its **profile** (display name, e-mail, password, avatar).
+In practice, an install often has a single account, the administrator. Each account manages its **profile** (display name, e-mail, password, avatar) and its **display preferences**: the view the Radarr and Sonarr libraries open on, and the view and filter of the torrent list. These preferences follow the account on every device.
 
 ## Key concepts
 

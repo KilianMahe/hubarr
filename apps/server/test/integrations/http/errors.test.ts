@@ -26,6 +26,22 @@ describe('extractApiErrorMessage', () => {
     );
   });
 
+  it('erreur Fastify : la cause (`message`) plutôt que le nom du statut (`error`)', () => {
+    expect(
+      extractApiErrorMessage(
+        JSON.stringify({
+          statusCode: 500,
+          error: 'InternalServerError',
+          message: 'Session not found in database',
+        }),
+        500,
+      ),
+    ).toBe('Session not found in database');
+    expect(
+      extractApiErrorMessage(JSON.stringify({ statusCode: 401, error: 'Unauthorized' }), 401),
+    ).toBe('Unauthorized');
+  });
+
   it('joint les erreurs de validation par « ; »', () => {
     const body = JSON.stringify([
       { propertyName: 'name', errorMessage: 'Field A required' },

@@ -450,17 +450,29 @@ export class RadarrClient extends ArrClient<RadarrPaths> {
 
   // ── Import manuel ──────────────────────────────────────────────────────────
 
+  /**
+   * Aperçu de l'import manuel : par `downloadId` (téléchargement de la file,
+   * film reconnu au grab), sinon par dossier.
+   */
   async manualImportPreview(
-    folder: string,
+    source: { folder: string } | { downloadId: string },
     filterExistingFiles = true,
   ): Promise<RadarrManualImportResource[]> {
     return (
-      (await this.api.get('/api/v3/manualimport', { query: { folder, filterExistingFiles } })) ?? []
+      (await this.api.get('/api/v3/manualimport', {
+        query: { ...source, filterExistingFiles },
+      })) ?? []
     );
   }
 
-  /** Lance l'import (déplacement) des fichiers choisis ; renvoie l'id de la commande. */
-  manualImport(files: readonly Record<string, unknown>[]): Promise<number | null> {
-    return this.commandId('ManualImport', { importMode: 'move', files: [...files] });
+  /**
+   * Lance l'import des fichiers choisis ; renvoie l'id de la commande. `auto`
+   * laisse Radarr choisir (copie ou lien pour un torrent qui continue de partager).
+   */
+  manualImport(
+    files: readonly Record<string, unknown>[],
+    importMode: 'move' | 'auto' = 'move',
+  ): Promise<number | null> {
+    return this.commandId('ManualImport', { importMode, files: [...files] });
   }
 }

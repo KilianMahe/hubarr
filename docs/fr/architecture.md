@@ -107,7 +107,7 @@ SQLite en mode WAL dans `HUBARR_DATA_DIR` (`/data/hubarr.db`). Cinq tables :
 
 | Table              | Contenu                                                                                                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `user`             | Comptes : e-mail, empreinte argon2id, rôle, nom, avatar                                                    |
+| `user`             | Comptes : e-mail, empreinte argon2id, rôle, nom, avatar, préférences d'affichage                           |
 | `session`          | Sessions : empreinte SHA-256 du jeton, données, échéance glissante                                         |
 | `setting`          | Réglages clé-valeur en JSON validé (préférences, thème, tableau de bord, état de l'installation)           |
 | `service_instance` | Une ligne par service ou instance : type, slug, nom, URL, identifiants, options, défaut, activation, ordre |
@@ -129,7 +129,7 @@ Les migrations SQL (Drizzle) s'appliquent **au démarrage**, après une copie `h
 
 - **Mots de passe** hachés en argon2id ; **sessions** par jeton aléatoire de 256 bits dont seule l'empreinte est stockée ; cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS.
 - **CSRF** : jeton de synchronisation sur toutes les mutations, connexion comprise, plus contrôle de `Sec-Fetch-Site` et `Origin`.
-- **Limitation** de la connexion : 5 tentatives en 15 minutes par compte et IP, 25 par IP, et 50 par compte quelle que soit l'IP (un client reconnu comme proxy peut changer son `X-Forwarded-For` à volonté). La vérification du mot de passe actuel depuis le profil a la même limite de 5 essais.
+- **Limitation** de la connexion : 5 tentatives en 15 minutes par compte et IP, 25 par IP, et 50 par compte quelle que soit l'IP (un client reconnu comme proxy peut changer son `X-Forwarded-For` à volonté). Une IP depuis laquelle le compte s'est connecté dans les 30 derniers jours échappe à cette dernière limite : des essais venus d'ailleurs ne peuvent pas bloquer le compte. La vérification du mot de passe actuel depuis le profil a la même limite de 5 essais.
 - **En-têtes** : CSP stricte (`script-src 'self'`, aucun script inline dans l'application), `frame-ancestors` configurable (`HUBARR_FRAME_ANCESTORS`), `X-Content-Type-Options`, `Referrer-Policy`, HSTS, `Permissions-Policy`.
 - **Secrets des services** stockés côté serveur et jamais renvoyés au navigateur ; un import qui change l'origine (schéma, hôte, port) d'un service efface ses secrets enregistrés.
 - **Proxy d'images** borné aux chemins attendus de chaque service.

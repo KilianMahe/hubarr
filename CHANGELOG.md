@@ -4,6 +4,35 @@ All notable changes to Hubarr are documented here. The format is based on [Keep 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-25
+
+### Added
+
+- **Display preferences per account**: a new **Display preferences** card on the **Profile** page sets the view the Radarr and Sonarr libraries open on (or **Automatic**: grid on a computer, detailed list on mobile), and the view and state filter of the torrent list (qBittorrent, Transmission, Deluge; the **Stalled** filter only applies to qBittorrent). They are stored with the account and follow it on every device. Only the lines of configured services are shown.
+
+- **Blocked imports from the dashboard** (administrators): in the **Queues** section, a blocked import, warning or error shows its reason, and a click opens its management. The download's files are listed as Radarr or Sonarr read them, with their refusal reasons; the movie, or the series, season and episodes, the quality, the languages and the release group can be fixed before a **manual import**, followed to its end. The download can also be **removed from the queue**, from the download client and added to the blocklist. The same window opens from the **Queue** pages of Radarr and Sonarr (and the queue at the top of their library), with the **Manage import** button of each affected line.
+
+- **Stop a playback** (administrators, Tracearr): the stream details window, opened from the Tracearr **Now playing** page or from the dashboard, has a **Stop playback** button. After confirmation, Tracearr ends the stream; an optional message (up to 200 characters) is shown to the viewer.
+
+### Changed
+
+- **Library and torrent views**: the Radarr and Sonarr libraries and the torrent list now always open on the view (and, for torrents, the filter) set in the profile. A view picked on the page only lasts for the current visit and is no longer remembered on the device. Sort and page size of the torrent list are still remembered on the device.
+- **Explorer and Watchlist tabs**: the Explorer and the Watchlist are now tabs of **Home**, next to Discover and Calendar (top of the page on a computer, bottom bar on mobile). The Watchlist and Explorer buttons of the Discover page and the Explorer's back button are gone. Addresses are unchanged.
+- **Interactive search** (Radarr and Sonarr): releases are listed most relevant first: accepted ones, then in the order Radarr or Sonarr ranks them (quality, custom format score, protocol, indexer priority, seeders) instead of by score alone. On a computer, the list uses the height of the window and a wider window, shows the number of releases, and a row stays on one line: beyond two custom formats, a **+N** chip lists the others. Score, size and seeds sort largest first; a third click on a header, or **Sort by relevance**, restores the default order.
+- **Now playing on the dashboard**: a playback in the **Current activity** section now opens the same window as the Tracearr page (stream details: player, network, quality, stream decisions) or the Tautulli page (Plex metadata), depending on the source, instead of the TMDB preview.
+- **Dashboard queues**: a download in progress or waiting for import (for instance an episode whose title is still TBA) now opens the **Queue** page of its Radarr or Sonarr instance instead of the movie or series page.
+
+### Security
+
+- **Login throttling**: the limit of 50 attempts per account, whatever the IP address, no longer applies to an address from which the account has signed in within the last 30 days. Repeated failures from elsewhere could otherwise keep an administrator out indefinitely. The limits of 5 attempts per account and IP and 25 per IP still apply.
+
+### Fixed
+
+- **Error messages from Tracearr**: when Tracearr refuses an action, the reason it gives (for instance *Session not found in database*) is now shown instead of a generic *InternalServerError*.
+- **Torrent details**: the selected tab (Files, Trackers, Peers) no longer switches back to **General** a few seconds later when the list refreshes, and fields being edited (name, location, category, limits) are no longer reset.
+- **Episodes being downloaded** (series page): an episode in the Sonarr queue, downloading or waiting for import, is now shown as **Downloading** with its progress instead of **Missing**, and the page updates once it is imported.
+- **Sonarr queue on mobile**: each line of the queue (Queue page and the queue at the top of the library) is now laid out as a card, so the series title uses the full width instead of being squeezed into a narrow column.
+
 ## [1.1.0] - 2026-11-24
 
 ### Added

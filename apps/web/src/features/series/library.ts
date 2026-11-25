@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Logique pure de la bibliothèque de séries (P3a.1) : critères ↔ URL, état
 // affiché d'une série (pastille et barre de progression de `series.html.twig`),
-// étagères, vue mémorisée, commandes reprises au chargement. La pagination, la
+// étagères, commandes reprises au chargement. La pagination, la
 // sélection par plage et la lecture des messages de commande viennent des films.
 
 import { formatGb } from '../../app/format';
-import { readStoredChoice } from '../../app/view-mode';
 import {
   parseSeriesLibraryQuery,
   seriesLibraryQueryParams,
@@ -13,7 +12,6 @@ import {
   type SeriesLibraryQuery,
 } from '@hubarr/shared';
 import type { LocationQuery, LocationQueryRaw } from 'vue-router';
-import { VIEW_MODES, type ViewMode } from '../movies/library';
 
 // ── Critères ↔ URL ──────────────────────────────────────────────────────────
 
@@ -190,14 +188,6 @@ export function seriesShelvesOf<
     key,
     items: groups[key],
   }));
-}
-
-// ── Vues ────────────────────────────────────────────────────────────────────
-
-export const SERIES_VIEW_STORAGE_KEY = 'hubarr.series-view';
-
-export function readSeriesViewMode(fallback: ViewMode, store: Storage | null): ViewMode {
-  return readStoredChoice(SERIES_VIEW_STORAGE_KEY, VIEW_MODES, fallback, store);
 }
 
 // ── Commandes ───────────────────────────────────────────────────────────────

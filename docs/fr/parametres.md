@@ -43,7 +43,7 @@ Quand un service ne répond pas, sa page affiche un bandeau qui en donne la rais
 - **Fuseau horaire**, **formats de date et d'heure** ; par défaut, le fuseau du système (`TZ`).
 - **Thème** (classique avec bascule clair/sombre, ou l'un des 17 préréglages) et **couleur principale** : appliqués dès l'enregistrement.
 - **Rafraîchissement** de qBittorrent, Deluge et Transmission, **source de l'activité en direct**, **densité** et **éléments par page**.
-- **Visibilité dans le menu latéral** de chaque service et du calendrier ; la découverte et le calendrier sont des onglets de l'**Accueil**, masqués avec leur entrée.
+- **Visibilité dans le menu latéral** de chaque service et du calendrier ; la découverte (avec l'explorateur et la watchlist) et le calendrier sont des onglets de l'**Accueil**, masqués avec leur entrée.
 - **Disposition du tableau de bord** : ordre (glisser une section par sa poignée, ou boutons Monter/Descendre) et sections affichées.
 
 ::: tip Rafraîchissement et temps réel

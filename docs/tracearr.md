@@ -12,7 +12,7 @@
 
 One tab per part, at the top on a computer and in the bottom bar on mobile: **Summary** (`/tracearr`: counters, current streams as lines, last five plays), **Now playing**, **Statistics**, **History** and **Users**.
 
-- **Now playing**: one card per stream, with the server name, refreshed every 10 seconds. Tapping a stream opens its details: media, user and server, player and device, network, quality, stream decision and codecs per track, dynamic range, bitrate and progress; **Open the title** opens its preview when Tracearr knows it.
+- **Now playing**: one card per stream, with the server name, refreshed every 10 seconds. Tapping a stream opens its details: media, user and server, player and device, network, quality, stream decision and codecs per track, dynamic range, bitrate and progress; **Open the title** opens its preview when Tracearr knows it. Administrators also get **Stop playback**: after confirmation, Tracearr ends the stream and can show the viewer an optional message (up to 200 characters).
 - **Statistics**: plays and hours watched today, active users, plays over 30 days, users, violations over 7 days.
 - **Charts** per period (7 days, 30 days, 1 year): plays over time, by hour, by day, by platform, concurrent streams, and the Direct Play / Direct Stream / transcode split.
 - **History**: 24 plays, then **Load more**.

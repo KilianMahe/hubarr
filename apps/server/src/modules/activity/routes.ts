@@ -13,6 +13,7 @@
 // matriciels seulement, cache privé d'un jour).
 
 import {
+  arrOkSchema,
   activitySchema,
   type Activity,
   chartSchema,
@@ -26,6 +27,7 @@ import {
   tautulliUsersSchema,
   tracearrChartsSchema,
   tracearrHistorySchema,
+  terminateSessionRequestSchema,
   tracearrStatsSchema,
   tracearrUserDetailSchema,
   tracearrUsersSchema,
@@ -37,8 +39,9 @@ import type { ZodTypeProvider } from '../../http/zod';
 import type { ProxiedImage } from '../../integrations/activity/common';
 import { EmbyClient, embyBaseUrl } from '../../integrations/activity/emby';
 import { TautulliClient } from '../../integrations/activity/tautulli';
-import { TracearrClient } from '../../integrations/activity/tracearr';
+import { TracearrClient, isUuid } from '../../integrations/activity/tracearr';
 import { HttpClient, apiKeyHeader, apiKeyQuery, bearer } from '../../integrations/http';
+import { requireRole } from '../../plugins/access';
 import { hasRequiredFields, readServiceConfig } from '../services/config';
 
 type Service = 'tautulli' | 'tracearr' | 'emby';
@@ -240,6 +243,26 @@ export const activityRoutes: FastifyPluginAsync = async (instance) => {
       trActivity,
     );
   }
+  // Arrêt d'une lecture en cours (admins) : la lecture partagée est oubliée
+  // pour que la prochaine relève reflète l'arrêt.
+  app.post(
+    '/api/tracearr/streams/:id/terminate',
+    {
+      config: trConfig,
+      onRequest: requireRole('admin'),
+      schema: {
+        params: z.object({ id: z.string().refine(isUuid) }),
+        body: terminateSessionRequestSchema,
+        response: { 200: arrOkSchema },
+      },
+    },
+    async (request) => {
+      const done = await tracearr().terminate(request.params.id, request.body.reason);
+      instance.live.invalidate('activity.tracearr');
+      if (!done) throw new ApiError(404, 'NOT_FOUND', { service: 'tracearr' });
+      return { ok: true as const };
+    },
+  );
   app.get(
     '/api/tracearr/stats',
     { config: trConfig, schema: { response: { 200: tracearrStatsSchema } } },

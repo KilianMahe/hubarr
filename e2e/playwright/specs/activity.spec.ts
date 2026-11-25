@@ -22,6 +22,11 @@ test('Tautulli : en cours, statistiques, graphiques, historique et métadonnées
   await expect(rows).toHaveCount(40);
   await card.click();
   await expect(page.getByTestId('tautulli-metadata')).toContainText('signal');
+
+  // Tableau de bord (source Tautulli) : la même fenêtre que la page.
+  await page.goto('/tableau-de-bord');
+  await page.getByTestId('card-activity').getByTestId('activity-row').first().click();
+  await expect(page.getByTestId('tautulli-metadata')).toContainText('signal');
 });
 
 test('Tracearr : onglets (résumé, en cours, statistiques, historique, utilisateurs) et détail d’une lecture', async ({
@@ -46,6 +51,14 @@ test('Tracearr : onglets (résumé, en cours, statistiques, historique, utilisat
   await card.click();
   await expect(page.getByTestId('session-detail')).toBeVisible();
   await page.keyboard.press('Escape');
+  // Arrêt d'une lecture (admin) : confirmation avec message, puis fermeture du détail.
+  await card.click();
+  await page.getByTestId('session-detail-terminate').click();
+  await expect(page.getByTestId('session-terminate-message')).toContainText('Les Veilleurs');
+  await page.getByTestId('session-terminate-reason').locator('input').fill('Pause dîner');
+  await page.getByTestId('session-terminate-confirm').click();
+  await expect(page.getByTestId('session-detail')).toBeHidden();
+  await expect(page.getByText('Lecture arrêtée')).toBeVisible();
 
   await go('Statistiques');
   await expect(page.getByTestId('tracearr-quality')).toBeVisible();

@@ -4,10 +4,11 @@
 // étagères, sélection par plage, et lecture des messages de commande Radarr
 // (JS inline de `films.html.twig`).
 
-import { readStoredChoice } from '../../app/view-mode';
 import {
+  LIBRARY_VIEW_MODES,
   movieLibraryQueryParams,
   parseMovieLibraryQuery,
+  type LibraryViewMode,
   type MovieLibraryItem,
   type MovieLibraryQuery,
 } from '@hubarr/shared';
@@ -176,12 +177,16 @@ export function commandOutcome(status: string): CommandOutcome {
 
 // ── Vues ────────────────────────────────────────────────────────────────────
 
-export const VIEW_MODES = ['grid', 'wall', 'extended', 'table', 'shelf'] as const;
-export type ViewMode = (typeof VIEW_MODES)[number];
-export const VIEW_MODE_STORAGE_KEY = 'hubarr.films-view';
+export const VIEW_MODES = LIBRARY_VIEW_MODES;
+export type ViewMode = LibraryViewMode;
 
-export function readViewMode(fallback: ViewMode, store: Storage | null): ViewMode {
-  return readStoredChoice(VIEW_MODE_STORAGE_KEY, VIEW_MODES, fallback, store);
+/**
+ * Mode d'ouverture d'une bibliothèque : préférence du compte, ou `auto` (grille
+ * sur grand écran, liste étendue sur mobile).
+ */
+export function initialViewMode(preference: ViewMode | 'auto', wide: boolean): ViewMode {
+  if (preference !== 'auto') return preference;
+  return wide ? 'grid' : 'extended';
 }
 
 // ── Utilitaires des actions par film ────────────────────────────────────────

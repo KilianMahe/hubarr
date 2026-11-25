@@ -114,7 +114,7 @@ export const seriesEpisodeRoutes: FastifyPluginAsync = async (instance) => {
     scores: ReadonlyMap<number, number>,
   ): Promise<SeriesRelease[]> {
     try {
-      return sortReleases((await load()).map((release) => normalizeSeriesRelease(release, scores)));
+      return sortReleases(await load()).map((release) => normalizeSeriesRelease(release, scores));
     } catch (error) {
       if (isUpstreamError(error) && error.kind === 'timeout') {
         throw new ApiError(504, 'SEARCH_TIMED_OUT', { service: 'sonarr' });

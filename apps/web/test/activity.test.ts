@@ -2,7 +2,7 @@
 // Activité (P3e) : logique des graphiques et pages Tautulli et Tracearr
 // montées (lectures en cours, statistiques, graphiques, historique).
 
-import type { Activity, Chart } from '@hubarr/shared';
+import type { Chart } from '@hubarr/shared';
 import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
@@ -11,6 +11,7 @@ import BarChart from '../src/features/activity/BarChart.vue';
 import { createHubarrVuetify } from '../src/app/plugins/vuetify';
 import { resolveTheme } from '@hubarr/shared';
 import { chartIsEmpty, durationLabel, stackChart } from '../src/features/activity/activity-api';
+import { ACTIVITY } from './activity-fixtures';
 import { click } from './arr-admin-fixtures';
 import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle } from './helpers';
 
@@ -43,51 +44,6 @@ describe('logique', () => {
   });
 });
 
-const ACTIVITY: Activity = {
-  enabled: true,
-  configured: true,
-  connected: true,
-  error: null,
-  streamCount: 1,
-  directPlayCount: 1,
-  directStreamCount: 0,
-  transcodeCount: 0,
-  bandwidth: { totalKbps: 8000, lanKbps: 8000, wanKbps: 0 },
-  totalBitrate: null,
-  sessions: [
-    {
-      sessionKey: '1',
-      ratingKey: '42',
-      quickLook: null,
-      state: 'playing',
-      title: 'Orbite Basse',
-      grandparentTitle: null,
-      episodeCode: null,
-      year: '2019',
-      mediaType: 'movie',
-      poster: null,
-      serverName: null,
-      userDisplayName: 'alice',
-      product: 'Plex Web',
-      player: 'Chrome',
-      device: null,
-      platform: null,
-      quality: '1080p',
-      videoDecision: 'direct play',
-      audioDecision: 'direct play',
-      subtitleDecision: null,
-      dynamicRange: null,
-      videoCodec: 'h264',
-      streamVideoCodec: 'h264',
-      audioCodec: 'aac',
-      streamAudioCodec: 'aac',
-      transcodeDecision: 'direct play',
-      location: 'lan',
-      bandwidthKbps: 8000,
-      progressPercent: 40,
-    },
-  ],
-};
 const t = (key: string, values: Record<string, unknown> = {}) => i18n.global.t(key, values);
 const CHART: Chart = { categories: ['2026-11-20'], series: [{ name: 'Movies', data: [3] }] };
 const EMPTY_STATS = {
@@ -110,7 +66,11 @@ const EMPTY_STATS = {
   mostConcurrent: [],
 };
 
-async function mount(path: string, routes: Parameters<typeof fakeFetch>[0]) {
+async function mount(
+  path: string,
+  routes: Parameters<typeof fakeFetch>[0],
+  role: 'admin' | 'user' = 'user',
+) {
   const fetch = fakeFetch({
     'GET /api/health/services': () => ({
       body: {
@@ -131,7 +91,7 @@ async function mount(path: string, routes: Parameters<typeof fakeFetch>[0]) {
     instances: { radarr: [], sonarr: [] },
     sidebar: {},
   };
-  const app = await mountApp(path, bootstrapOf({ user: { ...ADMIN, role: 'user' }, services }));
+  const app = await mountApp(path, bootstrapOf({ user: { ...ADMIN, role }, services }));
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };
@@ -349,6 +309,43 @@ describe('pages', () => {
       t('dashboard.plex.bandwidth.lan'),
     );
     expect(document.querySelector('[data-test="session-detail-open"]')).not.toBeNull();
+    // Arrêter une lecture est réservé aux admins.
+    expect(document.querySelector('[data-test="session-detail-terminate"]')).toBeNull();
+  });
+
+  it('Tracearr : un admin arrête une lecture depuis son détail, avec un message', async () => {
+    const SESSION = '33333333-4444-5555-6666-777777777777';
+    const { fetch } = await mount(
+      '/tracearr/en-cours',
+      {
+        'GET /api/tracearr/now-playing': () => ({
+          body: { ...ACTIVITY, sessions: [{ ...ACTIVITY.sessions[0], sessionKey: SESSION }] },
+        }),
+        'GET /api/tracearr/history': () => ({ body: { rows: [], nextCursor: null } }),
+        [`POST /api/tracearr/streams/${SESSION}/terminate`]: () => ({ body: { ok: true } }),
+      },
+      'admin',
+    );
+    click('[data-test="session-card"]');
+    await settle();
+    click('[data-test="session-detail-terminate"]');
+    await settle();
+    expect(
+      document.querySelector('[data-test="session-terminate-message"]')?.textContent,
+    ).toContain('Orbite Basse');
+    const input = document.querySelector<HTMLInputElement>(
+      '[data-test="session-terminate-reason"] input',
+    );
+    if (input === null) throw new Error('champ du message absent');
+    input.value = '  Pause dîner ';
+    input.dispatchEvent(new Event('input'));
+    await settle();
+    click('[data-test="session-terminate-confirm"]');
+    await settle();
+    const call = fetch.calls.find((c) => c.method === 'POST');
+    expect(call?.url).toBe(`/api/tracearr/streams/${SESSION}/terminate`);
+    expect(call?.body).toEqual({ reason: 'Pause dîner' });
+    expect(document.querySelector('[data-test="session-detail"]')).toBeNull();
   });
 
   it('Tracearr : un clic sur un utilisateur ouvre sa fiche (V23)', async () => {

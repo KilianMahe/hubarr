@@ -12,6 +12,7 @@ import {
   fileRowsOf,
   historyEventLabel,
   monitorRange,
+  queuedEpisodes,
   releaseLabels,
   rowChanges,
   seasonGroups,
@@ -104,6 +105,33 @@ describe('logique de la fiche', () => {
     expect(episodeStatus(episode(3, { airDateUtc: '2024-07-01T20:00:00Z' }), now)).toBe('upcoming');
     expect(episodeStatus(episode(4, { airDateUtc: null }), now)).toBe('upcoming');
     expect(episodeStatus(episode(5, { monitored: false }), now)).toBe('unmonitored');
+    // Dans la file de Sonarr : en téléchargement, même non suivi ou à venir.
+    expect(episodeStatus(episode(6), now, true)).toBe('downloading');
+    expect(episodeStatus(episode(7, { monitored: false }), now, true)).toBe('downloading');
+    expect(episodeStatus(episode(8, { hasFile: true }), now, true)).toBe('downloaded');
+  });
+
+  it('épisodes en file : ceux de la série, progression la plus avancée', () => {
+    const item = (seriesId: number, episodeId: number | null, size: number, sizeleft: number) => ({
+      seriesId,
+      episodeId,
+      size,
+      sizeleft,
+    });
+    const queued = queuedEpisodes(
+      [
+        item(2, 1, 100, 58),
+        item(2, 1, 100, 10),
+        item(2, 2, 0, 0),
+        item(3, 4, 100, 0),
+        item(2, null, 1, 0),
+      ],
+      2,
+    );
+    expect([...queued]).toEqual([
+      [1, 90],
+      [2, null],
+    ]);
   });
 
   it('saisons : la plus récente d’abord, progression et suivi', () => {
@@ -237,6 +265,52 @@ describe('Fiche série', () => {
     // Saison 2 ouverte (la plus récente) : un épisode.
     expect(document.querySelectorAll('[data-test="episode-row"]')).toHaveLength(1);
     expect(dialog?.textContent).toContain(t('media.series.detail.season_tpl', { n: 1 }));
+  });
+
+  it('un épisode dans la file de Sonarr est « en téléchargement », pas manquant', async () => {
+    let queue: unknown[] = [
+      { seriesId: 2, episodeId: 3, size: 100, sizeleft: 58 },
+      { seriesId: 9, episodeId: 2, size: 100, sizeleft: 0 },
+    ].map((item, index) => ({
+      id: index + 1,
+      seriesTitle: 'Severance',
+      episode: 'S02E01',
+      status: 'downloading',
+      trackedStatus: 'ok',
+      trackedState: 'downloading',
+      quality: 'WEBDL-1080p',
+      protocol: 'torrent',
+      eta: null,
+      indexer: null,
+      downloadId: null,
+      outputPath: null,
+      downloadClient: null,
+      statusMessages: [],
+      ...item,
+    }));
+    let episodesRead = 0;
+    const { queryClient } = await mountSeries(
+      '/medias/sonarr/series/2',
+      detailRoutes({
+        'GET /api/medias/sonarr/series/queue': () => ({ body: queue }),
+        'GET /api/medias/sonarr/series/2/episodes': () => {
+          episodesRead += 1;
+          return { body: EPISODES };
+        },
+      }),
+    );
+    const status = () => document.querySelector('[data-test="episode-row"] .episode__status');
+    expect(status()?.textContent.trim()).toBe(
+      t('media.series_detail.episode.status_downloading_progress', { progress: 42 }),
+    );
+    expect(status()?.classList.contains('text-primary')).toBe(true);
+    // Sorti de la file (importé) : les épisodes sont relus.
+    const before = episodesRead;
+    queue = [];
+    await queryClient.invalidateQueries({ queryKey: ['sonarr', 'sonarr', 'queue'] });
+    await settle();
+    expect(episodesRead).toBeGreaterThan(before);
+    expect(status()?.textContent.trim()).toBe(t('media.series_detail.episode.status_missing'));
   });
 
   it('mobile : recherche et actualisation dans la page, le reste dans le speed-dial', async () => {

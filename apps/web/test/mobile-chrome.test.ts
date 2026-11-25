@@ -5,7 +5,11 @@
 // « Serveur », speed-dial, snackbar en haut.
 
 import type { MovieLibraryItem, MovieLibraryResponse } from '@hubarr/shared';
-import { DEFAULT_MOVIE_LIBRARY_QUERY } from '@hubarr/shared';
+import {
+  DEFAULT_MOVIE_LIBRARY_QUERY,
+  DEFAULT_USER_PREFERENCES,
+  type UserPreferences,
+} from '@hubarr/shared';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, withDirectives } from 'vue';
@@ -235,7 +239,11 @@ const LIBRARY = {
   query: { ...DEFAULT_MOVIE_LIBRARY_QUERY },
 } satisfies MovieLibraryResponse;
 
-async function mountRadarr(path: string, routes: Parameters<typeof fakeFetch>[0] = {}) {
+async function mountRadarr(
+  path: string,
+  routes: Parameters<typeof fakeFetch>[0] = {},
+  prefs: Partial<UserPreferences> = {},
+) {
   const fetch = fakeFetch({
     'GET /api/health/services': () => ({
       body: {
@@ -250,7 +258,14 @@ async function mountRadarr(path: string, routes: Parameters<typeof fakeFetch>[0]
     'GET /api/medias/radarr/films/warnings': () => ({ body: { warnings: [], indexerCount: 1 } }),
     ...routes,
   });
-  const app = await mountApp(path, bootstrapOf({ user: ADMIN, services: RADARR_SERVICES }));
+  const app = await mountApp(
+    path,
+    bootstrapOf({
+      user: ADMIN,
+      services: RADARR_SERVICES,
+      userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
+    }),
+  );
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };
@@ -316,8 +331,7 @@ describe('bibliothèque de films sur mobile', () => {
   });
 
   it('appui long : sélection, barre contextuelle en haut, barre basse masquée', async () => {
-    localStorage.setItem('hubarr.films-view', 'extended');
-    await mountRadarr('/medias/radarr/films');
+    await mountRadarr('/medias/radarr/films', undefined, { moviesView: 'extended' });
     const row = $('[data-test="movies-content"] .movie-row');
     expect(row).not.toBeNull();
     const start = new Event('touchstart', { bubbles: true });

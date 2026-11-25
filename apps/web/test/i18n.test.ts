@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Branchement de vue-i18n sur le format ICU et résolution de la langue (P0.9).
-import { defaultDisplayValues, resolveTheme, type BootstrapResponse } from '@hubarr/shared';
+import {
+  DEFAULT_USER_PREFERENCES,
+  defaultDisplayValues,
+  resolveTheme,
+  type BootstrapResponse,
+} from '@hubarr/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchBootstrap, resolveLocale } from '../src/app/boot';
 import { i18n, localeFromQuery, setLocale } from '../src/app/plugins/i18n';
@@ -16,6 +21,7 @@ const bootstrap: BootstrapResponse = {
   theme: resolveTheme('nord', undefined),
   services: { states: {}, instances: { radarr: [], sonarr: [] }, sidebar: {} },
   preferences: defaultDisplayValues(),
+  userPreferences: DEFAULT_USER_PREFERENCES,
 };
 
 afterEach(async () => {

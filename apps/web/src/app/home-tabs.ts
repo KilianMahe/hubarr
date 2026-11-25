@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Groupe « Accueil » (lot 11) : Tableau de bord, Découverte et Calendrier
-// gardent leurs URL et sont reliés par des onglets (en haut de page sur grand
-// écran, barre basse sur mobile, `meta.bottomNav`). Un onglet n'apparaît que si
-// sa page est utilisable : Découverte avec TMDB, Calendrier avec Radarr ou
-// Sonarr, chacun visible dans le menu (`sidebar_hide_*`).
+// Groupe « Accueil » (lot 11) : Tableau de bord, Découverte, Explorateur,
+// Watchlist et Calendrier gardent leurs URL et sont reliés par des onglets (en
+// haut de page sur grand écran, barre basse sur mobile, `meta.bottomNav`). Un
+// onglet n'apparaît que si sa page est utilisable : Découverte, Explorateur et
+// Watchlist avec TMDB, Calendrier avec Radarr ou Sonarr, chacun visible dans le
+// menu (`sidebar_hide_*`).
 
 import type { BootstrapServices } from '@hubarr/shared';
 import type { RouteLocationNormalizedLoaded } from 'vue-router';
-import { msCalendarToday, msDashboardFill, msExplore } from '../components/symbols';
+import {
+  msCalendarToday,
+  msDashboardFill,
+  msExplore,
+  msManageSearch,
+  msStarFill,
+} from '../components/symbols';
 import type { BottomNavItem, BottomNavContext } from './navigation';
 import { isConfigured, isVisibleInSidebar, SERVICE_PAGES } from './services';
 
-/** Routes du groupe « Accueil » (pages des onglets et sous-pages de la découverte). */
+/** Routes du groupe « Accueil » (pages des onglets). */
 export const HOME_ROUTES = new Set([
   'dashboard',
   'tmdb',
@@ -51,8 +58,20 @@ export const HOME_TABS: BottomNavItem[] = [
     icon: msExplore,
     to: { name: 'tmdb' },
     testId: 'home-tab-discover',
-    // Explorateur et watchlist : sous-pages de la découverte.
-    matches: (route) => route.name === 'tmdb-explorer' || route.name === 'tmdb-watchlist',
+    visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
+  },
+  {
+    labelKey: 'decouverte.explorer.title',
+    icon: msManageSearch,
+    to: { name: 'tmdb-explorer' },
+    testId: 'home-tab-explorer',
+    visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
+  },
+  {
+    labelKey: 'decouverte.watchlist.title',
+    icon: msStarFill,
+    to: { name: 'tmdb-watchlist' },
+    testId: 'home-tab-watchlist',
     visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
   },
   {

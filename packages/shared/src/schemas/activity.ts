@@ -77,6 +77,18 @@ export const activitySessionSchema = z.object({
 });
 export type ActivitySession = z.infer<typeof activitySessionSchema>;
 
+/** Longueur maximale du message montré au spectateur quand une lecture est arrêtée. */
+export const TERMINATE_REASON_MAX = 200;
+
+/**
+ * Arrêt d'une lecture en cours (Tracearr, `POST /api/v1/public/streams/:id/terminate`) :
+ * message facultatif affiché au spectateur.
+ */
+export const terminateSessionRequestSchema = z.object({
+  reason: z.string().trim().max(TERMINATE_REASON_MAX).optional(),
+});
+export type TerminateSessionRequest = z.infer<typeof terminateSessionRequestSchema>;
+
 /** Erreurs de l'activité, rendues en 200 comme l'original (le widget les affiche). */
 export const ACTIVITY_ERRORS = ['unconfigured', 'unreachable', 'auth'] as const;
 

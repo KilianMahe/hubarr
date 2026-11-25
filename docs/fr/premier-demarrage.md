@@ -18,13 +18,13 @@ Il reste à connecter vos services (Radarr, Sonarr, qBittorrent…) depuis les [
 
 ## Accueil
 
-**Accueil**, en haut du menu latéral, regroupe trois pages reliées par des onglets : **Tableau de bord**, **Découverte** et **Calendrier**. Sur ordinateur, les onglets sont en haut de la page ; sur mobile, ils forment la barre du bas. Chaque page garde son adresse (`/tableau-de-bord`, `/decouverte`, `/calendrier`). La découverte s'affiche quand TMDB est configuré, le calendrier quand Radarr ou Sonarr l'est ; tous deux peuvent être masqués dans **Paramètres → Affichage**. La page d'accueil choisie dans les paramètres (`/`, ouverte aussi par le logo) ne change pas.
+**Accueil**, en haut du menu latéral, regroupe cinq pages reliées par des onglets : **Tableau de bord**, **Découverte**, **Explorer**, **Watchlist** et **Calendrier**. Sur ordinateur, les onglets sont en haut de la page ; sur mobile, ils forment la barre du bas. Chaque page garde son adresse (`/tableau-de-bord`, `/decouverte`, `/decouverte/explorer`, `/decouverte/watchlist`, `/calendrier`). La découverte, l'explorateur et la watchlist s'affichent quand TMDB est configuré, le calendrier quand Radarr ou Sonarr l'est ; la découverte (avec l'explorateur et la watchlist) et le calendrier peuvent être masqués dans **Paramètres → Affichage**. La page d'accueil choisie dans les paramètres (`/`, ouverte aussi par le logo) ne change pas.
 
 ## Sur mobile
 
 L'interface s'adapte aux écrans étroits :
 
-- **Barre du bas** : sur les pages de l'accueil, les onglets Tableau de bord, Découverte et Calendrier ; dans chaque service à plusieurs pages (Radarr, Sonarr, Prowlarr, Bazarr, Seerr, SABnzbd, NZBGet), ses pages principales, avec au centre le bouton de l'action principale (ajouter un film, une série, un indexeur, un NZB). Les clients torrent ont un bouton flottant d'ajout.
+- **Barre du bas** : sur les pages de l'accueil, les onglets Tableau de bord, Découverte, Explorer, Watchlist et Calendrier ; dans chaque service à plusieurs pages (Radarr, Sonarr, Prowlarr, Bazarr, Seerr, SABnzbd, NZBGet), ses pages principales, avec au centre le bouton de l'action principale (ajouter un film, une série, un indexeur, un NZB). Les clients torrent ont un bouton flottant d'ajout.
 - **Paramètres** : sur la page **Paramètres**, la barre du bas porte ses cinq sections. Sur les pages de paramètres d'un service, elle porte les groupes (profils, intégrations, général, système…) : un appui sur un groupe liste ses pages. La barre du haut nomme le service et la page, par exemple « Sonarr · Tâches » ou « Paramètres · Sauvegarde ».
 - **Onglet Serveur** (Radarr, Sonarr) : version du service, compteurs de la bibliothèque, autres pages de l'instance et commandes. La configuration des services s'ouvre depuis **Paramètres → Services**.
 - **Barre du haut** : le menu, le service et la page (par exemple « Radarr · Films »), puis la loupe : recherche globale, ou dans une bibliothèque sa propre recherche, qui s'ouvre dans la barre (la croix l'efface).

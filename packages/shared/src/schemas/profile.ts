@@ -4,8 +4,9 @@
 import { z } from 'zod';
 import { PASSWORD_MIN_LENGTH } from '../constants/auth';
 import { MEDIA_TYPES } from '../constants/domain';
-import { DISPLAY_NAME_MAX_LENGTH } from '../constants/profile';
+import { DISPLAY_NAME_MAX_LENGTH, LIBRARY_VIEW_MODES, TORRENT_VIEWS } from '../constants/profile';
 import { authUserSchema } from './auth';
+import { TORRENT_FILTERS } from './torrents';
 
 /** Élément de la watchlist tel que le profil le prévisualise. */
 export const profileWatchlistItemSchema = z.object({
@@ -69,3 +70,38 @@ export const profileUpdateRequestSchema = z
     }
   });
 export type ProfileUpdateRequest = z.input<typeof profileUpdateRequestSchema>;
+
+/**
+ * Préférences du compte : mode d'affichage par défaut des bibliothèques Radarr
+ * et Sonarr (`auto` : grille sur grand écran, liste étendue sur mobile), mode et
+ * filtre par défaut de la liste des torrents. Chaque page s'ouvre sur ces
+ * valeurs ; un changement fait sur la page ne vaut que pour la visite.
+ */
+export const userPreferencesSchema = z.object({
+  moviesView: z.enum(['auto', ...LIBRARY_VIEW_MODES]),
+  seriesView: z.enum(['auto', ...LIBRARY_VIEW_MODES]),
+  torrentsView: z.enum(TORRENT_VIEWS),
+  torrentsFilter: z.enum(TORRENT_FILTERS),
+});
+export type UserPreferences = z.infer<typeof userPreferencesSchema>;
+
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  moviesView: 'auto',
+  seriesView: 'auto',
+  torrentsView: 'table',
+  torrentsFilter: 'all',
+};
+
+/**
+ * Lecture tolérante (colonne JSON en base) : une valeur absente ou inconnue
+ * reprend sa valeur par défaut, sans invalider les autres.
+ */
+export function parseUserPreferences(raw: unknown): UserPreferences {
+  const source = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
+  const out = { ...DEFAULT_USER_PREFERENCES };
+  for (const key of Object.keys(out) as (keyof UserPreferences)[]) {
+    const parsed = userPreferencesSchema.shape[key].safeParse(source[key]);
+    if (parsed.success) Object.assign(out, { [key]: parsed.data });
+  }
+  return out;
+}

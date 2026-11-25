@@ -40,11 +40,11 @@ Admins add a title to Radarr or Sonarr from a poster, a title page, a quick look
 
 TMDB has no anime type: Hubarr treats as anime the titles of the Animation genre whose original language is Japanese, as when it sets a series' type to anime before adding it to Sonarr.
 
-`/decouverte/explorer` filters TMDB by type (movies, TV shows, or **Anime** with a TV shows / movies choice), genres, decade or a precise **year** (picking one clears the other) and sort (popular, top rated, newest, box office), and finds a **collection** or an **actor** to list all their titles.
+`/decouverte/explorer` (the **Explorer** tab of Home) filters TMDB by type (movies, TV shows, or **Anime** with a TV shows / movies choice), genres, decade or a precise **year** (picking one clears the other) and sort (popular, top rated, newest, box office), and finds a **collection** or an **actor** to list all their titles.
 
 ## Watchlist
 
-A poster's star adds the title to the **watchlist**, shared by all users. The `/decouverte/watchlist` page filters it (movies, TV shows, text), sorts it, lets you add a note and remove a title.
+A poster's star adds the title to the **watchlist**, shared by all users. The `/decouverte/watchlist` page (the **Watchlist** tab of Home) filters it (movies, TV shows, text), sorts it, lets you add a note and remove a title.
 
 ## Global search
 

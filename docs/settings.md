@@ -43,7 +43,7 @@ When a service does not answer, its page shows a banner with the reason; **Retry
 - **Time zone**, **date and time formats**; the system time zone (`TZ`) by default.
 - **Theme** (classic with a light/dark toggle, or one of 17 presets) and **accent colour**: applied as soon as you save.
 - **Refresh rate** of qBittorrent, Deluge and Transmission, **live activity source**, **density** and **items per page**.
-- **Side menu visibility** of each service and of the calendar; Discover and the calendar are tabs of **Home**, hidden along with their entry.
+- **Side menu visibility** of each service and of the calendar; Discover (with Explorer and Watchlist) and the calendar are tabs of **Home**, hidden along with their entry.
 - **Dashboard layout**: order (drag a section by its handle, or Move up/Move down buttons) and visible sections.
 
 ::: tip Refresh rate and real time

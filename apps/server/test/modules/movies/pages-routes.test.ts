@@ -71,6 +71,124 @@ describe('file d’attente', () => {
     expect((await env.browser.post(env.url('/queue/99/import'))).statusCode).toBe(404);
   });
 
+  it('import manuel : aperçu par downloadId, import des fichiers choisis (qualité corrigée)', async () => {
+    env.radarr.on('GET', '/api/v3/queue', {
+      records: [
+        { id: 9, movieId: 1, downloadId: 'HASH9', outputPath: '/downloads/Movie' },
+        { id: 10, movieId: 2 },
+      ],
+    });
+    const quality = {
+      quality: { id: 7, name: 'Bluray-1080p' },
+      revision: { version: 2, real: 0, isRepack: false },
+    };
+    env.radarr.on('GET', '/api/v3/manualimport', [
+      {
+        path: '/downloads/Movie/movie.mkv',
+        relativePath: 'movie.mkv',
+        folderName: 'Movie',
+        size: 1000,
+        movie: { id: 1, title: 'Film', year: 2020 },
+        quality,
+        languages: [{ id: 2, name: 'French' }],
+        releaseGroup: 'GRP',
+        downloadId: 'HASH9',
+        indexerFlags: 1,
+        rejections: [{ reason: 'Not an upgrade', type: 'permanent' }],
+      },
+      { path: '/downloads/Movie/sample.mkv', size: 10, movie: { id: 0 }, rejections: [] },
+    ]);
+    const preview = await env.browser.get(env.url('/queue/9/manual-import'));
+    expect(env.radarr.callsTo('GET', '/api/v3/manualimport')[0]?.query.get('downloadId')).toBe(
+      'HASH9',
+    );
+    expect(preview.json()).toEqual({
+      files: [
+        {
+          path: '/downloads/Movie/movie.mkv',
+          name: 'movie.mkv',
+          size: 1000,
+          quality: { id: 7, name: 'Bluray-1080p' },
+          languages: [{ id: 2, name: 'French' }],
+          releaseGroup: 'GRP',
+          rejections: ['Not an upgrade'],
+          movie: { id: 1, title: 'Film', year: 2020 },
+        },
+        {
+          path: '/downloads/Movie/sample.mkv',
+          name: 'sample.mkv',
+          size: 10,
+          quality: null,
+          languages: [],
+          releaseGroup: null,
+          rejections: [],
+          movie: null,
+        },
+      ],
+    });
+
+    env.radarr.on('GET', '/api/v3/qualitydefinition', [
+      { id: 50, quality: { id: 9, name: 'Remux-1080p', source: 'bluray', resolution: 1080 } },
+    ]);
+    env.radarr.on('POST', '/api/v3/command', { id: 44 });
+    const response = await env.browser.post(env.url('/queue/9/manual-import'), {
+      files: [
+        {
+          path: '/downloads/Movie/movie.mkv',
+          movieId: 3,
+          qualityId: 9,
+          languages: [{ id: 1, name: 'English' }],
+          releaseGroup: null,
+        },
+      ],
+    });
+    expect(response.json()).toEqual({ ok: true, cmdId: 44 });
+    expect(env.radarr.callsTo('POST', '/api/v3/command')[0]?.body).toEqual({
+      name: 'ManualImport',
+      importMode: 'auto',
+      files: [
+        {
+          path: '/downloads/Movie/movie.mkv',
+          folderName: 'Movie',
+          movieId: 3,
+          quality: {
+            quality: { id: 9, name: 'Remux-1080p', source: 'bluray', resolution: 1080 },
+            revision: { version: 2, real: 0, isRepack: false },
+          },
+          languages: [{ id: 1, name: 'English' }],
+          releaseGroup: '',
+          indexerFlags: 1,
+          downloadId: 'HASH9',
+          customFormats: [],
+          customFormatScore: 0,
+        },
+      ],
+    });
+  });
+
+  it('import manuel : fichier hors du téléchargement → 400 ; élément inconnu → 404', async () => {
+    env.radarr.on('GET', '/api/v3/queue', {
+      records: [{ id: 9, movieId: 1, downloadId: 'HASH9' }, { id: 10 }],
+    });
+    env.radarr.on('GET', '/api/v3/manualimport', [{ path: '/downloads/Movie/movie.mkv' }]);
+    env.radarr.on('GET', '/api/v3/qualitydefinition', []);
+    const body = {
+      files: [{ path: '/etc/passwd', movieId: 1, qualityId: 1, languages: [], releaseGroup: null }],
+    };
+    const refused = await env.browser.post(env.url('/queue/9/manual-import'), body);
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json()).toMatchObject({
+      code: 'VALIDATION',
+      message: 'media.api.manual_import_unknown_file',
+    });
+    expect(env.radarr.callsTo('POST', '/api/v3/command')).toHaveLength(0);
+    expect((await env.browser.get(env.url('/queue/10/manual-import'))).statusCode).toBe(404);
+    expect((await env.browser.get(env.url('/queue/99/manual-import'))).statusCode).toBe(404);
+    expect(
+      (await env.browser.post(env.url('/queue/9/manual-import'), { files: [] })).statusCode,
+    ).toBe(400);
+  });
+
   it('suppression avec options, grab, grab groupé', async () => {
     env.radarr.on('DELETE', '/api/v3/queue/9');
     await env.browser.post(env.url('/queue/9/delete'), { removeFromClient: true, blocklist: true });

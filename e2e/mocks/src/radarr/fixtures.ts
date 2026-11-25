@@ -260,6 +260,7 @@ export function releasesFor(movie: MockMovie) {
   return [
     {
       guid: `${movie.id}-best`,
+      releaseWeight: 0,
       indexerId: 1,
       indexer: 'IndexeurTest',
       title: `${base}.${movie.year}.1080p.BluRay.x265-HUBARR`,
@@ -278,6 +279,7 @@ export function releasesFor(movie: MockMovie) {
     },
     {
       guid: `${movie.id}-web`,
+      releaseWeight: 1,
       indexerId: 1,
       indexer: 'IndexeurTest',
       title: `${base}.${movie.year}.1080p.WEB-DL-GRP`,
@@ -295,6 +297,7 @@ export function releasesFor(movie: MockMovie) {
     },
     {
       guid: `${movie.id}-cam`,
+      releaseWeight: 2,
       indexerId: 2,
       indexer: 'AutreIndexeur',
       title: `${base}.${movie.year}.CAM-XYZ`,

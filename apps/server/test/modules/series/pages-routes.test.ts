@@ -109,6 +109,107 @@ describe('file d’attente (n° 201 à 206)', () => {
   });
 });
 
+describe('import manuel d’un élément de la file', () => {
+  it('aperçu par downloadId puis import des épisodes choisis, cache invalidé', async () => {
+    await warmSeries(env);
+    env.sonarr.on('GET', '/api/v3/queue', {
+      records: [{ id: 5, seriesId: 1, downloadId: 'HASH5', outputPath: '/dl/Show' }],
+    });
+    const quality = { quality: { id: 3, name: 'WEBDL-1080p' }, revision: { version: 1 } };
+    env.sonarr.on('GET', '/api/v3/manualimport', [
+      {
+        path: '/dl/Show/E05.mkv',
+        relativePath: 'E05.mkv',
+        size: 500,
+        series: { id: 1, title: 'Série' },
+        seasonNumber: 2,
+        episodes: [{ id: 25, seasonNumber: 2, episodeNumber: 5, title: 'Cinq' }],
+        quality,
+        languages: [{ id: 2, name: 'French' }],
+        releaseType: 'singleEpisode',
+        rejections: [{ reason: 'Unable to parse episode' }],
+      },
+    ]);
+    const preview = await env.browser.get(env.url('/queue/5/manual-import'));
+    expect(env.sonarr.callsTo('GET', '/api/v3/manualimport')[0]?.query.get('downloadId')).toBe(
+      'HASH5',
+    );
+    expect(preview.json()).toEqual({
+      files: [
+        {
+          path: '/dl/Show/E05.mkv',
+          name: 'E05.mkv',
+          size: 500,
+          quality: { id: 3, name: 'WEBDL-1080p' },
+          languages: [{ id: 2, name: 'French' }],
+          releaseGroup: null,
+          rejections: ['Unable to parse episode'],
+          series: { id: 1, title: 'Série' },
+          seasonNumber: 2,
+          episodes: [{ id: 25, seasonNumber: 2, episodeNumber: 5, title: 'Cinq' }],
+        },
+      ],
+    });
+
+    env.sonarr.on('GET', '/api/v3/qualitydefinition', []);
+    env.sonarr.on('POST', '/api/v3/command', { id: 41 });
+    const response = await env.browser.post(env.url('/queue/5/manual-import'), {
+      files: [
+        {
+          path: '/dl/Show/E05.mkv',
+          seriesId: 1,
+          episodeIds: [25, 26],
+          qualityId: 3,
+          languages: [{ id: 2, name: 'French' }],
+          releaseGroup: 'GRP',
+        },
+      ],
+    });
+    expect(response.json()).toEqual({ ok: true, cmdId: 41 });
+    expect(env.sonarr.callsTo('POST', '/api/v3/command')[0]?.body).toEqual({
+      name: 'ManualImport',
+      importMode: 'auto',
+      files: [
+        {
+          path: '/dl/Show/E05.mkv',
+          folderName: null,
+          seriesId: 1,
+          episodeIds: [25, 26],
+          releaseType: 'multiEpisode',
+          quality,
+          languages: [{ id: 2, name: 'French' }],
+          releaseGroup: 'GRP',
+          indexerFlags: 0,
+          downloadId: 'HASH5',
+          customFormats: [],
+          customFormatScore: 0,
+        },
+      ],
+    });
+    expect(env.libraryCached()).toBe(false);
+  });
+
+  it('sans downloadId : aperçu du dossier ; fichier étranger → 400 ; sans épisode → 400', async () => {
+    env.sonarr.on('GET', '/api/v3/queue', { records: [{ id: 5, outputPath: '/dl/Show' }] });
+    env.sonarr.on('GET', '/api/v3/manualimport', [{ path: '/dl/Show/E05.mkv' }]);
+    env.sonarr.on('GET', '/api/v3/qualitydefinition', []);
+    await env.browser.get(env.url('/queue/5/manual-import'));
+    expect(env.sonarr.callsTo('GET', '/api/v3/manualimport')[0]?.query.get('folder')).toBe(
+      '/dl/Show',
+    );
+    const file = { seriesId: 1, qualityId: 3, languages: [], releaseGroup: null };
+    const foreign = await env.browser.post(env.url('/queue/5/manual-import'), {
+      files: [{ ...file, path: '/dl/Other/x.mkv', episodeIds: [1] }],
+    });
+    expect(foreign.statusCode).toBe(400);
+    const noEpisode = await env.browser.post(env.url('/queue/5/manual-import'), {
+      files: [{ ...file, path: '/dl/Show/E05.mkv', episodeIds: [] }],
+    });
+    expect(noEpisode.statusCode).toBe(400);
+    expect(env.sonarr.callsTo('POST', '/api/v3/command')).toHaveLength(0);
+  });
+});
+
 describe('manquants, cutoff (n° 154, 155)', () => {
   it('épisodes manquants : série, code, date locale ; tri et requête de l’original', async () => {
     env.sonarr.on('GET', '/api/v3/wanted/missing', {

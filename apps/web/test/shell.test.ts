@@ -341,6 +341,42 @@ describe('profil', () => {
     );
   });
 
+  it('préférences d’affichage : lignes des services configurés, enregistrées pour le compte', async () => {
+    const saved = {
+      moviesView: 'table',
+      seriesView: 'auto',
+      torrentsView: 'compact',
+      torrentsFilter: 'downloading',
+    };
+    const { calls } = fakeFetch({
+      'GET /api/profil': () => ({ body: profile }),
+      'POST /api/profil/preferences': () => ({ body: saved }),
+    });
+    const services = {
+      states: {
+        radarr: { configured: true, disabled: false },
+        qbittorrent: { configured: true, disabled: false },
+      },
+      instances: { radarr: [], sonarr: [] },
+      sidebar: {},
+    };
+    const { wrapper, session } = await mountApp('/profil', bootstrapOf({ user: ADMIN, services }));
+    await settle();
+    const card = wrapper.get('[data-test="profile-preferences"]');
+    expect(card.find('[data-test="pref-movies-view"]').exists()).toBe(true);
+    expect(card.find('[data-test="pref-series-view"]').exists()).toBe(false);
+    const select = (label: string) =>
+      wrapper.findAllComponents(VSelect).find((component) => component.props('label') === t(label));
+    select('profile.preferences.movies_view')?.vm.$emit('update:modelValue', 'table');
+    select('profile.preferences.torrents_view')?.vm.$emit('update:modelValue', 'compact');
+    select('profile.preferences.torrents_filter')?.vm.$emit('update:modelValue', 'downloading');
+    await settle();
+    await card.get('form').trigger('submit');
+    await settle();
+    expect(calls.find((c) => c.url === '/api/profil/preferences')?.body).toEqual(saved);
+    expect(session.userPreferences).toEqual(saved);
+  });
+
   it('calcule l’ancienneté et contrôle l’avatar avant l’envoi', () => {
     const now = Date.parse('2026-11-18T12:00:00Z');
     expect(membershipOf('2026-11-18T08:00:00Z', now)).toEqual({

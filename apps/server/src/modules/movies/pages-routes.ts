@@ -28,6 +28,8 @@ import {
   idsRequestSchema,
   missingPageSchema,
   movieCollectionSchema,
+  movieManualImportPreviewSchema,
+  movieManualImportRequestSchema,
   okResponseSchema,
   queueDeleteRequestSchema,
 } from '@hubarr/shared';
@@ -52,6 +54,7 @@ import {
   upstreamSort,
 } from '../arr/list-query';
 import { arrSystemResponse } from '../arr/system';
+import { movieImportFiles, normalizeMoviePreview } from '../media/manual-import';
 import {
   RADARR_CONFIG,
   boundInstance,
@@ -120,6 +123,59 @@ export const moviePagesRoutes: FastifyPluginAsync = async (instance) => {
           languages: raw.languages ?? [{ id: 1, name: 'English' }],
         },
       ]);
+      return { ok: true as const, cmdId };
+    },
+  );
+
+  /** Élément brut de la file et aperçu de son import manuel (par `downloadId`, sinon par dossier). */
+  const queuePreview = async (request: Parameters<typeof clientOf>[1], queueId: number) => {
+    const radarr = radarrOf(request);
+    const raw = (await radarr.rawQueue()).find((item) => item.id === queueId);
+    const downloadId = raw?.downloadId ?? '';
+    const folder = raw?.outputPath ?? '';
+    if (raw === undefined || (downloadId === '' && folder === '')) {
+      throw new ApiError(404, 'NOT_FOUND', {
+        service: 'radarr',
+        details: { reason: 'media.api.queue_item_not_found' },
+      });
+    }
+    const previews = await radarr.manualImportPreview(
+      downloadId !== '' ? { downloadId } : { folder },
+      false,
+    );
+    return { radarr, previews, downloadId: downloadId === '' ? null : downloadId };
+  };
+
+  // Import manuel d'un élément de la file : aperçu (fichiers, film reconnu, refus).
+  app.get(
+    `${base}/queue/:queueId/manual-import`,
+    {
+      config,
+      schema: { params: queueParams, response: { 200: movieManualImportPreviewSchema } },
+    },
+    async (request) => {
+      const { previews } = await queuePreview(request, request.params.queueId);
+      return { files: previews.map(normalizeMoviePreview) };
+    },
+  );
+
+  // Import manuel d'un élément de la file : fichiers choisis, film, qualité et langues corrigés.
+  app.post(
+    `${base}/queue/:queueId/manual-import`,
+    {
+      config,
+      schema: {
+        params: queueParams,
+        body: movieManualImportRequestSchema,
+        response: { 200: commandStartedResponseSchema },
+      },
+    },
+    async (request) => {
+      const { radarr, previews, downloadId } = await queuePreview(request, request.params.queueId);
+      const definitions = await radarr.qualityDefinitions();
+      const files = movieImportFiles(previews, request.body, definitions, downloadId);
+      const cmdId = await radarr.manualImport(files, 'auto');
+      invalidateLibrary(instance, request);
       return { ok: true as const, cmdId };
     },
   );

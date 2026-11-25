@@ -2,6 +2,7 @@
 // Profil du compte connecté (`ProfileController` d'origine, P0.8) :
 //   GET  /api/profil                      profil, statistiques, aperçu de la watchlist
 //   POST /api/profil                      nom affiché et changement de mot de passe
+//   POST /api/profil/preferences          préférences d'affichage du compte
 //   POST /api/profil/avatar               envoi d'un avatar (corps binaire brut)
 //   POST /api/profil/avatar/delete        suppression de l'avatar
 //   GET  /api/profil/avatar/file/:file    service authentifié d'un avatar
@@ -13,6 +14,7 @@ import {
   LOGIN_THROTTLE,
   profileResponseSchema,
   profileUpdateRequestSchema,
+  userPreferencesSchema,
   type ProfileResponse,
 } from '@hubarr/shared';
 import { count, desc, eq } from 'drizzle-orm';
@@ -23,7 +25,13 @@ import type { ZodTypeProvider } from '../../http/zod';
 import { revokeUserSessions } from '../../plugins/sessions';
 import { hashPassword, verifyPassword } from '../../security/password';
 import { SlidingWindowLimiter } from '../auth/login-throttle';
-import { findUserById, toAuthUser, type UserRow } from '../users/users';
+import {
+  findUserById,
+  readUserPreferences,
+  saveUserPreferences,
+  toAuthUser,
+  type UserRow,
+} from '../users/users';
 import { AVATAR_FILENAME_PATTERN, AvatarStore, avatarMimeType, detectAvatarType } from './avatars';
 
 export interface ProfileRoutesOptions {
@@ -140,6 +148,17 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
         return row;
       });
       return profileOf(updated ?? user);
+    },
+  );
+
+  // Le corps est complet : le formulaire du profil envoie toutes les préférences.
+  app.post(
+    '/api/profil/preferences',
+    { schema: { body: userPreferencesSchema, response: { 200: userPreferencesSchema } } },
+    async (request) => {
+      const user = currentUser(request);
+      saveUserPreferences(app.db, user.id, request.body);
+      return readUserPreferences(app.db, user.id);
     },
   );
 

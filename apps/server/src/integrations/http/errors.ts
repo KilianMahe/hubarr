@@ -115,6 +115,14 @@ export function extractApiErrorMessage(body: string, status: number, networkErro
     if (messages.length > 0) return messages.join('; ');
   }
   if (isRecord(decoded)) {
+    // Erreur Fastify (`{ statusCode, error, message }`, Tracearr…) : `error`
+    // n'est que le nom du statut (« InternalServerError »), la cause est dans `message`.
+    if (
+      typeof decoded.statusCode === 'number' &&
+      typeof decoded.message === 'string' &&
+      decoded.message !== ''
+    )
+      return decoded.message;
     const message = messageOf(decoded);
     if (message !== null) return message;
   }

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { SUPPORTED_LOCALES } from '../constants/i18n';
 import { authUserSchema } from './auth';
 import { displayValuesSchema } from './preferences';
+import { userPreferencesSchema } from './profile';
 import { resolvedThemeSchema } from './theme';
 
 /** État d'un service pour le shell (tiroir, gardes du routeur). */
@@ -50,5 +51,7 @@ export const bootstrapResponseSchema = z.object({
   services: bootstrapServicesSchema,
   /** Préférences d'affichage résolues (fuseau du système si aucun n'est choisi). */
   preferences: displayValuesSchema,
+  /** Préférences du compte connecté (valeurs par défaut sans session). */
+  userPreferences: userPreferencesSchema,
 });
 export type BootstrapResponse = z.infer<typeof bootstrapResponseSchema>;

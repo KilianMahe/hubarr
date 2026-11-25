@@ -59,7 +59,7 @@ describe('prepareDatabase', () => {
     });
     database.close();
 
-    expect(report).toEqual({ applied: 2, backupFile: null });
+    expect(report).toEqual({ applied: 3, backupFile: null });
     expect(tableNames(join(dataDir, DATABASE_FILE))).toEqual([
       '__drizzle_migrations',
       'service_instance',

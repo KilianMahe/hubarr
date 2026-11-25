@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Bibliothèque de séries (P3a.1) : logique pure (URL, état affiché d'une
-// série, étagères, vue mémorisée) et vue montée contre une API simulée
+// série, étagères) et vue montée contre une API simulée
 // (filtres dans l'URL, calendrier, actions filtrées, masse, ajout).
 
 import { DEFAULT_SERIES_LIBRARY_QUERY, byteUnits, type Series } from '@hubarr/shared';
@@ -8,7 +8,6 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { VSelect } from 'vuetify/components';
 import { i18n, setLocale } from '../src/app/plugins/i18n';
 import {
-  readSeriesViewMode,
   seriesApiParamsOf,
   seriesDisplayState,
   seriesRouteQueryOf,
@@ -78,11 +77,7 @@ describe('logique de la bibliothèque de séries', () => {
     ]);
   });
 
-  it('vue mémorisée propre aux séries, taille lisible', () => {
-    localStorage.setItem('hubarr.series-view', 'table');
-    expect(readSeriesViewMode('grid', localStorage)).toBe('table');
-    localStorage.setItem('hubarr.series-view', 'bogus');
-    expect(readSeriesViewMode('grid', localStorage)).toBe('grid');
+  it('taille lisible', () => {
     expect(seriesSize(t, 1_610_612_736)).toBe(`1.5 ${t('media.series.stats.gb_suffix')}`);
     // Au-delà de 1 024 Go : en To (P5d.5, V29).
     expect(seriesSize(t, 1.5 * 1024 ** 4)).toBe(`1.5 ${byteUnits(i18n.global.locale.value).TB}`);
@@ -97,35 +92,38 @@ const libraryCalls = (calls: FakeCall[]) =>
 
 describe('SeriesView', () => {
   it('statistiques, avertissement et séries ; prochains épisodes dans leur onglet (V17)', async () => {
-    localStorage.setItem('hubarr.series-view', 'extended');
-    const { wrapper } = await mountSeries('/medias/sonarr/series', {
-      'GET /api/medias/sonarr/series': () => ({
-        body: seriesLibraryOf(SERIES, {
-          calendar: [
-            {
-              id: 50,
-              seriesId: 2,
-              tvdbId: null,
-              tmdbId: null,
-              seriesTitle: 'Severance',
-              poster: null,
-              fanart: null,
-              season: 2,
-              episode: 3,
-              title: 'Who Is Alive?',
-              overview: null,
-              airDate: '2099-01-01',
-              airDateUtc: '2099-01-01T02:00:00Z',
-              hasFile: false,
-              monitored: true,
-              runtime: 50,
-              network: 'Apple TV+',
-              genres: [],
-            },
-          ],
+    const { wrapper } = await mountSeries(
+      '/medias/sonarr/series',
+      {
+        'GET /api/medias/sonarr/series': () => ({
+          body: seriesLibraryOf(SERIES, {
+            calendar: [
+              {
+                id: 50,
+                seriesId: 2,
+                tvdbId: null,
+                tmdbId: null,
+                seriesTitle: 'Severance',
+                poster: null,
+                fanart: null,
+                season: 2,
+                episode: 3,
+                title: 'Who Is Alive?',
+                overview: null,
+                airDate: '2099-01-01',
+                airDateUtc: '2099-01-01T02:00:00Z',
+                hasFile: false,
+                monitored: true,
+                runtime: 50,
+                network: 'Apple TV+',
+                genres: [],
+              },
+            ],
+          }),
         }),
-      }),
-    });
+      },
+      { seriesView: 'extended' },
+    );
     expect(wrapper.find('[data-test="series-stats"]').text()).toContain('42.5');
     expect(wrapper.find('[data-test="series-warning"]').text()).toBe(
       t('media.import.blocked_warning', { count: 2 }),
@@ -175,13 +173,16 @@ describe('SeriesView', () => {
   });
 
   it('sélection puis édition en masse : seuls les champs choisis partent', async () => {
-    localStorage.setItem('hubarr.series-view', 'extended');
-    const { wrapper, fetch } = await mountSeries('/medias/sonarr/series', {
-      'GET /api/medias/sonarr/sonarr/quality-profiles': () => ({ body: [{ id: 1, name: 'HD' }] }),
-      'GET /api/medias/sonarr/sonarr/root-folders': () => ({ body: [] }),
-      'GET /api/medias/sonarr/sonarr/tags-json': () => ({ body: [] }),
-      'POST /api/medias/sonarr/series/bulk/edit': () => ({ body: { ok: true } }),
-    });
+    const { wrapper, fetch } = await mountSeries(
+      '/medias/sonarr/series',
+      {
+        'GET /api/medias/sonarr/sonarr/quality-profiles': () => ({ body: [{ id: 1, name: 'HD' }] }),
+        'GET /api/medias/sonarr/sonarr/root-folders': () => ({ body: [] }),
+        'GET /api/medias/sonarr/sonarr/tags-json': () => ({ body: [] }),
+        'POST /api/medias/sonarr/series/bulk/edit': () => ({ body: { ok: true } }),
+      },
+      { seriesView: 'extended' },
+    );
     await wrapper.find('[data-test="series-select-mode"]').trigger('click');
     await settle();
     const rows = wrapper.findAll('.series-row .media-item__hit');

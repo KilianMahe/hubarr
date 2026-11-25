@@ -311,13 +311,20 @@ describe('manquants, cutoff, collections, liste de blocage, import manuel', () =
     setup();
     fake.on('GET', '/api/v3/manualimport', [{ path: '/dl/a.mkv' }]);
     fake.on('POST', '/api/v3/command', { id: 12 }, 201);
-    await client.manualImportPreview('/dl', false);
+    await client.manualImportPreview({ folder: '/dl' }, false);
     expect(Object.fromEntries(fake.last().query)).toEqual({
       folder: '/dl',
+      filterExistingFiles: 'false',
+    });
+    await client.manualImportPreview({ downloadId: 'ABC' }, false);
+    expect(Object.fromEntries(fake.last().query)).toEqual({
+      downloadId: 'ABC',
       filterExistingFiles: 'false',
     });
     const files = [{ path: '/dl/a.mkv', movieId: 3 }];
     await expect(client.manualImport(files)).resolves.toBe(12);
     expect(fake.last().body).toEqual({ name: 'ManualImport', importMode: 'move', files });
+    await client.manualImport(files, 'auto');
+    expect(fake.last().body).toEqual({ name: 'ManualImport', importMode: 'auto', files });
   });
 });

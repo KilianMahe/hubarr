@@ -21,7 +21,7 @@ Hubarr queries Radarr from its own container: `localhost` means Hubarr itself. U
 The **Movies** page shows library statistics, the **download queue** (collapsible, refreshed every two seconds) and Radarr warnings (no active indexer, health issues, blocked imports). Each warning can be closed with its cross: it stays hidden on this device as long as its text does not change.
 
 - **Search and filters**: status (monitored, downloaded, missing, unmonitored), quality, genre, language, sort. Criteria are kept in the page address: a bookmark brings back the same selection.
-- **Views**: grid, poster wall, detailed list, table or shelves by status, picked from the **Display** menu (the same on computer and mobile). The choice is remembered on the device.
+- **Views**: grid, poster wall, detailed list, table or shelves by status, picked from the **Display** menu (the same on computer and mobile). The page opens on the view chosen in your **profile** (by default, grid on a computer and detailed list on mobile); a view picked from the menu only lasts for the current visit.
 - **Bookmark** on a poster: monitor or unmonitor the movie without opening it.
 - **Add**: search a movie by title. Each result offers **View** (its TMDB page, or its Hubarr page when the movie is already in Radarr) and **Add**, which opens the form: the movie at the top, then its settings in two groups, **Library** (root folder, quality profile) and **Monitoring** (automatic search). The result of the addition stays in view, with **View** to open the movie's page. **Back** returns to the results with your search kept; the cross closes the window. After adding, Hubarr follows Radarr's search for a minute. Before you type, the window suggests this week's trending movies (when TMDB is configured): a click searches the title and opens its form. The **Add** button of a TMDB page opened with **View** also leads to the form.
 - **Selection mode**: edit (monitoring, profile, availability, root folder), tag, rename files or delete several movies at once. On desktop, Shift+click selects a range.
@@ -34,12 +34,14 @@ The queue has its own tab, **Queue** (`/medias/<slug>/films/file-attente`); it a
 
 Each download shows its progress, its state (downloading, import pending, import blocked…) and Radarr's messages. You can **force the import** of a blocked download, **force the download** of a delayed item or **remove** it (also removing it from the download client, or adding it to the blocklist). When a movie leaves the queue, the library is updated.
 
+A blocked import, warning or error also gets a **Manage import** button (wrench icon): it opens the same window as the dashboard, to fix the movie, quality and languages of each file before a manual import, or to remove the download (see [Blocked imports](./dashboard#blocked-imports)).
+
 ## Movie page
 
 Clicking a movie opens its **page**. On a computer, a column on the left stays in view while you scroll: poster, status (downloaded, missing, not yet available, with monitoring, quality and size), actions and key figures (ratings, quality, size). On the right: title, runtime, genres and links, then cards (overview, file, details, history, cast, suggestions); deleting is folded at the bottom. On mobile, the poster and title share the first row, followed by the status, actions and figures. Its address, `/medias/<slug>/films/<id>`, can be shared or bookmarked; older `?open=<id>` addresses still lead there. Long sections (releases, edit, files, full history) open in a panel, from the bottom on mobile.
 
 - **Search**: Radarr queries its indexers; when nothing is grabbed, Hubarr queries the indexers directly and downloads the best release accepted by the profile.
-- **Interactive search**: every release found (up to 90 seconds), sortable, with the custom format score breakdown and rejection reasons; download the one you want.
+- **Interactive search**: every release found (up to 90 seconds), most relevant first (accepted releases, then the ranking of Radarr itself: quality, custom format score, protocol, indexer priority, seeders), sortable by column (a third click on a header goes back to relevance), with the custom format score breakdown and rejection reasons; download the one you want.
 - **Refresh and scan**, **monitor**, **remove from Radarr**, **delete the file** or **delete everything**.
 - **Naming**: current name and the name Radarr expects, renamed in one click.
 - **Edit**: monitoring, minimum availability, profile, path (with a browser of the Radarr server folders) and tags.

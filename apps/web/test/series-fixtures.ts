@@ -3,8 +3,10 @@
 
 import {
   DEFAULT_SERIES_LIBRARY_QUERY,
+  DEFAULT_USER_PREFERENCES,
   type SeriesLibraryItem,
   type SeriesLibraryResponse,
+  type UserPreferences,
 } from '@hubarr/shared';
 import { vi } from 'vitest';
 import { ADMIN, bootstrapOf, fakeFetch, mountApp, settle } from './helpers';
@@ -102,6 +104,7 @@ export const SONARR_HEALTH = () => ({
 export async function mountSeries(
   path = '/medias/sonarr/series',
   routes: Parameters<typeof fakeFetch>[0] = {},
+  prefs: Partial<UserPreferences> = {},
 ) {
   const fetch = fakeFetch({
     'GET /api/health/services': SONARR_HEALTH,
@@ -113,7 +116,14 @@ export async function mountSeries(
     'GET /api/medias/sonarr/series/queue': () => ({ body: [] }),
     ...routes,
   });
-  const app = await mountApp(path, bootstrapOf({ user: ADMIN, services: SONARR_SERVICES }));
+  const app = await mountApp(
+    path,
+    bootstrapOf({
+      user: ADMIN,
+      services: SONARR_SERVICES,
+      userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
+    }),
+  );
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };

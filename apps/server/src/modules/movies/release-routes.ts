@@ -80,8 +80,8 @@ export const movieReleaseRoutes: FastifyPluginAsync = async (instance) => {
       const profile = profiles.find((candidate) => candidate.id === movie?.qualityProfileId);
       try {
         const scores = profileScores(profile);
-        return sortReleases(
-          (await radarr.releases(id)).map((release) => normalizeRelease(release, scores)),
+        return sortReleases(await radarr.releases(id)).map((release) =>
+          normalizeRelease(release, scores),
         );
       } catch (error) {
         if (isUpstreamError(error) && error.kind === 'timeout') {

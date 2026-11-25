@@ -561,6 +561,40 @@
         "completed": "Completed",
         "downloading": "Downloading",
         "other": "Queued"
+      },
+      "manage": {
+        "open": "Manage the import of {title}",
+        "reason": "Reason",
+        "reason_line": "{title}: {text}",
+        "no_reason": "The instance gave no reason.",
+        "open_queue": "Queue",
+        "files": "Downloaded files",
+        "files_help": "Tick the files to import and fix the match, quality and languages if needed.",
+        "preview_failed": "Could not read the contents of the download.",
+        "no_files": "No importable file in this download.",
+        "select_file": "Import {name}",
+        "movie": "Movie",
+        "series": "Series",
+        "season": "Season",
+        "season_n": "Season {n}",
+        "specials": "Specials",
+        "episodes": "Episodes",
+        "quality": "Quality",
+        "languages": "Languages",
+        "release_group": "Release group",
+        "search_library": "Search the library",
+        "search_empty": "No results",
+        "import": "{count, plural, =0 {Import} one {Import # file} other {Import # files}}",
+        "import_done": "Import completed: {title}",
+        "import_failed": "The import failed.",
+        "remove": "Remove from queue",
+        "remove_title": "Remove “{title}” from the queue:",
+        "remove_client": "Also remove from the download client",
+        "remove_blocklist": "Add the release to the blocklist",
+        "remove_confirm": "Remove",
+        "cancel": "Cancel",
+        "removed": "Removed from the queue: {title}",
+        "remove_failed": "Could not remove the item from the queue."
       }
     },
     "downloads": {
@@ -765,6 +799,16 @@
       "days_short": "{count} d",
       "months_short": "{count} mo",
       "years_short": "{count, plural, one {# yr} other {# yrs}}"
+    },
+    "preferences": {
+      "section": "Display preferences",
+      "hint": "Each page opens with these settings, on all your devices. A change made on the page only lasts for the current visit.",
+      "movies_view": "Movies display (Radarr)",
+      "series_view": "Series display (Sonarr)",
+      "torrents_view": "Torrents display",
+      "torrents_filter": "Torrents filter",
+      "view_auto": "Automatic (grid on desktop, extended on mobile)",
+      "stalled_hint": "qBittorrent only: other clients open on “All”."
     },
     "watchlist_preview": {
       "title": "Latest additions to my watchlist",
@@ -1326,9 +1370,7 @@
     "title": "Search",
     "search_placeholder": "Search a movie or TV show on TMDb…",
     "actions": {
-      "filters": "Filters",
-      "watchlist": "Watchlist",
-      "explorer": "Explorer"
+      "filters": "Filters"
     },
     "filters": {
       "drawer_title": "Filters",
@@ -1550,7 +1592,6 @@
       "title": "Explorer",
       "subtitle": "Filter TMDb by genre, year, rating, language, popularity.",
       "no_results": "No results for these filters.",
-      "back_to_discover": "Search",
       "section": {
         "type": "Type",
         "anime_type": "Format",
@@ -1651,6 +1692,7 @@
       "no_movie": "No movie",
       "no_series": "No TV show",
       "queue_item_not_found": "Item not found in the queue",
+      "manual_import_unknown_file": "This file is not part of the download",
       "raw_movie_failed": "Cannot fetch raw movie",
       "tmdb_id_missing": "Missing TMDb ID",
       "tmdb_person_schema_missing": "TMDbPerson schema not found",
@@ -1907,6 +1949,9 @@
         "seeds_col": "Seeds",
         "langs_col": "Langs",
         "age_col": "Age",
+        "releases_count": "{count, plural, one {# release} other {# releases}}",
+        "sorted_by_relevance": "Sorted by relevance",
+        "sort_by_relevance": "Sort by relevance",
         "no_release_found": "No release found.",
         "loading_error": "Error while loading (timeout or indexers unavailable).",
         "synopsis": "Overview",
@@ -2690,6 +2735,8 @@
       },
       "episode": {
         "status_downloaded": "Downloaded",
+        "status_downloading": "Downloading",
+        "status_downloading_progress": "Downloading · {progress}%",
         "status_missing": "Missing",
         "status_upcoming": "Upcoming",
         "status_unmonitored": "Unmonitored",
@@ -6479,7 +6526,8 @@
       "avatar_too_big": "The image exceeds 2 MB.",
       "avatar_upload_failed": "The image could not be saved.",
       "avatar_no_file": "No file received or upload invalid.",
-      "avatar_not_found": "Avatar not found."
+      "avatar_not_found": "Avatar not found.",
+      "preferences_updated": "Display preferences saved."
     },
     "password": {
       "current_wrong": "Current password is incorrect.",
@@ -6547,6 +6595,18 @@
       "some": "{watched}/{total} watched",
       "episodes": "{count, plural, one {# episode watched} other {# episodes watched}}",
       "title": "Watched on your Tracearr account"
+    },
+    "terminate": {
+      "action": "Stop playback",
+      "title": "Stop playback",
+      "message": "Stop “{title}”? The viewer will see playback end.",
+      "reason": "Message to the viewer (optional)",
+      "reason_hint": "Shown on their player when playback stops.",
+      "confirm": "Stop",
+      "done": "Playback stopped",
+      "gone": "This playback has already ended",
+      "error_reason": "Could not stop the playback: {reason}",
+      "error_unknown": "unknown error"
     }
   }
 }

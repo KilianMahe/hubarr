@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Accessibilité (P5.5), en desktop et en mobile : lien d'évitement atteint au
 // premier Tab et qui place le focus sur le contenu ; sur les écrans clés,
-// chaque bouton, lien et champ porte un nom accessible ; langue du document.
+// chaque bouton, lien et champ exposé porte un nom accessible ; langue du document.
 
 import { expect, test, type Page } from '@playwright/test';
-import { LIBRARY } from './env';
+import { LIBRARY, MOCKS_URL } from './env';
 
 /**
  * Éléments interactifs visibles sans nom accessible (texte, aria-label, title,
@@ -35,7 +35,11 @@ const UNNAMED_CONTROLS = `(() => {
   const controls = document.querySelectorAll(
     'button, a[href], input:not([type="hidden"]), textarea, [role="button"], [role="tab"]',
   );
-  return [...controls].filter((el) => visible(el) && nameOf(el) === '').map((el) => el.outerHTML.slice(0, 120));
+  // Hors de l'arbre d'accessibilité (\`aria-hidden\`) : rien à nommer (icône de menu de Vuetify).
+  const hidden = (el) => el.closest('[aria-hidden="true"]') !== null;
+  return [...controls]
+    .filter((el) => visible(el) && !hidden(el) && nameOf(el) === '')
+    .map((el) => el.outerHTML.slice(0, 120));
 })()`;
 
 async function unnamedControls(page: Page): Promise<string[]> {
@@ -90,6 +94,20 @@ test('noms accessibles : fiche d’un utilisateur Tracearr', async ({ page }) =>
   await page.goto('/tracearr/utilisateurs');
   await page.getByTestId('tracearr-user-card').first().click();
   await expect(page.getByTestId('tracearr-user-stats')).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(await unnamedControls(page)).toEqual([]);
+});
+
+test('noms accessibles : gestion d’un import bloqué (tableau de bord)', async ({
+  page,
+  request,
+}) => {
+  await request.post(`${MOCKS_URL}/sonarr/__reset`);
+  await page.goto('/tableau-de-bord');
+  const blocked = page.locator('[data-test="dashboard-queue-row"][data-manageable="true"]');
+  await expect(blocked).toHaveCount(1, { timeout: 15_000 });
+  await blocked.click();
+  await expect(page.getByTestId('manual-file')).toBeVisible();
   await page.waitForLoadState('networkidle');
   expect(await unnamedControls(page)).toEqual([]);
 });

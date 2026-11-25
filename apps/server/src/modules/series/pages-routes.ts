@@ -29,9 +29,13 @@ import {
   seriesQueueItemSchema,
   wantedEpisodePageSchema,
   type WantedEpisode,
+  commandStartedResponseSchema,
+  episodeManualImportPreviewSchema,
+  episodeManualImportRequestSchema,
 } from '@hubarr/shared';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
 import { isoDate } from '../../integrations/radarr/normalize';
 import type { SonarrClient } from '../../integrations/sonarr/client';
@@ -50,6 +54,7 @@ import {
   upstreamSort,
 } from '../arr/list-query';
 import { arrSystemResponse } from '../arr/system';
+import { episodeImportFiles, normalizeEpisodePreview } from '../media/manual-import';
 import {
   SERIES_BASE,
   SONARR_CONFIG,
@@ -132,6 +137,60 @@ export const seriesPagesRoutes: FastifyPluginAsync = async (instance) => {
     async (request) => {
       await clientOf(request).grabQueueItem(request.params.queueId);
       return { ok: true as const };
+    },
+  );
+
+  /** Élément brut de la file et aperçu de son import manuel (par `downloadId`, sinon par dossier). */
+  const queuePreview = async (request: FastifyRequest, queueId: number) => {
+    const sonarr = clientOf(request);
+    const raw = (await sonarr.rawQueue()).find((item) => item.id === queueId);
+    const downloadId = raw?.downloadId ?? '';
+    const folder = raw?.outputPath ?? '';
+    if (raw === undefined || (downloadId === '' && folder === '')) {
+      throw new ApiError(404, 'NOT_FOUND', {
+        service: 'sonarr',
+        details: { reason: 'media.api.queue_item_not_found' },
+      });
+    }
+    const previews = await sonarr.manualImportPreview(
+      downloadId === '' ? folder : null,
+      downloadId === '' ? null : downloadId,
+      false,
+    );
+    return { sonarr, previews, downloadId: downloadId === '' ? null : downloadId };
+  };
+
+  // Import manuel d'un élément de la file : aperçu (fichiers, épisodes reconnus, refus).
+  app.get(
+    `${base}/queue/:queueId/manual-import`,
+    {
+      config,
+      schema: { params: queueParams, response: { 200: episodeManualImportPreviewSchema } },
+    },
+    async (request) => {
+      const { previews } = await queuePreview(request, request.params.queueId);
+      return { files: previews.map(normalizeEpisodePreview) };
+    },
+  );
+
+  // Import manuel d'un élément de la file : fichiers choisis, série, épisodes, qualité et langues.
+  app.post(
+    `${base}/queue/:queueId/manual-import`,
+    {
+      config,
+      schema: {
+        params: queueParams,
+        body: episodeManualImportRequestSchema,
+        response: { 200: commandStartedResponseSchema },
+      },
+    },
+    async (request) => {
+      const { sonarr, previews, downloadId } = await queuePreview(request, request.params.queueId);
+      const definitions = await sonarr.qualityDefinitions();
+      const files = episodeImportFiles(previews, request.body, definitions, downloadId);
+      const cmdId = await sonarr.manualImport(files);
+      invalidateSeries(instance, request);
+      return { ok: true as const, cmdId };
     },
   );
 

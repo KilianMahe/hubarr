@@ -6,9 +6,11 @@
 // d'import, statut, messages d'erreur ; forcer l'import (import manuel suivi,
 // puis retrait de la file et scan du film), forcer le téléchargement,
 // supprimer (client, liste de blocage). Un film qui quitte la file est signalé
-// (`imported`). Le passage au flux SSE viendra en P5.
+// (`imported`). Un élément bloqué, en avertissement ou en erreur ouvre aussi la
+// gestion de l'import (import manuel détaillé, retrait), comme au tableau de bord.
 import type { MovieQueueItem } from '@hubarr/shared';
 import {
+  msBuild,
   msChevronRight,
   msDelete,
   msDownload,
@@ -36,6 +38,8 @@ import { useLiveQuery } from '../../app/live';
 import { useNotifyStore } from '../../app/stores/notify';
 import EmptyState from '../../components/EmptyState.vue';
 import { mediaDetailLocation } from '../../app/media-links';
+import QueueItemDialog from '../dashboard/QueueItemDialog.vue';
+import { isManageable, queueRow, type DashboardQueueRow } from '../dashboard/dashboard-queue';
 
 const props = defineProps<{
   slug: string;
@@ -257,6 +261,14 @@ async function confirmDelete(item: MovieQueueItem): Promise<void> {
   }
 }
 
+// Gestion de l'import : la ligne survit à la fermeture (animation du dialogue).
+const managed = ref<DashboardQueueRow | null>(null);
+const manageOpen = ref(false);
+function manage(item: MovieQueueItem): void {
+  managed.value = queueRow('radarr', props.slug, '', item);
+  manageOpen.value = true;
+}
+
 function runOf(item: MovieQueueItem): ImportRun | undefined {
   return item.id === null ? undefined : imports.get(item.id);
 }
@@ -420,6 +432,17 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
               />
             </template>
             <v-btn
+              v-if="isManageable(item)"
+              :icon="msBuild"
+              size="small"
+              variant="text"
+              color="warning"
+              :title="t('dashboard.queue.manage.open', { title: item.title })"
+              :aria-label="t('dashboard.queue.manage.open', { title: item.title })"
+              data-test="queue-item-manage"
+              @click="manage(item)"
+            />
+            <v-btn
               v-if="queueActions(item).import"
               :icon="msDownload"
               size="small"
@@ -491,6 +514,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
         </div>
       </div>
     </v-expand-transition>
+    <QueueItemDialog v-if="managed" v-model="manageOpen" :row="managed" in-queue />
   </v-card>
 </template>
 

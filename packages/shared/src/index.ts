@@ -17,7 +17,11 @@ export {
   AVATAR_MAX_BYTES,
   AVATAR_MIME_TYPES,
   DISPLAY_NAME_MAX_LENGTH,
+  LIBRARY_VIEW_MODES,
+  TORRENT_VIEWS,
   type AvatarMimeType,
+  type LibraryViewMode,
+  type TorrentView,
 } from './constants/profile';
 export { MEDIA_TYPES, USER_ROLES, type MediaType, type UserRole } from './constants/domain';
 export {
@@ -71,9 +75,13 @@ export {
   profileResponseSchema,
   profileUpdateRequestSchema,
   profileWatchlistItemSchema,
+  DEFAULT_USER_PREFERENCES,
+  parseUserPreferences,
+  userPreferencesSchema,
   type ProfileResponse,
   type ProfileUpdateRequest,
   type ProfileWatchlistItem,
+  type UserPreferences,
 } from './schemas/profile';
 export {
   DEFAULT_THEME_MODE,
@@ -310,6 +318,7 @@ export * from './schemas/series';
 export * from './schemas/series-library';
 export * from './schemas/series-detail';
 export * from './schemas/sonarr-pages';
+export * from './schemas/manual-import';
 export * from './schemas/arr-admin';
 export * from './schemas/prowlarr';
 export * from './schemas/bazarr';
