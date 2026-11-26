@@ -5,7 +5,7 @@ The calendar (`/calendrier`, the **Calendar** tab of [**Home**](./first-start.md
 ## Views and filters
 
 - **Month**, **Week** and **Day** (detailed agenda); the browser remembers your choice. A URL such as `/calendrier?view=day&date=2026-11-25` opens a day directly.
-- In the month, click a day to list its releases below the grid (the calendar stays on the month view); the titles shown in a day are only a preview, and releases open from the list. **On mobile**, the month shows one coloured dot per release. The week is shown as a list, one block per day.
+- In the month, click a day to list its releases below the grid (the calendar stays on the month view); the selected day is framed, and today's number is shown in the accent colour; the titles shown in a day are only a preview, and releases open from the list. **On mobile**, the month shows one coloured dot per release. The week is shown as a list, one block per day.
 - Filters by **type** (cinema, digital, physical, episodes, each with its icon) and by **download status**.
 - Clicking an event opens its quick look.
 

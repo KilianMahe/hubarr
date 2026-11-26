@@ -27,7 +27,8 @@ import { maskProviderSecrets, restoreProviderSecrets } from '../../integrations/
 import type { ProwlarrClient } from '../../integrations/prowlarr/client';
 import {
   PROWLARR_BASE,
-  PROWLARR_CONFIG,
+  PROWLARR_ADMIN_CONFIG,
+  type PROWLARR_CONFIG,
   orNotFound,
   prowlarrClient,
   prowlarrIdParams,
@@ -71,13 +72,17 @@ export async function currentResource(
   return client.one(`${upstream}/${id}`).catch(() => null);
 }
 
-/** Routes d'une famille : `GET <list>`, `/<segment>/schema|:id|add|:id/update|:id/delete|test`. */
+/**
+ * Routes d'une famille : `GET <list>`, `/<segment>/schema|:id|add|:id/update|:id/delete|test`.
+ * Admins seulement par défaut (applications, clients, notifications) ; les
+ * indexeurs suivent le droit sur Prowlarr (`PROWLARR_CONFIG`).
+ */
 export function registerProviderFamily(
   instance: FastifyInstance,
   family: ProwlarrProviderFamily,
+  config: typeof PROWLARR_CONFIG | typeof PROWLARR_ADMIN_CONFIG = PROWLARR_ADMIN_CONFIG,
 ): void {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  const config = PROWLARR_CONFIG;
   const { upstream } = family;
   const prefix = `${PROWLARR_BASE}/${family.segment}`;
   const clientOf = () => prowlarrClient(instance);
@@ -170,7 +175,7 @@ export function registerProviderRoutes(instance: FastifyInstance): void {
   }
 
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  const config = PROWLARR_CONFIG;
+  const config = PROWLARR_ADMIN_CONFIG;
   const path = '/api/v1/appprofile';
 
   // n° 303.

@@ -100,6 +100,7 @@ describe('barre basse des paramètres (lot 3)', () => {
   it('page Paramètres : une section par onglet, « Services » sans fragment', () => {
     expect(SETTINGS_BOTTOM_NAV.map((item) => item.testId)).toEqual([
       'tab-services',
+      'tab-users',
       'tab-display',
       'tab-languages',
       'tab-backup',
@@ -243,6 +244,7 @@ async function mountRadarr(
   path: string,
   routes: Parameters<typeof fakeFetch>[0] = {},
   prefs: Partial<UserPreferences> = {},
+  user: typeof ADMIN = ADMIN,
 ) {
   const fetch = fakeFetch({
     'GET /api/health/services': () => ({
@@ -261,7 +263,7 @@ async function mountRadarr(
   const app = await mountApp(
     path,
     bootstrapOf({
-      user: ADMIN,
+      user,
       services: RADARR_SERVICES,
       userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
     }),
@@ -407,6 +409,18 @@ describe('onglet « Serveur »', () => {
     );
     // Snackbar en haut sur mobile.
     expect($('.v-snackbar')?.className).toContain('v-snackbar--top');
+  });
+
+  it('utilisateur : la page Système est réservée aux admins, la version n’est pas demandée', async () => {
+    const user = {
+      ...ADMIN,
+      role: 'user' as const,
+      permissions: { 'radarr:radarr': 'write' as const },
+    };
+    const { fetch } = await mountRadarr('/medias/radarr/radarr/serveur', {}, {}, user);
+    expect($('[data-test="server-panel"]')).not.toBeNull();
+    expect($('[data-test="server-version"]')).toBeNull();
+    expect(fetch.calls.some((call) => call.url.endsWith('/radarr/systeme'))).toBe(false);
   });
 
   it('« Rechercher tous les manquants » demande confirmation', async () => {

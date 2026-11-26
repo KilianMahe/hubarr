@@ -24,7 +24,9 @@ const ADMIN = {
 };
 
 const testRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/api/test/me', async (request) => ({ user: request.user }));
+  app.get('/api/test/me', { config: { access: 'user' } }, async (request) => ({
+    user: request.user,
+  }));
 };
 
 let database: AppDatabase;

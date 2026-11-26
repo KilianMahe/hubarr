@@ -14,6 +14,7 @@ import SubtitleBadge from '../bazarr/SubtitleBadge.vue';
 import type { SubtitleBadgeStatus } from '../bazarr/bazarr-api';
 import { STATUS_COLORS, displayStatusOf, statusLabelKey } from './library';
 import { posterUrl, statusTitle } from './movie-display';
+import { pageReadOnly } from '../../app/access';
 
 const props = defineProps<{
   movie: MovieLibraryItem;
@@ -73,14 +74,14 @@ const monitorLabel = computed(() =>
     </template>
     <template #action>
       <component
-        :is="selectMode ? 'span' : 'button'"
+        :is="selectMode || pageReadOnly ? 'span' : 'button'"
         class="poster-monitor"
-        :type="selectMode ? undefined : 'button'"
-        :aria-pressed="selectMode ? undefined : movie.monitored"
+        :type="selectMode || pageReadOnly ? undefined : 'button'"
+        :aria-pressed="selectMode || pageReadOnly ? undefined : movie.monitored"
         :aria-label="monitorLabel"
         :title="monitorLabel"
         data-test="movie-card-monitor"
-        @click="!selectMode && emit('monitor')"
+        @click="!selectMode && !pageReadOnly && emit('monitor')"
       >
         <v-icon :icon="movie.monitored ? msBookmarkFill : msBookmark" size="20" />
       </component>

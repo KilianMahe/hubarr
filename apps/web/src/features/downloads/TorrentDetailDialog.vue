@@ -16,6 +16,7 @@ import ResponsiveDialog from '../../components/ResponsiveDialog.vue';
 import { torrentKeys, torrentsApi } from './torrents-api';
 import { TRACKER_STATUS_KEYS, bytesToMbps, mbpsToBytes } from './torrents';
 import { useTorrentI18n } from './use-torrent-i18n';
+import { pageReadOnly, vWrite } from '../../app/access';
 
 const props = defineProps<{
   client: TorrentClientId;
@@ -166,7 +167,7 @@ const setPriority = (fileId: number, priority: number) =>
             </v-col>
           </v-row>
 
-          <v-expansion-panels variant="accordion" class="mt-3">
+          <v-expansion-panels v-write variant="accordion" class="mt-3">
             <v-expansion-panel :title="tk('modal_detail.actions.more')" data-test="torrent-more">
               <v-expansion-panel-text>
                 <div v-if="caps.advanced && torrent" class="d-flex flex-wrap ga-2 mb-3">
@@ -308,7 +309,7 @@ const setPriority = (fileId: number, priority: number) =>
                 <td class="text-no-wrap">{{ Math.round(file.progress * 100) }}%</td>
                 <td style="min-width: 130px">
                   <v-select
-                    v-if="caps.filePriorities"
+                    v-if="caps.filePriorities && !pageReadOnly"
                     :model-value="file.priority"
                     :items="priorityItems"
                     density="compact"
@@ -392,6 +393,7 @@ const setPriority = (fileId: number, priority: number) =>
     <template #actions>
       <v-btn
         v-if="torrent"
+        v-write
         variant="tonal"
         :color="torrent.state === 'paused' ? 'success' : 'warning'"
         :loading="busy === 'pause' || busy === 'resume'"
@@ -410,19 +412,21 @@ const setPriority = (fileId: number, priority: number) =>
         }}</v-btn
       >
       <v-btn
+        v-write
         variant="tonal"
         :loading="busy === 'recheck'"
         @click="action('recheck', 'qbittorrent.toast.recheck_started')"
         >{{ tk('modal_detail.actions.recheck') }}</v-btn
       >
       <v-btn
+        v-write
         variant="tonal"
         :loading="busy === 'reannounce'"
         @click="action('reannounce', 'qbittorrent.toast.reannounce_sent')"
         >{{ tk('modal_detail.actions.reannounce') }}</v-btn
       >
       <v-spacer />
-      <v-btn color="error" variant="tonal" @click="emit('delete', hash)">{{
+      <v-btn v-write color="error" variant="tonal" @click="emit('delete', hash)">{{
         tk('modal_detail.actions.delete')
       }}</v-btn>
     </template>

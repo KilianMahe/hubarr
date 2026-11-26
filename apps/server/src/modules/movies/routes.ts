@@ -3,9 +3,9 @@
 // données de la page (filtre, tri, pagination, facettes, statistiques),
 // avertissements, ids du filtre, actions en masse, commandes et configuration.
 //
-// Règle R1 : `/medias/{slug}/films/…` → `/api/medias/:slug/films/…`. Le
-// contrôleur d'origine était réservé aux admins ; la garde de service lie
-// l'instance du slug (`request.instance`).
+// Règle R1 : `/medias/{slug}/films/…` → `/api/medias/:slug/films/…`. La garde
+// de service lie l'instance du slug (`request.instance`) et contrôle le droit
+// du compte sur cette instance.
 //
 // Différences avec l'original :
 // - les erreurs de Radarr ne renvoient plus `{ ok: false }` en 200 mais le
@@ -40,7 +40,7 @@ import type { ZodTypeProvider } from '../../http/zod';
 import type { ArrCommand } from '../../integrations/arr/client';
 import { isUpstreamError } from '../../integrations/http';
 import { LIBRARY_TIMEOUT_MS, type RadarrClient } from '../../integrations/radarr/client';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { defaultQualityProfileIdOf } from '../instances/instances';
 import { radarrClient } from '../services/clients';
 import { readResolvedPreferences } from '../settings/preferences';
@@ -67,7 +67,7 @@ export function commandStatusOf(command: ArrCommand, fallbackId: number): ArrCom
 
 export const movieRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = MOVIES_BASE;
   const config = RADARR_CONFIG;

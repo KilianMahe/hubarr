@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Module Calendrier (P4.2, P4.3) : `CalendrierController`, ouvert à tout
-// utilisateur connecté (`ROLE_USER`).
+// utilisateur connecté (`ROLE_USER`), limité aux instances qu'il peut lire.
 //
 //   GET /api/calendrier        données de la page `/calendrier` (n° 29) :
 //                              ±90 jours, toutes instances, dédoublonnés
@@ -16,12 +16,13 @@
 // l'original.
 
 import { calendarResponseSchema, type CalendarEpisode, type Movie } from '@hubarr/shared';
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { translator } from '../../i18n/translator';
 import type { ZodTypeProvider } from '../../http/zod';
-import { listEnabledInstances, type InstanceRow } from '../instances/instances';
+import type { InstanceRow } from '../instances/instances';
 import { radarrClient, sonarrClient } from '../services/clients';
 import { readResolvedPreferences } from '../settings/preferences';
+import type { AccessScope } from '../users/access-scope';
 import { episodeEvents, movieEvents, sortEvents, type FromInstance } from './events';
 import { ICAL_DAYS_AHEAD, ICAL_DAYS_BEFORE, buildIcal } from './ical';
 
@@ -37,11 +38,11 @@ interface Fetched<T> {
 async function fanOut<T>(
   app: FastifyInstance,
   type: 'radarr' | 'sonarr',
+  rows: InstanceRow[],
   load: (row: InstanceRow) => Promise<T[]>,
   loadQueued?: (row: InstanceRow) => Promise<number[]>,
 ): Promise<Fetched<T>> {
   let failed = false;
-  const rows = listEnabledInstances(app.db, type);
   const queuedOf = async (row: InstanceRow) => {
     if (loadQueued === undefined) return undefined;
     try {
@@ -76,12 +77,13 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
   const now = () => new Date((options.now ?? Date.now)());
 
   const ids = (values: (number | null)[]) => values.filter((v): v is number => v !== null);
-  const fetchAll = (ahead: number, before: number, withQueue = false) => {
+  const fetchAll = (scope: AccessScope, ahead: number, before: number, withQueue = false) => {
     const at = now();
     return Promise.all([
       fanOut<Movie>(
         instance,
         'radarr',
+        scope.instances('radarr'),
         (row) => radarrClient(instance, row).calendar(ahead, before, at),
         withQueue
           ? async (row) => ids((await radarrClient(instance, row).queue()).map((q) => q.movieId))
@@ -90,6 +92,7 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
       fanOut<CalendarEpisode>(
         instance,
         'sonarr',
+        scope.instances('sonarr'),
         (row) => sonarrClient(instance, row).calendar(ahead, before, at),
         withQueue
           ? async (row) => ids((await sonarrClient(instance, row).queue()).map((q) => q.episodeId))
@@ -100,13 +103,14 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
 
   app.get(
     '/api/calendrier',
-    { schema: { response: { 200: calendarResponseSchema } } },
-    async () => {
-      const [radarr, sonarr] = await fetchAll(90, 90, true);
+    { config: { access: 'user' }, schema: { response: { 200: calendarResponseSchema } } },
+    async (request) => {
+      const scope = request.access;
+      const [radarr, sonarr] = await fetchAll(scope, 90, 90, true);
       const films = movieEvents(radarr.sources, now());
       const episodes = episodeEvents(sonarr.sources, now());
-      const radarrConfigured = listEnabledInstances(instance.db, 'radarr').length > 0;
-      const sonarrConfigured = listEnabledInstances(instance.db, 'sonarr').length > 0;
+      const radarrConfigured = scope.instances('radarr').length > 0;
+      const sonarrConfigured = scope.instances('sonarr').length > 0;
       return {
         events: sortEvents([...films, ...episodes]),
         totalFilms: films.length,
@@ -119,8 +123,8 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
     },
   );
 
-  const ical = async (_request: unknown, reply: FastifyReply) => {
-    const [radarr, sonarr] = await fetchAll(ICAL_DAYS_AHEAD, ICAL_DAYS_BEFORE);
+  const ical = async (request: FastifyRequest, reply: FastifyReply) => {
+    const [radarr, sonarr] = await fetchAll(request.access, ICAL_DAYS_AHEAD, ICAL_DAYS_BEFORE);
     const prefs = readResolvedPreferences(instance.db);
     const body = buildIcal(radarr.sources, sonarr.sources, {
       now: now(),
@@ -133,6 +137,6 @@ export const calendarRoutes: FastifyPluginAsync<CalendarRoutesOptions> = async (
       .header('cache-control', 'private, no-cache')
       .send(body);
   };
-  app.get('/api/calendrier.ics', ical);
-  app.get('/calendrier.ics', ical);
+  app.get('/api/calendrier.ics', { config: { access: 'user' } }, ical);
+  app.get('/calendrier.ics', { config: { access: 'user' } }, ical);
 };

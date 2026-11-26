@@ -42,7 +42,7 @@ Ouvrez `http://localhost:5173`. Le front (Vite) et l'API (`tsx watch`) se rechar
 - **Contrats dans `packages/shared`** : tout endpoint déclare ses schémas zod dans `packages/shared/src/schemas` ; le front infère ses types de ces mêmes schémas.
 - **Aucun texte en dur** dans le front : clés i18n, en français et en anglais (`packages/shared/src/i18n`). La règle ESLint `no-raw-text` le vérifie.
 - **Erreurs d'API** au format `{ code, message?, service?, details? }` ; messages traduits côté client.
-- **Sécurité** : `requireRole('admin')` sur les modules d'administration, jeton CSRF sur toutes les mutations, aucune URL de service exposée au navigateur (images proxifiées).
+- **Sécurité** : chaque route déclare sa politique d'accès (le serveur refuse de démarrer sinon) : `guardAdminModule()` sur les modules d'administration de Hubarr, `guardServiceModule()` sur les modules de service (chaque route déclare `config.service`, et `config.permission` quand la méthode HTTP ne distingue pas lecture et écriture), `config.access: 'user'` seulement pour une route personnelle ou un agrégat qui filtre selon `request.access` (liste figée dans `route-policies.test.ts`), jeton CSRF sur toutes les mutations, aucune URL de service exposée au navigateur (images proxifiées).
 - **Licence** : en-tête `// SPDX-License-Identifier: AGPL-3.0-or-later` dans chaque fichier source (règle ESLint, corrigible par `make lint-fix`). Dépendances acceptées : MIT, Apache-2.0, ISC, BSD (vérifié par `tools/check-licenses.js`).
 - **Factoriser** : un seul module pour l'administration Radarr/Sonarr, une seule vue pour les clients torrent.
 - Documentation et commentaires de haut niveau en **français**, code et identifiants en **anglais**.
@@ -53,7 +53,7 @@ Ouvrez `http://localhost:5173`. Le front (Vite) et l'API (`tsx watch`) se rechar
 1. **Client** dans `apps/server/src/integrations/<service>`, sur `integrations/http` (délais, disjoncteur, authentification, `UpstreamError`). Types générés depuis OpenAPI quand le service en publie une, schémas zod sinon.
 2. **Configuration** : déclarer le service dans `packages/shared/src/constants/services.ts` (champs, test de connexion).
 3. **Schémas** des endpoints dans `packages/shared/src/schemas/<service>.ts`.
-4. **Module** Fastify dans `apps/server/src/modules/<service>` : routes, garde de service, rôle, invalidation du cache après mutation.
+4. **Module** Fastify dans `apps/server/src/modules/<service>` : routes, garde de service et droits (`guardServiceModule()`, `config.permission`), invalidation du cache après mutation. À l'écran, masquer les actions d'écriture avec `v-write` (ou `useServiceAccess`).
 5. **Écran** dans `apps/web/src/features/<service>`, routes dans `app/router`, entrée du tiroir, clés i18n FR et EN.
 6. **Faux service** dans `e2e/mocks/src/<service>` et test Playwright.
 7. **Fiche** dans `docs/` (et `docs/fr/`).

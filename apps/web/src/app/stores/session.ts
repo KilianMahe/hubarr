@@ -6,13 +6,16 @@
 import {
   DEFAULT_USER_PREFERENCES,
   bootstrapResponseSchema,
+  hasAccess,
   defaultDisplayValues,
   loginResponseSchema,
+  type AccessLevel,
   type AuthUser,
   type BootstrapResponse,
   type BootstrapServices,
   type DisplayValues,
   type LoginRequest,
+  type ServiceId,
   type SetupAdminResponse,
   type UserPreferences,
 } from '@hubarr/shared';
@@ -39,6 +42,18 @@ export const useSessionStore = defineStore('session', () => {
   const authenticated = computed(() => user.value !== null);
   const isAdmin = computed(() => user.value?.role === 'admin');
 
+  /**
+   * Droit du compte sur un service (instance Radarr/Sonarr ; sans slug : au
+   * moins une). Le serveur reste l'autorité : ceci ne sert qu'à l'affichage.
+   * Exposé en valeur calculée et non en action : un appel (dans un rendu) ne
+   * passe pas par le suivi des actions de Pinia.
+   */
+  const can = computed(
+    () =>
+      (service: ServiceId, slug: string | null | undefined, level: AccessLevel): boolean =>
+        hasAccess(user.value, service, slug ?? null, level),
+  );
+
   function hydrate(bootstrap: BootstrapResponse | null): void {
     serverReachable.value = bootstrap !== null;
     if (bootstrap === null) return;
@@ -63,10 +78,16 @@ export const useSessionStore = defineStore('session', () => {
     services.value = next;
   }
 
-  /** Relit l'état des services (après la connexion : le bootstrap initial était anonyme). */
+  /**
+   * Relit l'état des services et le compte (après la connexion : le bootstrap
+   * initial était anonyme ; après un refus : les droits ont pu changer).
+   */
   async function refreshServices(): Promise<void> {
     try {
       const bootstrap = await api.get('/api/bootstrap', bootstrapResponseSchema);
+      // Version d'abord : le cache persistant démarre au changement d'utilisateur.
+      if (bootstrap.version !== '') version.value = bootstrap.version;
+      if (bootstrap.user !== null) user.value = bootstrap.user;
       services.value = bootstrap.services;
       preferences.value = bootstrap.preferences;
       userPreferences.value = bootstrap.userPreferences;
@@ -79,8 +100,10 @@ export const useSessionStore = defineStore('session', () => {
     const response = await api.post('/api/auth/login', request, loginResponseSchema);
     // La session est régénérée : l'ancien jeton est refusé.
     api.setCsrfToken(response.csrfToken);
-    user.value = response.user;
+    // Bootstrap relu avant de poser l'utilisateur : version et préférences
+    // de l'installation ne sont renvoyées qu'à une session connectée.
     await refreshServices();
+    user.value = response.user;
   }
 
   async function logout(): Promise<void> {
@@ -128,6 +151,7 @@ export const useSessionStore = defineStore('session', () => {
     userPreferences,
     authenticated,
     isAdmin,
+    can,
     hydrate,
     login,
     logout,

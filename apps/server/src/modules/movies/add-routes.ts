@@ -29,7 +29,7 @@ import type {
   RadarrImportListResource,
   RadarrMovieResource,
 } from '../../integrations/radarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { defaultQualityProfileIdOf } from '../instances/instances';
 import {
   MOVIES_BASE,
@@ -79,7 +79,7 @@ export function personFields(
 
 export const movieAddRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = MOVIES_BASE;
   const config = RADARR_CONFIG;

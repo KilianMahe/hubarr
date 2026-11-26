@@ -40,6 +40,7 @@ import EmptyState from '../../components/EmptyState.vue';
 import { mediaDetailLocation } from '../../app/media-links';
 import QueueItemDialog from '../dashboard/QueueItemDialog.vue';
 import { isManageable, queueRow, type DashboardQueueRow } from '../dashboard/dashboard-queue';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{
   slug: string;
@@ -311,6 +312,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
       </v-btn>
       <v-btn
         v-if="delayed.length > 1"
+        v-write
         :prepend-icon="msDownload"
         size="small"
         variant="tonal"
@@ -411,6 +413,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
           <div class="queue-item__actions">
             <template v-if="standalone && item.movieId !== null">
               <v-btn
+                v-write
                 :icon="msRefresh"
                 size="small"
                 variant="text"
@@ -421,6 +424,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
                 @click="movieCommand(item.movieId, item.title, 'refresh')"
               />
               <v-btn
+                v-write
                 :icon="msFolderOpen"
                 size="small"
                 variant="text"
@@ -433,6 +437,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
             </template>
             <v-btn
               v-if="isManageable(item)"
+              v-write
               :icon="msBuild"
               size="small"
               variant="text"
@@ -444,6 +449,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
             />
             <v-btn
               v-if="queueActions(item).import"
+              v-write
               :icon="msDownload"
               size="small"
               variant="text"
@@ -456,6 +462,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
             />
             <v-btn
               v-if="queueActions(item).grab"
+              v-write
               :icon="msDownload"
               size="small"
               variant="text"
@@ -467,6 +474,7 @@ function runOf(item: MovieQueueItem): ImportRun | undefined {
               @click="forceGrab(item)"
             />
             <v-btn
+              v-write
               :icon="msDelete"
               size="small"
               variant="text"

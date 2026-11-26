@@ -16,7 +16,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
-import { requireRole } from '../../plugins/access';
+import { guardAdminModule } from '../../plugins/access';
 import { diagnose } from '../services/diagnose';
 import {
   InstanceError,
@@ -51,7 +51,7 @@ export function instanceErrorToApi(error: InstanceError): ApiError {
 
 export const instanceRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardAdminModule(app);
 
   const list = (type: InstanceType): InstanceListResponse => ({
     type,

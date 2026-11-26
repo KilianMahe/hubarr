@@ -44,7 +44,7 @@ import {
   normalizeHistoryItem,
 } from '../../integrations/radarr/normalize-detail';
 import type { RadarrMovieResource } from '../../integrations/radarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import {
   CUTOFF_FETCH_MAX,
   RADARR_SORT_KEYS,
@@ -75,7 +75,7 @@ const HISTORY_EVENT_TYPES = new Set(['1', '3', '4', '6', '8']);
 
 export const moviePagesRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const config = RADARR_CONFIG;
   const radarrOf = (request: Parameters<typeof clientOf>[1]) => clientOf(instance, request);
@@ -92,9 +92,13 @@ export const moviePagesRoutes: FastifyPluginAsync = async (instance) => {
   // ── File d'attente ──────────────────────────────────────────────────────────
 
   // n° 151 : demander à Radarr de relire ses clients de téléchargement.
+  // Simple relecture, sans effet sur la bibliothèque : ouverte au droit de lecture.
   app.post(
     `${base}/command/refresh-downloads`,
-    { config, schema: { params: slugParams, response: { 200: okResponseSchema } } },
+    {
+      config: { ...config, permission: 'read' },
+      schema: { params: slugParams, response: { 200: okResponseSchema } },
+    },
     async (request) => {
       await radarrOf(request).sendCommand('RefreshMonitoredDownloads');
       return { ok: true as const };
@@ -467,9 +471,13 @@ export const moviePagesRoutes: FastifyPluginAsync = async (instance) => {
   // ── Système ─────────────────────────────────────────────────────────────────
 
   // n° 185 : page `/medias/{slug}/radarr/systeme`.
+  // Journaux, disques, indexeurs et clients : administration seulement.
   app.get(
     '/api/medias/:slug/radarr/systeme',
-    { config, schema: { params: slugParams, response: { 200: arrSystemResponseSchema } } },
+    {
+      config: { ...config, permission: 'admin' },
+      schema: { params: slugParams, response: { 200: arrSystemResponseSchema } },
+    },
     async (request, reply) => {
       void reply.header('cache-control', 'no-store');
       return arrSystemResponse(radarrOf(request));

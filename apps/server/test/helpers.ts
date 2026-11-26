@@ -4,14 +4,20 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CSRF_HEADER, SESSION_COOKIE_NAME, type UserRole } from '@hubarr/shared';
+import {
+  CSRF_HEADER,
+  SESSION_COOKIE_NAME,
+  type UserPermissions,
+  type UserRole,
+} from '@hubarr/shared';
+import { eq } from 'drizzle-orm';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { openDatabase, type AppDatabase } from '../src/db/client';
 import { runMigrations } from '../src/db/migrate';
 import { MIGRATIONS_FOLDER } from '../src/db/paths';
 import { users } from '../src/db/schema';
 import { SETTING_KEYS, setSetting } from '../src/modules/settings/settings';
-import { normalizeEmail } from '../src/modules/users/users';
+import { normalizeEmail, saveUserPermissions } from '../src/modules/users/users';
 import { hashPassword } from '../src/security/password';
 
 export { MIGRATIONS_FOLDER };
@@ -62,6 +68,34 @@ export async function createUser(
     .all();
   if (row === undefined) throw new Error('utilisateur non créé');
   return row.id;
+}
+
+/** Remplace les droits d'un compte (clés `service` ou `service:slug`). */
+export function grantPermissions(
+  database: AppDatabase,
+  userId: number,
+  permissions: UserPermissions,
+): void {
+  saveUserPermissions(database.db, userId, permissions);
+}
+
+/**
+ * Compte existant (désigné par son e-mail) passé en simple utilisateur avec
+ * ces droits : relu à la requête suivante, sans reconnexion.
+ */
+export function demoteUser(
+  database: AppDatabase,
+  email: string,
+  permissions: UserPermissions,
+): void {
+  const [row] = database.db
+    .update(users)
+    .set({ role: 'user' })
+    .where(eq(users.email, normalizeEmail(email)))
+    .returning({ id: users.id })
+    .all();
+  if (row === undefined) throw new Error('utilisateur inconnu');
+  saveUserPermissions(database.db, row.id, permissions);
 }
 
 /** Horloge manipulable pour les tests (sessions, limitation). */

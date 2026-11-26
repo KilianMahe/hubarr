@@ -15,6 +15,7 @@ import { useArrList } from '../movies/useArrList';
 import SortableTh from '../../components/SortableTh.vue';
 import SonarrNav from './SonarrNav.vue';
 import { seriesApi, seriesKeys } from './series-api';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const format = useFormat();
@@ -79,6 +80,7 @@ async function remove(): Promise<void> {
       <v-spacer />
       <v-btn
         v-if="selected.length > 0"
+        v-write
         :prepend-icon="msDelete"
         color="error"
         variant="tonal"
@@ -109,6 +111,7 @@ async function remove(): Promise<void> {
           <tr>
             <th style="width: 40px">
               <v-checkbox-btn
+                v-write
                 :model-value="allSelected"
                 color="service"
                 :aria-label="t('media.series.bulk.select_all')"
@@ -144,7 +147,7 @@ async function remove(): Promise<void> {
         <tbody>
           <tr v-for="item in records" :key="item.id" data-test="blocklist-row">
             <td>
-              <v-checkbox-btn v-model="selected" :value="item.id" color="service" />
+              <v-checkbox-btn v-model="selected" v-write :value="item.id" color="service" />
             </td>
             <td class="font-weight-medium">{{ item.seriesTitle ?? item.seriesId ?? '—' }}</td>
             <td class="text-muted sonarr-page__source" :title="item.sourceTitle ?? ''">
@@ -161,6 +164,7 @@ async function remove(): Promise<void> {
             </td>
             <td class="text-end">
               <v-btn
+                v-write
                 :icon="msDelete"
                 color="error"
                 variant="text"

@@ -28,7 +28,7 @@ async function copy(): Promise<void> {
   if (props.entry === null) return;
   try {
     await navigator.clipboard.writeText(entryText(props.entry));
-    notify.success('common.labels.copied');
+    notify.success('common.labels.copied', undefined, { history: false });
   } catch {
     notify.error('error.generic.message');
   }

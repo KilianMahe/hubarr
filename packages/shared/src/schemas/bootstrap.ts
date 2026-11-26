@@ -44,12 +44,16 @@ export const bootstrapResponseSchema = z.object({
   csrfToken: z.string(),
   /** Langue résolue : session, puis préférence `display_language`, puis `en`. */
   locale: z.enum(SUPPORTED_LOCALES),
+  /** Version de l'image (`HUBARR_VERSION`) ; vide sans session. */
   version: z.string(),
   /** Thème actif (`display_theme` + `display_theme_color`), résolu en couleurs. */
   theme: resolvedThemeSchema,
   /** Services configurés et instances ; vide sans session authentifiée. */
   services: bootstrapServicesSchema,
-  /** Préférences d'affichage résolues (fuseau du système si aucun n'est choisi). */
+  /**
+   * Préférences d'affichage résolues (fuseau du système si aucun n'est choisi) ;
+   * valeurs par défaut sans session.
+   */
   preferences: displayValuesSchema,
   /** Préférences du compte connecté (valeurs par défaut sans session). */
   userPreferences: userPreferencesSchema,

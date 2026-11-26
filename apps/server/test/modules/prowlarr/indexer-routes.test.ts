@@ -455,3 +455,33 @@ describe('historique, profils, étiquettes, commandes', () => {
     expect((await env.browser.post(env.url('/command'), { name: 'rm -rf' })).statusCode).toBe(400);
   });
 });
+
+describe('droits d’un compte non admin', () => {
+  it('lecture : page et fiche d’un indexeur ; modification refusée', async () => {
+    env = await prowlarrEnv({ role: 'user', permissions: { prowlarr: 'read' } });
+    env.prowlarr.on('GET', '/api/v1/indexer/1', rawIndexer(1));
+    env.prowlarr.on('GET', '/api/v1/indexer/1/history', []);
+    const indexer = await env.browser.get(env.url('/indexer/1'));
+    expect(indexer.statusCode).toBe(200);
+    expect(indexer.json<Provider>().fields?.find((f) => f.name === 'password')?.value).toBe(
+      ARR_SECRET_MASK,
+    );
+    expect((await env.browser.post(env.url('/indexer/1/delete'), {})).json()).toMatchObject({
+      code: 'FORBIDDEN',
+      details: { level: 'write' },
+    });
+    expect(env.prowlarr.callsTo('DELETE', '/api/v1/indexer/1')).toHaveLength(0);
+  });
+
+  it('écriture : synchronisation des applications seule ; autre commande réservée aux admins', async () => {
+    env = await prowlarrEnv({ role: 'user', permissions: { prowlarr: 'write' } });
+    env.prowlarr.on('POST', '/api/v1/command', { id: 3, name: 'ApplicationIndexerSync' }, 201);
+    expect(
+      (await env.browser.post(env.url('/command'), { name: 'ApplicationIndexerSync' })).statusCode,
+    ).toBe(200);
+    const backup = await env.browser.post(env.url('/command'), { name: 'Backup' });
+    expect(backup.statusCode).toBe(403);
+    expect(backup.json()).toMatchObject({ code: 'FORBIDDEN', service: 'prowlarr' });
+    expect(env.prowlarr.callsTo('POST', '/api/v1/command')).toHaveLength(1);
+  });
+});

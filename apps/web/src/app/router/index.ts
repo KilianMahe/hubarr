@@ -45,6 +45,11 @@ declare module 'vue-router' {
     guestOnly?: boolean;
     /** Écran de l'assistant d'installation. */
     setup?: boolean;
+    /**
+     * Réservé aux admins : administration de Hubarr et pages d'administration
+     * d'un service (réglages, système, utilisateurs Seerr). Les autres pages
+     * d'un service suivent les droits du compte (bootstrap filtré).
+     */
     requiresAdmin?: boolean;
     /** Clé i18n du titre (onglet du navigateur et barre du haut). */
     titleKey?: string;
@@ -73,7 +78,7 @@ declare module 'vue-router' {
   }
 }
 
-/** Page d'une instance Radarr (réservée aux admins, barre basse du service). */
+/** Page d'une instance Radarr (droit de lecture sur l'instance, barre basse du service). */
 function radarrPage(
   path: string,
   name: string,
@@ -87,20 +92,19 @@ function radarrPage(
     meta: {
       service: 'radarr',
       titleKey,
-      requiresAdmin: true,
       bottomNav: RADARR_BOTTOM_NAV,
       fab: RADARR_FAB,
     },
   };
 }
 
-/** Page d'administration ouverte depuis les paramètres : sans barre basse ni FAB (D140). */
+/** Page d'administration ouverte depuis les paramètres : admins, sans barre basse ni FAB (D140). */
 function settingsPage(record: RouteRecordRaw): RouteRecordRaw {
   const { bottomNav: _bottomNav, fab: _fab, ...meta } = record.meta ?? {};
-  return { ...record, meta: { ...meta, serviceSettings: true } };
+  return { ...record, meta: { ...meta, requiresAdmin: true, serviceSettings: true } };
 }
 
-/** Page d'une instance Sonarr (réservée aux admins, barre basse du service). */
+/** Page d'une instance Sonarr (droit de lecture sur l'instance, barre basse du service). */
 function sonarrPage(
   path: string,
   name: string,
@@ -114,7 +118,6 @@ function sonarrPage(
     meta: {
       service: 'sonarr',
       titleKey,
-      requiresAdmin: true,
       bottomNav: SONARR_BOTTOM_NAV,
       fab: SONARR_FAB,
     },
@@ -240,7 +243,6 @@ export const routes: RouteRecordRaw[] = [
           serviceIndex: true,
           service: 'radarr',
           titleKey: 'sidebar.nav.films',
-          requiresAdmin: true,
           bottomNav: RADARR_BOTTOM_NAV,
           fab: RADARR_FAB,
         },
@@ -327,7 +329,6 @@ export const routes: RouteRecordRaw[] = [
           serviceIndex: true,
           service: 'sonarr',
           titleKey: 'sidebar.nav.series',
-          requiresAdmin: true,
           bottomNav: SONARR_BOTTOM_NAV,
           fab: SONARR_FAB,
         },
@@ -429,7 +430,6 @@ export const routes: RouteRecordRaw[] = [
           serviceIndex: true,
           service: 'prowlarr',
           titleKey: 'sidebar.nav.prowlarr',
-          requiresAdmin: true,
           bottomNav: PROWLARR_BOTTOM_NAV,
           fab: PROWLARR_FAB,
         },
@@ -442,7 +442,6 @@ export const routes: RouteRecordRaw[] = [
           ? {
               service: 'prowlarr',
               titleKey: page.titleKey,
-              requiresAdmin: true,
               bottomNav: PROWLARR_BOTTOM_NAV,
               fab: PROWLARR_FAB,
             }
@@ -557,7 +556,8 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           service: 'seerr',
           titleKey,
-          requiresAdmin: true,
+          // Utilisateurs, réglages et système de Seerr : admins ; les demandes suivent les droits.
+          ...(name === 'seerr' ? {} : { requiresAdmin: true }),
           // Réglages et système : administration, ouverte depuis les paramètres (D140).
           ...(name.startsWith('seerr-settings')
             ? { serviceSettings: true }
@@ -576,7 +576,6 @@ export const routes: RouteRecordRaw[] = [
           serviceIndex: true,
           service: client,
           titleKey: `sidebar.nav.${client}`,
-          requiresAdmin: true,
           // Pas d'onglets : FAB flottant d'ajout (mobile, P5b.4).
           fab: {
             icon: msAdd,
@@ -595,7 +594,6 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           serviceIndex: true,
           serviceParam: 'client',
-          requiresAdmin: true,
           bottomNav: USENET_BOTTOM_NAV,
           fab: USENET_FAB,
         },
@@ -607,7 +605,6 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           serviceParam: 'client',
           titleKey: 'usenet.history.title',
-          requiresAdmin: true,
           bottomNav: USENET_BOTTOM_NAV,
           fab: USENET_FAB,
         },
@@ -617,7 +614,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'medias/:slug/telechargements',
         name: 'downloads',
         component: () => import('../../features/downloads/DownloadsView.vue'),
-        meta: { titleKey: 'qbittorrent.page_title', requiresAdmin: true },
+        meta: { titleKey: 'qbittorrent.page_title' },
       },
       // Tautulli et Tracearr (P3e) : ouverts à tous les utilisateurs, comme l'original.
       {
@@ -635,7 +632,6 @@ export const routes: RouteRecordRaw[] = [
           serviceIndex: true,
           service: 'bazarr',
           titleKey: 'sidebar.nav.bazarr',
-          requiresAdmin: true,
           bottomNav: BAZARR_TABS,
         },
       },
@@ -670,7 +666,7 @@ export const routes: RouteRecordRaw[] = [
         path,
         name,
         component,
-        meta: { service: 'bazarr', titleKey, requiresAdmin: true, bottomNav: BAZARR_TABS },
+        meta: { service: 'bazarr', titleKey, bottomNav: BAZARR_TABS },
       })),
       // Tracearr (P3e) : ouvert à tous ; un onglet par partie (P5c.7, V9, D143).
       ...TRACEARR_SECTIONS.map((section): RouteRecordRaw => ({

@@ -4,6 +4,27 @@ All notable changes to Hubarr are documented here. The format is based on [Keep 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-26
+
+### Added
+
+- **Notification center**: a bell in the top bar (on mobile too, in the service views' bar) keeps the latest 50 notifications, with the number of unread ones. Torrent completions and errors now land there only, without a pop-up; action confirmations and errors still show a brief toast and are recorded as well. Each notification shows how long ago it happened; they can be marked as read (automatically when the menu closes), removed one by one or cleared. The history is kept in the browser, per account, and shared between tabs.
+
+- **User management with per-service access**: a new **Users** tab in **Settings** lists the accounts, with their role, access summary and last sign-in. An administrator creates an account with a temporary password, edits it (e-mail, name, role, new temporary password, which closes its sessions) or deletes it; Hubarr always keeps at least one administrator. For a user, each service gets **None**, **Read** or **Write** access, per instance for Radarr and Sonarr. A user only sees the services opened to them, in the menu as on the dashboard, calendar, search and discover; on a read-only service, pages show a **Read-only** badge and hide the action buttons. The server checks every request. Write access to Prowlarr manages the indexers and starts the app sync. Service settings and system pages, Prowlarr's other commands, Seerr users and Hubarr's settings stay administrator-only.
+
+### Changed
+
+- Calendar, month view: the frame now marks the selected day instead of today; today's number is shown in the accent colour.
+
+- A non-administrator account no longer reaches Tautulli, Tracearr, Emby, TMDB (discover, watchlist), the calendar or the dashboard cards by default: their access now follows the account's rights on each service, set by an administrator. Stopping a Tracearr stream requires write access to Tracearr instead of the administrator role. Managing a blocked import from the dashboard requires write access to the Radarr or Sonarr instance.
+
+### Security
+
+- Every API route now declares its access policy, and the server refuses to start if one is missing. A test calls every route and checks that it answers 401 without a session and 403 to an account without rights.
+- Access is checked before the request is validated and before the service configuration is looked at: an account without the right gets a plain 403, without learning the expected request format, whether a service is configured or whether a Radarr or Sonarr instance exists.
+- The Radarr and Sonarr **System** pages (logs, disks, indexers, download clients) are administrator-only on the server too; the **Server** tab shows the service version to administrators only.
+- Before sign-in, Hubarr no longer reveals its version or the installation's display preferences.
+
 ## [1.2.0] - 2026-11-25
 
 ### Added

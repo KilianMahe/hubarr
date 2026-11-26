@@ -82,7 +82,7 @@ function star(): void {
         >
         <v-spacer />
         <v-btn
-          v-if="watchlist.enabled.value"
+          v-if="watchlist.editable.value"
           :icon="inWatchlist ? msStarFill : msStar"
           size="x-small"
           variant="flat"
@@ -94,7 +94,9 @@ function star(): void {
           @click.stop="star"
         />
         <v-btn
-          v-if="session.isAdmin && !card.inLibrary"
+          v-if="
+            !card.inLibrary && session.can(card.type === 'tv' ? 'sonarr' : 'radarr', null, 'write')
+          "
           :icon="msAdd"
           size="x-small"
           variant="flat"

@@ -3,12 +3,19 @@
 // admin connecté, faux upstream générique (corps JSON, formulaire ou texte,
 // en-têtes de réponse) par origine.
 
+import type { UserPermissions } from '@hubarr/shared';
 import type { FastifyInstance } from 'fastify';
 import { MockAgent } from 'undici';
 import { buildApp } from '../../../src/app';
 import type { AppDatabase } from '../../../src/db/client';
 import { applyServicePatch } from '../../../src/modules/services/config';
-import { TestBrowser, UNUSED_DATA_DIR, createTestDatabase, createUser } from '../../helpers';
+import {
+  TestBrowser,
+  UNUSED_DATA_DIR,
+  createTestDatabase,
+  createUser,
+  grantPermissions,
+} from '../../helpers';
 import { EMAIL, PASSWORD, noDns } from '../movies/radarr-env';
 
 export interface UpstreamCall {
@@ -130,6 +137,8 @@ export async function torrentEnv(
   options: {
     role?: 'admin' | 'user';
     configure?: Partial<Record<keyof typeof ORIGINS, Record<string, string>>>;
+    /** Droits d'un utilisateur simple (aucun par défaut). */
+    permissions?: UserPermissions;
   } = {},
 ): Promise<TorrentEnv> {
   const database = await createTestDatabase();
@@ -139,7 +148,12 @@ export async function torrentEnv(
     Object.entries(ORIGINS).map(([id, origin]) => [id, fakeUpstream(agent, origin)]),
   ) as Record<keyof typeof ORIGINS, FakeUpstream>;
   const app = buildApp({ database, dataDir: UNUSED_DATA_DIR, dispatcher: agent, ...noDns });
-  await createUser(database, { email: EMAIL, password: PASSWORD, role: options.role ?? 'admin' });
+  const userId = await createUser(database, {
+    email: EMAIL,
+    password: PASSWORD,
+    role: options.role ?? 'admin',
+  });
+  if (options.permissions !== undefined) grantPermissions(database, userId, options.permissions);
   const configure = options.configure ?? {
     qbittorrent: { user: 'admin', password: 'secret' },
     transmission: { user: 'u', password: 'p' },

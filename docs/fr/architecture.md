@@ -69,8 +69,8 @@ tools               conversion des traductions, types OpenAPI, licences, règles
 2. **Sessions** : le cookie `hubarr_session` est résolu en session et en utilisateur.
 3. **CSRF** : toute mutation exige l'en-tête `x-csrf-token` de la session ; les requêtes `Sec-Fetch-Site` cross-site ou d'une `Origin` étrangère sont refusées.
 4. **Garde d'installation** : tant que l'assistant n'est pas terminé, l'API répond `409 SETUP_REQUIRED`.
-5. **Contrôle d'accès** : toute route exige une session, sauf déclaration `access: 'public'` ; les modules d'administration ajoutent `requireRole('admin')`.
-6. **Garde de service** : une route d'un service non configuré ou désactivé répond par une erreur explicite.
+5. **Contrôle d'accès** : chaque route déclare sa politique, sans quoi le serveur refuse de démarrer : `config.access` vaut `public` (sans session), `user` (tout compte connecté : routes personnelles, et pages qui agrègent plusieurs services et filtrent selon `request.access`), `admin` (posée sur tout un module par `guardAdminModule()`) ou `service` (posée par `guardServiceModule()` ; une route qui ne déclare aucun service reste réservée aux administrateurs), ou bien la route déclare `config.service`. Les droits sont vérifiés en `onRequest`, avant la validation et avant l'état de la configuration du service : un compte sans droit reçoit 403 sans rien apprendre du format attendu, de la configuration du service ni de l'existence d'un slug. `test/plugins/route-policies.test.ts` appelle toutes les routes : 401 sans session, 403 pour un compte sans droit, et la liste des routes `user` est figée.
+6. **Garde de service** : une route d'un service non configuré ou désactivé répond par une erreur explicite. Elle vérifie ensuite le droit du compte sur le service (et sur l'instance Radarr/Sonarr) : lecture pour `GET`, écriture sinon, sauf `config.permission` déclaré par la route (`read` pour une recherche envoyée en `POST`, `admin` pour les réglages d'un service). Les pages qui agrègent plusieurs services (tableau de bord, calendrier, recherche, découverte, sujets temps réel, bootstrap) ne lisent que ce que le compte peut lire (`request.access`).
 7. **Route** : validation zod, appel au service, réponse sérialisée par son schéma.
 
 Les erreurs ont toujours la forme `{ code, message?, service?, details? }` ; le front traduit le `code`.
@@ -103,11 +103,12 @@ Les clients de Radarr, Sonarr et Prowlarr sont typés à partir de leurs spécif
 
 ### Base de données
 
-SQLite en mode WAL dans `HUBARR_DATA_DIR` (`/data/hubarr.db`). Cinq tables :
+SQLite en mode WAL dans `HUBARR_DATA_DIR` (`/data/hubarr.db`). Tables principales :
 
 | Table              | Contenu                                                                                                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `user`             | Comptes : e-mail, empreinte argon2id, rôle, nom, avatar, préférences d'affichage                           |
+| `user_permission`  | Accès d'un compte non administrateur : service, instance Radarr/Sonarr, niveau (`read`, `write`)           |
 | `session`          | Sessions : empreinte SHA-256 du jeton, données, échéance glissante                                         |
 | `setting`          | Réglages clé-valeur en JSON validé (préférences, thème, tableau de bord, état de l'installation)           |
 | `service_instance` | Une ligne par service ou instance : type, slug, nom, URL, identifiants, options, défaut, activation, ordre |

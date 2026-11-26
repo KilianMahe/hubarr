@@ -16,6 +16,7 @@ import { moviesApi, moviesKeys } from './movies-api';
 import { useArrList } from './useArrList';
 import SortableTh from '../../components/SortableTh.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const format = useFormat();
@@ -83,6 +84,7 @@ const reason = (item: MovieBlocklistItem) =>
       <v-spacer />
       <v-btn
         v-if="selected.length > 0"
+        v-write
         :prepend-icon="msDelete"
         color="error"
         size="small"
@@ -120,6 +122,7 @@ const reason = (item: MovieBlocklistItem) =>
           <tr>
             <th style="width: 40px">
               <v-checkbox-btn
+                v-write
                 :model-value="allSelected"
                 :indeterminate="selected.length > 0 && !allSelected"
                 color="service"
@@ -168,6 +171,7 @@ const reason = (item: MovieBlocklistItem) =>
             <td>
               <v-checkbox-btn
                 v-model="selected"
+                v-write
                 :value="item.id"
                 color="service"
                 :aria-label="item.sourceTitle ?? ''"
@@ -201,6 +205,7 @@ const reason = (item: MovieBlocklistItem) =>
             </td>
             <td>
               <v-btn
+                v-write
                 :icon="msDelete"
                 size="small"
                 variant="text"

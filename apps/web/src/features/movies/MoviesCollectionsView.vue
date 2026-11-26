@@ -27,6 +27,7 @@ import {
   filterCollections,
   type CollectionFilter,
 } from './collections';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -260,6 +261,7 @@ async function addMovie(movie: CollectionMovie): Promise<void> {
             </div>
           </button>
           <v-btn
+            v-write
             block
             size="x-small"
             :variant="collection.monitored ? 'tonal' : 'flat'"
@@ -359,6 +361,7 @@ async function addMovie(movie: CollectionMovie): Promise<void> {
               </v-chip>
               <v-btn
                 v-else
+                v-write
                 :prepend-icon="msAdd"
                 size="small"
                 :color="
@@ -381,6 +384,7 @@ async function addMovie(movie: CollectionMovie): Promise<void> {
       <template #actions>
         <v-btn
           v-if="current"
+          v-write
           :color="current.monitored ? undefined : 'service'"
           :variant="current.monitored ? 'text' : 'flat'"
           @click="

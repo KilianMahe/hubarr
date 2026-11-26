@@ -8,6 +8,7 @@ import {
   DEFAULT_USER_PREFERENCES,
   SERVICE_IDS,
   bootstrapResponseSchema,
+  defaultDisplayValues,
   isLocale,
   type BootstrapServices,
   type Locale,
@@ -21,6 +22,7 @@ import { readResolvedPreferences } from '../settings/preferences';
 import { readSidebarVisibility } from '../settings/routes';
 import { SETTING_KEYS, getSetting } from '../settings/settings';
 import { readTheme } from '../theme/theme';
+import type { AccessScope } from '../users/access-scope';
 import { readUserPreferences } from '../users/users';
 
 export interface BootstrapRoutesOptions {
@@ -33,20 +35,31 @@ const NO_SERVICES: BootstrapServices = {
   sidebar: {},
 };
 
-/** État des services pour le shell. */
-export function readBootstrapServices(db: Db): BootstrapServices {
+/**
+ * État des services pour le shell. Avec `scope` (compte non admin) : un
+ * service illisible est présenté comme non configuré et seules les instances
+ * lisibles sont listées ; le tiroir et les gardes du routeur suivent.
+ */
+export function readBootstrapServices(db: Db, scope?: AccessScope): BootstrapServices {
+  const visible = (type: 'radarr' | 'sonarr', slug: string) =>
+    scope === undefined || scope.admin || scope.can(type, slug);
   const instances = (type: 'radarr' | 'sonarr') =>
-    listInstances(db, type).map(({ slug, name, enabled, isDefault }) => ({
-      slug,
-      name,
-      enabled,
-      isDefault,
-    }));
+    listInstances(db, type)
+      .filter((row) => visible(type, row.slug))
+      .map(({ slug, name, enabled, isDefault }) => ({
+        slug,
+        name,
+        enabled,
+        isDefault,
+      }));
   return {
     states: Object.fromEntries(
       SERVICE_IDS.map((id) => [
         id,
-        { configured: isServiceConfigured(db, id), disabled: isServiceDisabled(db, id) },
+        {
+          configured: scope === undefined ? isServiceConfigured(db, id) : scope.configured(id),
+          disabled: isServiceDisabled(db, id),
+        },
       ]),
     ),
     instances: { radarr: instances('radarr'), sonarr: instances('sonarr') },
@@ -74,13 +87,16 @@ export const bootstrapRoutes: FastifyPluginAsync<BootstrapRoutesOptions> = async
         user: request.user,
         csrfToken: session.data.csrfToken,
         locale,
-        version: options.version,
+        // Sans session : ni version ni préférences de l'installation, fuseau du
+        // serveur compris (le client les relit après la connexion).
+        version: request.user === null ? '' : options.version,
         theme: readTheme(app.db),
         services:
           request.user === null || !app.setup.isCompleted()
             ? NO_SERVICES
-            : readBootstrapServices(app.db),
-        preferences: readResolvedPreferences(app.db),
+            : readBootstrapServices(app.db, request.access),
+        preferences:
+          request.user === null ? defaultDisplayValues() : readResolvedPreferences(app.db),
         userPreferences:
           request.user === null
             ? DEFAULT_USER_PREFERENCES

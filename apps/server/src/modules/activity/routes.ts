@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Module d'activité des serveurs média (P3e) : les 19 routes de
 // `TautulliController`, les 8 de `TracearrController` et les 3
-// d'`EmbyController`, sous `/api/<service>` (R1). Ouvert à tout utilisateur
-// connecté, comme l'original (`ROLE_USER`) ; garde de service.
+// d'`EmbyController`, sous `/api/<service>` (R1). Garde de service : droit
+// de lecture sur le service (l'original : tout utilisateur connecté).
 //
 // Écarts : les fragments HTML de l'original (en cours,
 // statistiques, historique, bibliothèques, utilisateurs, métadonnées) sont
@@ -41,7 +41,6 @@ import { EmbyClient, embyBaseUrl } from '../../integrations/activity/emby';
 import { TautulliClient } from '../../integrations/activity/tautulli';
 import { TracearrClient, isUuid } from '../../integrations/activity/tracearr';
 import { HttpClient, apiKeyHeader, apiKeyQuery, bearer } from '../../integrations/http';
-import { requireRole } from '../../plugins/access';
 import { hasRequiredFields, readServiceConfig } from '../services/config';
 
 type Service = 'tautulli' | 'tracearr' | 'emby';
@@ -243,13 +242,12 @@ export const activityRoutes: FastifyPluginAsync = async (instance) => {
       trActivity,
     );
   }
-  // Arrêt d'une lecture en cours (admins) : la lecture partagée est oubliée
+  // Arrêt d'une lecture en cours (droit d'écriture sur Tracearr) : la lecture partagée est oubliée
   // pour que la prochaine relève reflète l'arrêt.
   app.post(
     '/api/tracearr/streams/:id/terminate',
     {
       config: trConfig,
-      onRequest: requireRole('admin'),
       schema: {
         params: z.object({ id: z.string().refine(isUuid) }),
         body: terminateSessionRequestSchema,

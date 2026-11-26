@@ -1,21 +1,22 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-// Barre du haut : menu (mobile), titre de l'écran, bascule de thème et menu
-// santé des services ; le compte est dans le menu latéral seulement (P5d.4, V34). Teintée par l'accent du service affiché
+// Barre du haut : menu (mobile), titre de l'écran, centre de notifications,
+// bascule de thème et menu santé des services ; le compte est dans le menu latéral seulement (P5d.4, V34). Teintée par l'accent du service affiché
 // ; recherche globale (P4.5, admins).
 // Sur mobile, dans une vue de service (P5b.4, E4, D131), elle devient une
 // « pilule » sur un dégradé teinté par le service : menu, titre de l'écran
-// (« Radarr · Films »), puis la loupe : recherche globale, ou recherche locale
+// (« Radarr · Films »), la cloche des notifications, puis la loupe : recherche globale, ou recherche locale
 // de la page (bibliothèques) qui s'ouvre dans la pilule à la place du titre ;
 // pendant une sélection multiple (E3), elle laisse place à la barre
 // contextuelle de la sélection.
-import { msClose, msSearch, msSelectAll } from './symbols';
+import { msClose, msSearch, msSelectAll, msVisibility } from './symbols';
 import { nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { SelectionState, TopBarSearch } from '../app/service-chrome';
 import { useSessionStore } from '../app/stores/session';
 import GlobalSearch from './GlobalSearch.vue';
 import HealthMenu from './HealthMenu.vue';
+import NotificationCenter from './NotificationCenter.vue';
 import ThemeToggle from './ThemeToggle.vue';
 
 const props = defineProps<{
@@ -27,6 +28,8 @@ const props = defineProps<{
   search?: TopBarSearch | null;
   /** Sélection multiple en cours (mobile) : barre contextuelle. */
   selection?: SelectionState | null;
+  /** Page d'un service en lecture seule pour le compte : pastille dans la barre. */
+  readOnly?: boolean;
 }>();
 const emit = defineEmits<{ 'toggle-nav': [] }>();
 const { t } = useI18n();
@@ -139,6 +142,17 @@ function closeSearch(): void {
             >{{ subtitle }}</span
           >
         </div>
+        <v-icon
+          v-if="readOnly"
+          :icon="msVisibility"
+          size="small"
+          class="me-2 text-medium-emphasis"
+          :aria-label="t('users.read_only.label')"
+          :title="t('users.read_only.hint')"
+          role="img"
+          data-test="read-only-chip"
+        />
+        <NotificationCenter v-if="session.user" />
         <v-btn
           v-if="search"
           :icon="msSearch"
@@ -174,7 +188,18 @@ function closeSearch(): void {
       >
     </v-app-bar-title>
     <template #append>
+      <v-chip
+        v-if="readOnly"
+        :prepend-icon="msVisibility"
+        size="small"
+        variant="tonal"
+        class="me-2"
+        :title="t('users.read_only.hint')"
+        data-test="read-only-chip"
+        >{{ t('users.read_only.label') }}</v-chip
+      >
       <GlobalSearch v-if="session.user" class="me-2" />
+      <NotificationCenter v-if="session.user" />
       <HealthMenu v-if="session.user" />
       <ThemeToggle />
     </template>

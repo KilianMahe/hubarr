@@ -69,8 +69,8 @@ tools               translation conversion, OpenAPI types, licenses, ESLint rule
 2. **Sessions**: the `hubarr_session` cookie resolves to a session and a user.
 3. **CSRF**: every mutation requires the session's `x-csrf-token` header; cross-site `Sec-Fetch-Site` requests or foreign `Origin` headers are refused.
 4. **Setup guard**: until the wizard is complete, the API answers `409 SETUP_REQUIRED`.
-5. **Access control**: every route requires a session unless declared `access: 'public'`; administration modules add `requireRole('admin')`.
-6. **Service guard**: a route of an unconfigured or disabled service answers with an explicit error.
+5. **Access control**: every route declares its policy, otherwise the server refuses to start: `config.access` is `public` (no session), `user` (any signed-in account: personal routes, and pages that aggregate several services and filter by `request.access`), `admin` (set on a whole module by `guardAdminModule()`) or `service` (set by `guardServiceModule()`; a route that declares no service stays administrator-only), or the route declares `config.service`. Access is checked in `onRequest`, before validation and before the service configuration state: an account without the right gets 403 and learns nothing about the expected format, whether the service is configured or whether a slug exists. `test/plugins/route-policies.test.ts` calls every route: 401 without a session, 403 for an account without rights, and the list of `user` routes is pinned.
+6. **Service guard**: a route of an unconfigured or disabled service answers with an explicit error. It then checks the account's right on the service (and on the Radarr/Sonarr instance): read for `GET`, write otherwise, unless the route declares `config.permission` (`read` for a search sent as `POST`, `admin` for a service's settings). Pages that aggregate several services (dashboard, calendar, search, discover, live topics, bootstrap) read only what the account can read (`request.access`).
 7. **Route**: zod validation, call to the service, response serialized by its schema.
 
 Errors always look like `{ code, message?, service?, details? }`; the front end translates the `code`.
@@ -103,11 +103,12 @@ Radarr, Sonarr and Prowlarr clients are typed from their OpenAPI specifications 
 
 ### Database
 
-SQLite in WAL mode in `HUBARR_DATA_DIR` (`/data/hubarr.db`). Five tables:
+SQLite in WAL mode in `HUBARR_DATA_DIR` (`/data/hubarr.db`). Main tables:
 
 | Table              | Content                                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
 | `user`             | Accounts: e-mail, argon2id hash, role, name, avatar, display preferences                              |
+| `user_permission`  | Access of a non-administrator account: service, Radarr/Sonarr instance, level (`read`, `write`)       |
 | `session`          | Sessions: SHA-256 hash of the token, data, sliding expiry                                             |
 | `setting`          | Key-value settings as validated JSON (preferences, theme, dashboard, setup state)                     |
 | `service_instance` | One row per service or instance: type, slug, name, URL, credentials, options, default, enabled, order |

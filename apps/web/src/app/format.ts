@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Formats selon les préférences d'affichage (date, heure, date et heure,
-// tailles, débits).
+// tailles, débits) ; temps relatif (« il y a 5 min »).
 
 import {
   formatBytes,
@@ -41,6 +41,30 @@ export function gbParts(gb: number | null | undefined): { value: string; unit: s
       unit: '',
     }
   );
+}
+
+/** Unités au-delà de la minute, avec le nombre d'unités précédentes qu'elles valent. */
+const RELATIVE_STEPS: readonly (readonly [Intl.RelativeTimeFormatUnit, number])[] = [
+  ['hour', 60],
+  ['day', 24],
+  ['week', 7],
+];
+
+/**
+ * Temps écoulé depuis `at` (ms) dans la langue de l'interface : « maintenant »
+ * sous la minute, puis minutes, heures, jours et semaines.
+ */
+export function relativeTime(at: number, now: number, locale: string): string {
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  let value = Math.floor(Math.max(0, now - at) / 60_000);
+  if (value === 0) return rtf.format(0, 'second');
+  let unit: Intl.RelativeTimeFormatUnit = 'minute';
+  for (const [next, size] of RELATIVE_STEPS) {
+    if (value < size) break;
+    value = Math.floor(value / size);
+    unit = next;
+  }
+  return rtf.format(-value, unit);
 }
 
 export function useFormat() {

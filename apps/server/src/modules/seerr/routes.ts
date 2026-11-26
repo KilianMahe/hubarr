@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Module Seerr / Jellyseerr (P3f) : les 47 routes de `JellyseerrController`
 // sous `/api/jellyseerr` (R1), plus les données des pages (`GET` au chemin
-// de chaque page : demandes, utilisateurs, fiche, réglages…). Réservé aux
-// admins, comme l'original ; garde de service `seerr`.
+// de chaque page : demandes, utilisateurs, fiche, réglages…). Demandes : droit
+// sur Seerr ; utilisateurs, réglages et système : admins (garde `seerr`).
 //
 // Écarts : refus de Seerr → 502 avec son message (au lieu de
 // `{ ok: false }` en 200) ; validations → 400 avec la clé
@@ -52,11 +52,13 @@ import {
   restoreSecret,
   textOf,
 } from '../../integrations/seerr/client';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { apiKeyServiceClient } from '../services/clients';
 
 const BASE = '/api/jellyseerr';
 const config = { service: 'seerr' as const };
+/** Utilisateurs, réglages, tâches et caches de Seerr : admins seulement (D140). */
+const adminConfig = { service: 'seerr' as const, permission: 'admin' as const };
 const PAGE_SIZE = 20;
 const GITHUB_RELEASES = 'https://api.github.com';
 const idParams = z.object({ id: z.coerce.number().int().positive() });
@@ -99,7 +101,7 @@ function newestFirst(rows: Row[], sort: string): Row[] {
 }
 
 export const seerrRoutes: FastifyPluginAsync = async (instance) => {
-  instance.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(instance);
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const seerr = () => new SeerrClient(apiKeyServiceClient(instance, 'seerr'));
   /** Le propriétaire (id 1) n'est jamais modifié depuis Hubarr. */
@@ -221,7 +223,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   // ── Utilisateurs (n° 73-82, 115, 117) ────────────────────────────────────
   app.get(
     `${BASE}/utilisateurs`,
-    { config, schema: { response: { 200: seerrUsersPageSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrUsersPageSchema } } },
     async () => {
       const client = seerr();
       const [users, counts] = await Promise.all([
@@ -234,7 +236,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
 
   app.get(
     `${BASE}/utilisateurs/:id`,
-    { config, schema: { params: idParams, response: { 200: seerrUserDetailSchema } } },
+    { config: adminConfig, schema: { params: idParams, response: { 200: seerrUserDetailSchema } } },
     async (request) => {
       const id = request.params.id;
       notOwner(id);
@@ -285,7 +287,10 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
 
   app.post(
     `${BASE}/utilisateurs/create`,
-    { config, schema: { body: seerrCreateUserSchema, response: { 200: seerrOkDataSchema } } },
+    {
+      config: adminConfig,
+      schema: { body: seerrCreateUserSchema, response: { 200: seerrOkDataSchema } },
+    },
     async (request) => {
       const { email, password } = request.body;
       if (email.trim() === '' || password === '')
@@ -296,7 +301,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.post(
     `${BASE}/utilisateurs/import-jellyfin`,
-    { config, schema: { body: seerrImportUsersSchema, response: ok } },
+    { config: adminConfig, schema: { body: seerrImportUsersSchema, response: ok } },
     async (request) => {
       if (request.body.jellyfinUserIds.length === 0)
         throw invalid('jellyseerr.api.no_user_selected');
@@ -308,7 +313,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.post(
     `${BASE}/utilisateurs/:id/delete`,
-    { config, schema: { params: idParams, response: ok } },
+    { config: adminConfig, schema: { params: idParams, response: ok } },
     async (request) => {
       const id = request.params.id;
       if (id === 1) throw invalid('jellyseerr.api.cannot_delete_owner');
@@ -323,7 +328,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.post(
     `${BASE}/utilisateurs/:id/password`,
-    { config, schema: { params: idParams, body: seerrPasswordSchema, response: ok } },
+    { config: adminConfig, schema: { params: idParams, body: seerrPasswordSchema, response: ok } },
     async (request) => {
       notOwner(request.params.id);
       if (request.body.password.length < 8) throw invalid('jellyseerr.api.password_too_short');
@@ -335,7 +340,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.post(
     `${BASE}/utilisateurs/:id/notifications`,
-    { config, schema: { params: idParams, body: anyBody, response: ok } },
+    { config: adminConfig, schema: { params: idParams, body: anyBody, response: ok } },
     async (request) => {
       notOwner(request.params.id);
       await seerr().send('POST', `/user/${request.params.id}/settings/notifications`, request.body);
@@ -345,7 +350,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   for (const path of ['settings', 'quotas']) {
     app.post(
       `${BASE}/utilisateurs/:id/${path}`,
-      { config, schema: { params: idParams, body: anyBody, response: ok } },
+      { config: adminConfig, schema: { params: idParams, body: anyBody, response: ok } },
       async (request) => {
         notOwner(request.params.id);
         await seerr().send('POST', `/user/${request.params.id}/settings/main`, request.body);
@@ -355,7 +360,10 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   }
   app.post(
     `${BASE}/utilisateurs/:id/permissions`,
-    { config, schema: { params: idParams, body: seerrPermissionsSchema, response: ok } },
+    {
+      config: adminConfig,
+      schema: { params: idParams, body: seerrPermissionsSchema, response: ok },
+    },
     async (request) => {
       notOwner(request.params.id);
       await seerr().send('POST', `/user/${request.params.id}/settings/permissions`, {
@@ -372,7 +380,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.get(
     `${BASE}/service/jellyfin-users`,
-    { config, schema: { response: { 200: seerrJellyfinUsersSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrJellyfinUsersSchema } } },
     async () => {
       const client = seerr();
       const [jellyfin, existing, main] = await Promise.all([
@@ -409,13 +417,13 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   for (const path of ['/parametres', '/parametres/utilisateurs']) {
     app.get(
       `${BASE}${path}`,
-      { config, schema: { response: { 200: seerrSettingsPageSchema } } },
+      { config: adminConfig, schema: { response: { 200: seerrSettingsPageSchema } } },
       settingsPage,
     );
   }
   app.post(
     `${BASE}/parametres/save`,
-    { config, schema: { body: anyBody, response: ok } },
+    { config: adminConfig, schema: { body: anyBody, response: ok } },
     async (request) => {
       // La clé d'API de Seerr ne se modifie jamais depuis Hubarr.
       const data = Object.fromEntries(
@@ -427,21 +435,25 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.get(
     `${BASE}/service/settings-main`,
-    { config, schema: { response: { 200: seerrObjectSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrObjectSchema } } },
     async () => maskSecrets(asRow(await seerr().get('/settings/main'))),
   );
   app.get(
     `${BASE}/parametres/jellyfin`,
-    { config, schema: { response: { 200: seerrObjectSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrObjectSchema } } },
     async () => maskSecrets(asRow(await seerr().get('/settings/jellyfin'))),
   );
-  app.post(`${BASE}/service/jellyfin-sync`, { config, schema: { response: ok } }, async () => {
-    await seerr().send('POST', '/settings/jellyfin/sync');
-    return { ok: true as const };
-  });
+  app.post(
+    `${BASE}/service/jellyfin-sync`,
+    { config: adminConfig, schema: { response: ok } },
+    async () => {
+      await seerr().send('POST', '/settings/jellyfin/sync');
+      return { ok: true as const };
+    },
+  );
   app.get(
     `${BASE}/parametres/a-propos`,
-    { config, schema: { response: { 200: seerrAboutSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrAboutSchema } } },
     async () => {
       const client = seerr();
       const [about, status, requestCounts, users, issueCounts] = await Promise.all([
@@ -462,7 +474,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.get(
     `${BASE}/parametres/mises-a-jour`,
-    { config, schema: { response: { 200: seerrUpdatesSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrUpdatesSchema } } },
     async () => {
       const client = seerr();
       const status = asRow(await client.optional(client.get<Row>('/status'), {}));
@@ -503,7 +515,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   app.get(
     `${BASE}/parametres/logs`,
     {
-      config,
+      config: adminConfig,
       schema: {
         querystring: z.object({
           page: z.coerce.number().int().catch(1),
@@ -529,7 +541,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.get(
     `${BASE}/parametres/taches-cache`,
-    { config, schema: { response: { 200: seerrTasksSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrTasksSchema } } },
     async () => {
       const client = seerr();
       const [jobs, cache] = await Promise.all([
@@ -544,7 +556,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   for (const action of ['run', 'cancel'] as const) {
     app.post(
       `${BASE}/job/:jobId/${action}`,
-      { config, schema: { params: jobParams, response: { 200: seerrOkDataSchema } } },
+      { config: adminConfig, schema: { params: jobParams, response: { 200: seerrOkDataSchema } } },
       async (request) => ({
         ok: true as const,
         data: await seerr().send('POST', `/settings/jobs/${request.params.jobId}/${action}`),
@@ -554,7 +566,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   app.post(
     `${BASE}/job/:jobId/schedule`,
     {
-      config,
+      config: adminConfig,
       schema: {
         params: jobParams,
         body: seerrScheduleSchema,
@@ -572,13 +584,13 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
       };
     },
   );
-  app.post(`${BASE}/cache/flush`, { config, schema: { response: ok } }, async () => {
+  app.post(`${BASE}/cache/flush`, { config: adminConfig, schema: { response: ok } }, async () => {
     await seerr().send('POST', '/settings/cache/flush');
     return { ok: true as const };
   });
   app.post(
     `${BASE}/cache/:cacheId/flush`,
-    { config, schema: { params: cacheParams, response: ok } },
+    { config: adminConfig, schema: { params: cacheParams, response: ok } },
     async (request) => {
       await seerr().send('POST', `/settings/cache/${request.params.cacheId}/flush`);
       return { ok: true as const };
@@ -588,7 +600,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   // ── Services Radarr/Sonarr et règles (n° 87-97, 116) ─────────────────────
   app.get(
     `${BASE}/parametres/services`,
-    { config, schema: { response: { 200: seerrServicesPageSchema } } },
+    { config: adminConfig, schema: { response: { 200: seerrServicesPageSchema } } },
     async () => {
       const client = seerr();
       const [radarr, sonarr, rules, users, moviesGenres, tvGenres, languages] = await Promise.all([
@@ -627,12 +639,12 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.get(
     `${BASE}/parametres/services/rules`,
-    { config, schema: { response: { 200: z.array(seerrObjectSchema) } } },
+    { config: adminConfig, schema: { response: { 200: z.array(seerrObjectSchema) } } },
     async () => asRows(await seerr().get('/overrideRule')),
   );
   app.post(
     `${BASE}/parametres/services/rules/save`,
-    { config, schema: { body: anyBody, response: ok } },
+    { config: adminConfig, schema: { body: anyBody, response: ok } },
     async (request) => {
       const { id, ...data } = request.body;
       if (typeof id === 'number' && id > 0) await seerr().send('PUT', `/overrideRule/${id}`, data);
@@ -642,7 +654,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   );
   app.post(
     `${BASE}/parametres/services/rules/:id/delete`,
-    { config, schema: { params: idParams, response: ok } },
+    { config: adminConfig, schema: { params: idParams, response: ok } },
     async (request) => {
       await seerr().send('DELETE', `/overrideRule/${request.params.id}`);
       return { ok: true as const };
@@ -656,7 +668,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   for (const kind of ['radarr', 'sonarr'] as const) {
     app.post(
       `${BASE}/parametres/services/${kind}/create`,
-      { config, schema: { body: anyBody, response: ok } },
+      { config: adminConfig, schema: { body: anyBody, response: ok } },
       async (request) => {
         await seerr().send('POST', `/settings/${kind}`, request.body);
         return { ok: true as const };
@@ -664,7 +676,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
     );
     app.post(
       `${BASE}/parametres/services/${kind}/:id/save`,
-      { config, schema: { params: serverParams, body: anyBody, response: ok } },
+      { config: adminConfig, schema: { params: serverParams, body: anyBody, response: ok } },
       async (request) => {
         const client = seerr();
         const data = restoreSecret(
@@ -677,7 +689,7 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
     );
     app.post(
       `${BASE}/parametres/services/${kind}/:id/delete`,
-      { config, schema: { params: serverParams, response: ok } },
+      { config: adminConfig, schema: { params: serverParams, response: ok } },
       async (request) => {
         await seerr().send('DELETE', `/settings/${kind}/${request.params.id}`);
         return { ok: true as const };
@@ -686,7 +698,10 @@ export const seerrRoutes: FastifyPluginAsync = async (instance) => {
   }
   app.post(
     `${BASE}/parametres/services/test`,
-    { config, schema: { body: seerrServiceTestSchema, response: { 200: seerrOkDataSchema } } },
+    {
+      config: adminConfig,
+      schema: { body: seerrServiceTestSchema, response: { 200: seerrOkDataSchema } },
+    },
     async (request) => {
       const { type, ...rest } = request.body;
       const kind = type === 'sonarr' ? 'sonarr' : 'radarr';

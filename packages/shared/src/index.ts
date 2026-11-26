@@ -118,6 +118,24 @@ export {
   type ServiceId,
 } from './constants/services';
 export {
+  ACCESS_LEVELS,
+  hasAccess,
+  managedUserSchema,
+  parsePermissionKey,
+  permissionKey,
+  userCreateRequestSchema,
+  userListResponseSchema,
+  userPermissionsSchema,
+  userUpdateRequestSchema,
+  type AccessLevel,
+  type AccessSubject,
+  type ManagedUser,
+  type UserCreateRequest,
+  type UserListResponse,
+  type UserPermissions,
+  type UserUpdateRequest,
+} from './schemas/users';
+export {
   CLASSIC_THEME,
   DEFAULT_THEME,
   DEFAULT_THEME_PRESET,

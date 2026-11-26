@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Accès aux comptes et conversion vers le contrat public `AuthUser`.
 
-import { parseUserPreferences, type AuthUser, type UserPreferences } from '@hubarr/shared';
+import {
+  parsePermissionKey,
+  parseUserPreferences,
+  type AuthUser,
+  type ServiceId,
+  type UserPermissions,
+  type UserPreferences,
+} from '@hubarr/shared';
 import { count, eq } from 'drizzle-orm';
 import type { Db, DbExecutor } from '../../db/client';
-import { users } from '../../db/schema';
+import { serviceInstances, userPermissions, users } from '../../db/schema';
+import { getInstanceBySlug } from '../instances/instances';
 
 export type UserRow = typeof users.$inferSelect;
 
@@ -52,7 +60,54 @@ export function saveUserPreferences(db: Db, id: number, preferences: UserPrefere
   db.update(users).set({ preferences }).where(eq(users.id, id)).run();
 }
 
-export function toAuthUser(user: UserRow): AuthUser {
+/** Droits d'un compte, clés `service` ou `service:slug` (instance encore existante). */
+export function readUserPermissions(db: DbExecutor, userId: number): UserPermissions {
+  const rows = db
+    .select({
+      service: userPermissions.service,
+      level: userPermissions.level,
+      slug: serviceInstances.slug,
+      instanceId: userPermissions.instanceId,
+    })
+    .from(userPermissions)
+    .leftJoin(serviceInstances, eq(userPermissions.instanceId, serviceInstances.id))
+    .where(eq(userPermissions.userId, userId))
+    .all();
+  const permissions: UserPermissions = {};
+  for (const row of rows) {
+    if (row.instanceId !== null && row.slug === null) continue;
+    const key = row.slug === null ? row.service : `${row.service}:${row.slug}`;
+    if (parsePermissionKey(key) !== null) permissions[key] = row.level;
+  }
+  return permissions;
+}
+
+/**
+ * Remplace les droits d'un compte. Les clés inconnues (service, instance
+ * supprimée entre-temps) sont ignorées.
+ */
+export function saveUserPermissions(
+  db: DbExecutor,
+  userId: number,
+  permissions: UserPermissions,
+): void {
+  db.delete(userPermissions).where(eq(userPermissions.userId, userId)).run();
+  const rows: (typeof userPermissions.$inferInsert)[] = [];
+  for (const [key, level] of Object.entries(permissions)) {
+    const parsed = parsePermissionKey(key);
+    if (parsed === null) continue;
+    let instanceId: number | null = null;
+    if (parsed.slug !== null) {
+      const instance = getInstanceBySlug(db, parsed.service as 'radarr' | 'sonarr', parsed.slug);
+      if (instance === null) continue;
+      instanceId = instance.id;
+    }
+    rows.push({ userId, service: parsed.service satisfies ServiceId, instanceId, level });
+  }
+  if (rows.length > 0) db.insert(userPermissions).values(rows).run();
+}
+
+export function toAuthUser(user: UserRow, permissions: UserPermissions = {}): AuthUser {
   const displayName = user.displayName?.trim() ?? '';
   return {
     id: user.id,
@@ -60,5 +115,12 @@ export function toAuthUser(user: UserRow): AuthUser {
     role: user.role,
     displayName: displayName === '' ? user.email : displayName,
     avatarUrl: user.avatarFile === null ? null : avatarUrl(user.avatarFile),
+    // Un admin a tous les droits : sa liste reste vide.
+    permissions: user.role === 'admin' ? {} : permissions,
   };
+}
+
+/** Compte avec ses droits, tel que la session l'expose. */
+export function loadAuthUser(db: Db, user: UserRow): AuthUser {
+  return toAuthUser(user, user.role === 'admin' ? {} : readUserPermissions(db, user.id));
 }

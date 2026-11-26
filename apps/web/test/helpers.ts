@@ -31,6 +31,7 @@ export const ADMIN: AuthUser = {
   role: 'admin',
   displayName: 'Admin',
   avatarUrl: null,
+  permissions: {},
 };
 
 export function bootstrapOf(overrides: Partial<BootstrapResponse> = {}): BootstrapResponse {

@@ -89,7 +89,7 @@ const terminating = ref(false);
 const canTerminate = computed(
   () =>
     props.terminable &&
-    account.isAdmin &&
+    account.can('tracearr', null, 'write') &&
     Boolean(props.session?.sessionKey) &&
     props.session?.state !== 'stopped',
 );

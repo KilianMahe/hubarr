@@ -16,7 +16,7 @@ import {
   msStarFill,
 } from '../components/symbols';
 import type { BottomNavItem, BottomNavContext } from './navigation';
-import { isConfigured, isVisibleInSidebar, SERVICE_PAGES } from './services';
+import { isConfigured, isVisibleInSidebar } from './services';
 
 /** Routes du groupe « Accueil » (pages des onglets). */
 export const HOME_ROUTES = new Set([
@@ -31,12 +31,8 @@ export function isHomeRoute(route: Pick<RouteLocationNormalizedLoaded, 'name'>):
   return typeof route.name === 'string' && HOME_ROUTES.has(route.name);
 }
 
-export function discoverTabVisible(services: BootstrapServices, isAdmin: boolean): boolean {
-  return (
-    isConfigured(services, 'tmdb') &&
-    isVisibleInSidebar(services, 'tmdb') &&
-    (isAdmin || SERVICE_PAGES.tmdb?.adminOnly !== true)
-  );
+export function discoverTabVisible(services: BootstrapServices): boolean {
+  return isConfigured(services, 'tmdb') && isVisibleInSidebar(services, 'tmdb');
 }
 
 export function calendarTabVisible(services: BootstrapServices): boolean {
@@ -58,21 +54,21 @@ export const HOME_TABS: BottomNavItem[] = [
     icon: msExplore,
     to: { name: 'tmdb' },
     testId: 'home-tab-discover',
-    visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
+    visible: ({ services }) => discoverTabVisible(services),
   },
   {
     labelKey: 'decouverte.explorer.title',
     icon: msManageSearch,
     to: { name: 'tmdb-explorer' },
     testId: 'home-tab-explorer',
-    visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
+    visible: ({ services }) => discoverTabVisible(services),
   },
   {
     labelKey: 'decouverte.watchlist.title',
     icon: msStarFill,
     to: { name: 'tmdb-watchlist' },
     testId: 'home-tab-watchlist',
-    visible: ({ services, isAdmin }) => discoverTabVisible(services, isAdmin),
+    visible: ({ services }) => discoverTabVisible(services),
   },
   {
     labelKey: 'sidebar.nav.calendar',

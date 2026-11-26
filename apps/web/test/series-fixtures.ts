@@ -5,6 +5,7 @@ import {
   DEFAULT_SERIES_LIBRARY_QUERY,
   DEFAULT_USER_PREFERENCES,
   type SeriesLibraryItem,
+  type AuthUser,
   type SeriesLibraryResponse,
   type UserPreferences,
 } from '@hubarr/shared';
@@ -105,6 +106,7 @@ export async function mountSeries(
   path = '/medias/sonarr/series',
   routes: Parameters<typeof fakeFetch>[0] = {},
   prefs: Partial<UserPreferences> = {},
+  user: AuthUser = ADMIN,
 ) {
   const fetch = fakeFetch({
     'GET /api/health/services': SONARR_HEALTH,
@@ -119,7 +121,7 @@ export async function mountSeries(
   const app = await mountApp(
     path,
     bootstrapOf({
-      user: ADMIN,
+      user,
       services: SONARR_SERVICES,
       userPreferences: { ...DEFAULT_USER_PREFERENCES, ...prefs },
     }),
@@ -127,6 +129,19 @@ export async function mountSeries(
   mounted.push(app.wrapper);
   await settle();
   return { ...app, fetch };
+}
+
+/** Compte non admin en lecture seule sur l'instance Sonarr des tests. */
+export const SONARR_READER: AuthUser = {
+  ...ADMIN,
+  id: 2,
+  role: 'user',
+  permissions: { 'sonarr:sonarr': 'read' },
+};
+
+/** Élément présent mais masqué par `v-write` (page en lecture seule). */
+export function hiddenByWrite(element: Element | null | undefined): boolean {
+  return element instanceof HTMLElement && element.style.display === 'none';
 }
 
 export function clickIn(selector: string): void {

@@ -15,6 +15,7 @@ import { fillLegacy } from '../../app/legacy-template';
 import MetaLine from '../../components/ds/MetaLine.vue';
 import StatusChip from '../../components/ds/StatusChip.vue';
 import { STATUS_COLORS, STATUS_KEYS, field, seerrApi, text, tmdbImage } from './seerr-api';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{ request: SeerrRequest; busy: string | null }>();
 const emit = defineEmits<{
@@ -112,6 +113,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
     <div v-if="pending" class="seerr-card__choices">
       <v-select
         v-model="profileId"
+        v-write
         :items="profiles"
         :label="t('jellyseerr.index.quality_profile_label')"
         :loading="service.isPending.value"
@@ -122,6 +124,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
       />
       <v-select
         v-model="rootFolder"
+        v-write
         :items="folders"
         :label="t('jellyseerr.index.root_folder_label')"
         :loading="service.isPending.value"
@@ -134,6 +137,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
 
     <div class="d-flex flex-wrap align-center ga-1 mt-2">
       <v-btn
+        v-write
         size="small"
         variant="text"
         :icon="msEdit"
@@ -143,6 +147,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
         @click="emit('edit')"
       />
       <v-btn
+        v-write
         size="small"
         variant="text"
         color="error"
@@ -154,6 +159,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
       />
       <v-btn
         v-if="['processing', 'approved'].includes(request.displayStatus)"
+        v-write
         size="small"
         variant="text"
         :icon="msRefresh"
@@ -165,6 +171,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
       <v-spacer />
       <template v-if="pending">
         <v-btn
+          v-write
           size="small"
           variant="tonal"
           color="error"
@@ -175,6 +182,7 @@ const poster = computed(() => tmdbImage(props.request.tmdb?.posterPath));
           >{{ t('jellyseerr.common.decline') }}</v-btn
         >
         <v-btn
+          v-write
           size="small"
           variant="flat"
           color="service"

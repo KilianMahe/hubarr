@@ -2,14 +2,15 @@
 // Sujets du flux temps réel (P5.1) et lectures partagées associées.
 //
 //   health                         santé des services (60 s), tout utilisateur
-//   activity.<tautulli|tracearr|emby>  lectures en cours (10 s), tout utilisateur
-//   downloads.<qbittorrent|deluge|transmission>  résumé des torrents (3 s), admins
-//   downloads.usenet.<sabnzbd|nzbget>  file Usenet (3 s), admins
-//   queue.<radarr|sonarr>.<slug>   file d'attente d'une instance (5 s), admins
-//   seerr.pending                  demandes en attente (60 s), admins
+//                                  (filtrée par compte à l'envoi : `scopeHealth`)
+//   activity.<tautulli|tracearr|emby>  lectures en cours (10 s)
+//   downloads.<qbittorrent|deluge|transmission>  résumé des torrents (3 s)
+//   downloads.usenet.<sabnzbd|nzbget>  file Usenet (3 s)
+//   queue.<radarr|sonarr>.<slug>   file d'attente d'une instance (5 s)
+//   seerr.pending                  demandes en attente (60 s)
 //
 // Un sujet n'existe que si son service est configuré (instance active pour
-// Radarr/Sonarr) et que l'utilisateur y a droit ; sinon il est ignoré. Les
+// Radarr/Sonarr) et que le compte peut le lire ; sinon il est ignoré. Les
 // lectures upstream passent par `app.live.shared` : la route HTTP du même
 // jeu de données relit la réponse du poller au lieu de rappeler le service.
 
@@ -23,6 +24,7 @@ import { getInstanceBySlug } from '../instances/instances';
 import { sharedMovieQueue, sharedSeriesQueue } from '../media/queue';
 import { apiKeyServiceClient } from '../services/clients';
 import { isServiceConfigured } from '../services/config';
+import { accessScope } from '../users/access-scope';
 import { torrentSummary } from '../torrents/live';
 import { sharedUsenetQueue } from '../usenet/routes';
 
@@ -61,20 +63,21 @@ export function sharedKeysFor(url: string): string[] | 'all' {
 /** Spécification d'un sujet, ou `null` s'il est inconnu, interdit ou sans service. */
 export function resolveTopic(app: FastifyInstance, name: string, user: AuthUser): TopicSpec | null {
   if (!TOPIC_PATTERN.test(name)) return null;
-  const admin = user.role === 'admin';
+  const scope = accessScope(app.db, user);
+  const readable = (service: Parameters<typeof scope.can>[0]) =>
+    isServiceConfigured(app.db, service) && scope.can(service, null);
   const [kind, a, b] = name.split('.');
   if (name === 'health') {
     return { name, intervalMs: TOPIC_INTERVALS.health, load: () => servicesHealth(app) };
   }
   if (kind === 'activity' && b === undefined) {
     const service = ACTIVITY.find((s) => s === a);
-    if (service === undefined || !isServiceConfigured(app.db, service)) return null;
+    if (service === undefined || !readable(service)) return null;
     return { name, intervalMs: TOPIC_INTERVALS.activity, load: () => sharedActivity(app, service) };
   }
-  if (!admin) return null;
   if (kind === 'downloads' && a === 'usenet') {
     const id = USENET.find((s) => s === b);
-    if (id === undefined || !isServiceConfigured(app.db, id)) return null;
+    if (id === undefined || !readable(id)) return null;
     return {
       name,
       intervalMs: TOPIC_INTERVALS.usenet,
@@ -83,12 +86,12 @@ export function resolveTopic(app: FastifyInstance, name: string, user: AuthUser)
   }
   if (kind === 'downloads' && b === undefined) {
     const id = TORRENTS.find((s) => s === a);
-    if (id === undefined || !isServiceConfigured(app.db, id)) return null;
+    if (id === undefined || !readable(id)) return null;
     return { name, intervalMs: TOPIC_INTERVALS.downloads, load: () => torrentSummary(app, id) };
   }
   if (kind === 'queue' && (a === 'radarr' || a === 'sonarr') && b !== undefined) {
     const row = getInstanceBySlug(app.db, a, b);
-    if (!row?.enabled) return null;
+    if (!row?.enabled || !scope.can(a, row.slug)) return null;
     return {
       name,
       intervalMs: TOPIC_INTERVALS.queue,
@@ -96,7 +99,7 @@ export function resolveTopic(app: FastifyInstance, name: string, user: AuthUser)
     };
   }
   if (name === 'seerr.pending') {
-    if (!isServiceConfigured(app.db, 'seerr')) return null;
+    if (!readable('seerr')) return null;
     return {
       name,
       intervalMs: TOPIC_INTERVALS.seerr,

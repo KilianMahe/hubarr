@@ -49,7 +49,7 @@ import {
   qualityChoices,
 } from '../../integrations/radarr/normalize-detail';
 import type { RadarrMovieFileResource } from '../../integrations/radarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import {
   MOVIES_BASE,
   RADARR_CONFIG,
@@ -98,7 +98,7 @@ export async function mergeFileChanges(
 
 export const movieDetailRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = MOVIES_BASE;
   const config = RADARR_CONFIG;

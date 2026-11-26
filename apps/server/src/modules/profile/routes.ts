@@ -29,7 +29,7 @@ import {
   findUserById,
   readUserPreferences,
   saveUserPreferences,
-  toAuthUser,
+  loadAuthUser,
   type UserRow,
 } from '../users/users';
 import { AVATAR_FILENAME_PATTERN, AvatarStore, avatarMimeType, detectAvatarType } from './avatars';
@@ -80,7 +80,7 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
       .limit(RECENT_WATCHLIST_SIZE)
       .all();
     return {
-      user: toAuthUser(user),
+      user: loadAuthUser(app.db, user),
       displayNameRaw: user.displayName ?? '',
       createdAt: user.createdAt.toISOString(),
       lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
@@ -100,13 +100,16 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
 
   app.get(
     '/api/profil',
-    { schema: { response: { 200: profileResponseSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: profileResponseSchema } } },
     async (request) => profileOf(currentUser(request)),
   );
 
   app.post(
     '/api/profil',
-    { schema: { body: profileUpdateRequestSchema, response: { 200: profileResponseSchema } } },
+    {
+      config: { access: 'user' },
+      schema: { body: profileUpdateRequestSchema, response: { 200: profileResponseSchema } },
+    },
     async (request, reply) => {
       const user = currentUser(request);
       const { displayName, currentPassword, newPassword } = request.body;
@@ -154,7 +157,10 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
   // Le corps est complet : le formulaire du profil envoie toutes les préférences.
   app.post(
     '/api/profil/preferences',
-    { schema: { body: userPreferencesSchema, response: { 200: userPreferencesSchema } } },
+    {
+      config: { access: 'user' },
+      schema: { body: userPreferencesSchema, response: { 200: userPreferencesSchema } },
+    },
     async (request) => {
       const user = currentUser(request);
       saveUserPreferences(app.db, user.id, request.body);
@@ -172,31 +178,32 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
         done(null, body);
       },
     );
-    scope
-      .withTypeProvider<ZodTypeProvider>()
-      .post(
-        '/api/profil/avatar',
-        { bodyLimit: AVATAR_MAX_BYTES, schema: { response: { 200: profileResponseSchema } } },
-        async (request) => {
-          const data = request.body;
-          if (!Buffer.isBuffer(data) || data.length === 0)
-            throw new ApiError(400, 'AVATAR_MISSING');
-          const type = detectAvatarType(data);
-          if (type === null) throw new ApiError(415, 'AVATAR_INVALID_TYPE');
+    scope.withTypeProvider<ZodTypeProvider>().post(
+      '/api/profil/avatar',
+      {
+        config: { access: 'user' },
+        bodyLimit: AVATAR_MAX_BYTES,
+        schema: { response: { 200: profileResponseSchema } },
+      },
+      async (request) => {
+        const data = request.body;
+        if (!Buffer.isBuffer(data) || data.length === 0) throw new ApiError(400, 'AVATAR_MISSING');
+        const type = detectAvatarType(data);
+        if (type === null) throw new ApiError(415, 'AVATAR_INVALID_TYPE');
 
-          const user = currentUser(request);
-          const filename = await avatars.save(user.id, data, type);
-          const updated = setAvatarFile(user, filename);
-          // L'ancien fichier n'est retiré qu'une fois le nouveau enregistré.
-          if (user.avatarFile !== null) await avatars.remove(user.avatarFile);
-          return profileOf(updated);
-        },
-      );
+        const user = currentUser(request);
+        const filename = await avatars.save(user.id, data, type);
+        const updated = setAvatarFile(user, filename);
+        // L'ancien fichier n'est retiré qu'une fois le nouveau enregistré.
+        if (user.avatarFile !== null) await avatars.remove(user.avatarFile);
+        return profileOf(updated);
+      },
+    );
   });
 
   app.post(
     '/api/profil/avatar/delete',
-    { schema: { response: { 200: profileResponseSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: profileResponseSchema } } },
     async (request) => {
       const user = currentUser(request);
       if (user.avatarFile === null) return profileOf(user);
@@ -208,6 +215,7 @@ export const profileRoutes: FastifyPluginAsync<ProfileRoutesOptions> = async (
 
   app.get<{ Params: { filename: string } }>(
     '/api/profil/avatar/file/:filename',
+    { config: { access: 'user' } },
     async (request, reply) => {
       const { filename } = request.params;
       // Seul un avatar effectivement attribué à un compte est servi.

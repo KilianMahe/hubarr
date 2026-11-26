@@ -17,6 +17,7 @@ import DisplaySection from './DisplaySection.vue';
 import LanguagesSection from './LanguagesSection.vue';
 import LogsSection from '../logs/LogsSection.vue';
 import ServicesSection from './ServicesSection.vue';
+import UsersSection from '../users/UsersSection.vue';
 import { useSessionStore } from '../../app/stores/session';
 import { SETTINGS_KEY, fetchSettings, servicesFromSettings } from './settings-api';
 import { SETTINGS_SECTIONS, sectionFromHash, type SettingsSection } from './sections';
@@ -81,6 +82,7 @@ const section = computed<SettingsSection>({
         }}</v-alert>
         <template v-else-if="settings.data.value">
           <ServicesSection v-if="section === 'services'" :settings="settings.data.value" />
+          <UsersSection v-else-if="section === 'users'" />
           <DisplaySection v-else-if="section === 'display'" :settings="settings.data.value" />
           <LanguagesSection v-else-if="section === 'languages'" />
           <BackupSection v-else-if="section === 'backup'" :settings="settings.data.value" />

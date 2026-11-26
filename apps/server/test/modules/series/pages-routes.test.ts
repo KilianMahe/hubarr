@@ -10,6 +10,8 @@ import type {
   WantedEpisodePage,
 } from '@hubarr/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { demoteUser } from '../../helpers';
+import { EMAIL } from '../movies/radarr-env';
 import { rawSeries, sonarrEnv, warmSeries, type SonarrEnv } from './sonarr-env';
 
 let env: SonarrEnv;
@@ -64,6 +66,14 @@ describe('file d’attente (n° 201 à 206)', () => {
     expect(env.sonarr.callsTo('POST', '/api/v3/command')[0]?.body).toEqual({
       name: 'RefreshMonitoredDownloads',
     });
+  });
+
+  it('relecture des clients ouverte au droit de lecture ; suppression refusée', async () => {
+    demoteUser(env.database, EMAIL, { [`sonarr:${env.instance.slug}`]: 'read' });
+    env.sonarr.on('POST', '/api/v3/command', { id: 1 });
+    expect((await env.browser.post(env.url('/queue/refresh'))).statusCode).toBe(200);
+    expect((await env.browser.post(env.url('/queue/3/delete'), {})).statusCode).toBe(403);
+    expect(env.sonarr.callsTo('POST', '/api/v3/command')).toHaveLength(1);
   });
 
   it('import des bloqués : bilan de l’aperçu, commande `ManualImport`, cache invalidé', async () => {
@@ -371,6 +381,12 @@ describe('historique, liste de blocage (n° 156 à 159)', () => {
 });
 
 describe('système, import par lot (n° 160, 167)', () => {
+  it('système réservé aux admins : un droit d’écriture ne suffit pas', async () => {
+    demoteUser(env.database, EMAIL, { [`sonarr:${env.instance.slug}`]: 'write' });
+    expect((await env.browser.get(env.url('/systeme'))).statusCode).toBe(403);
+    expect(env.sonarr.callsTo('GET', '/api/v3/system/status')).toHaveLength(0);
+  });
+
   it('sections indépendantes : une section en échec vaut `null`', async () => {
     env.sonarr.on('GET', '/api/v3/system/status', { version: '4.0.20.3014', osName: 'linux' });
     env.sonarr.on('GET', '/api/v3/health', [{ type: 'warning', source: 'X', message: 'Y' }]);

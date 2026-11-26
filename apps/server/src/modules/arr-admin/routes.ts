@@ -8,7 +8,7 @@
 
 import { ARR_KINDS } from '@hubarr/shared';
 import type { FastifyPluginAsync } from 'fastify';
-import { requireRole } from '../../plugins/access';
+import { guardAdminModule } from '../../plugins/access';
 import { adminContext } from './common';
 import { registerConfigRoutes } from './config-routes';
 import { registerProfileRoutes } from './profile-routes';
@@ -16,7 +16,7 @@ import { registerProviderRoutes } from './provider-routes';
 import { registerSystemRoutes } from './system-routes';
 
 export const arrAdminRoutes: FastifyPluginAsync = async (instance) => {
-  instance.addHook('onRequest', requireRole('admin'));
+  guardAdminModule(instance);
   for (const kind of ARR_KINDS) {
     const ctx = adminContext(instance, kind);
     registerProfileRoutes(instance, ctx);

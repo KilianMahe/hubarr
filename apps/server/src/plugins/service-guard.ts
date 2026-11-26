@@ -10,7 +10,12 @@
 // - service désactivé, ou instance désactivée → 409 `SERVICE_NOT_CONFIGURED`
 //   (`details.reason = 'disabled'`) ;
 // - service non configuré → 409 `SERVICE_NOT_CONFIGURED` (`reason = 'missing'`).
-// Sans `:slug`, Radarr/Sonarr se lient à l'instance par défaut.
+// Sans `:slug`, Radarr/Sonarr se lient à l'instance par défaut (pour un
+// utilisateur : la première qu'il peut lire si la par défaut lui est fermée).
+//
+// Le droit du compte sur le service (instance comprise) est vérifié en premier :
+// 403 `FORBIDDEN` sans le niveau exigé (`access.ts`), slug inconnu compris pour
+// un compte qui n'est pas admin.
 //
 // Un service injoignable n'est pas refusé ici : l'original redirigeait la page
 // vers l'index du service (bannière) ; c'est le routeur Vue qui le fait, et les
@@ -21,10 +26,11 @@ import type { FastifyPluginAsync } from 'fastify';
 import fp from 'fastify-plugin';
 import { ApiError } from '../http/errors';
 import {
-  getDefaultInstance,
   getInstanceBySlug,
+  listEnabledInstances,
   type InstanceRow,
 } from '../modules/instances/instances';
+import { assertServiceAccess, canAccess, requiredLevel } from './access';
 import { isServiceConfigured, isServiceDisabled } from '../modules/services/config';
 
 declare module 'fastify' {
@@ -52,29 +58,45 @@ function notConfigured(
 const serviceGuardPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest('instance', null);
 
-  // `preHandler` : après la validation des paramètres et le contrôle d'accès.
-  app.addHook('preHandler', async (request) => {
+  // `onRequest`, après le contrôle d'accès commun et avant la validation : un
+  // compte sans droit reçoit 403 sans rien apprendre de la configuration (service
+  // absent, désactivé, slug inconnu) ni du format attendu. Le slug est lu brut.
+  app.addHook('onRequest', async (request) => {
     const service = request.routeOptions.config.service;
-    if (service === undefined) return;
+    if (service === undefined || request.is404) return;
+    const multi = service === 'radarr' || service === 'sonarr';
+    const rawSlug = multi ? (request.params as { slug?: unknown } | undefined)?.slug : undefined;
+    const slug = typeof rawSlug === 'string' && rawSlug !== '' ? rawSlug : null;
 
+    // 1. Droit du compte (sans slug : sur au moins une instance).
+    assertServiceAccess(request, service, slug);
+
+    // 2. État de la configuration.
     if (isServiceDisabled(app.db, service)) throw notConfigured(service, 'disabled');
-
-    if (service === 'radarr' || service === 'sonarr') {
-      const slug = (request.params as { slug?: unknown } | undefined)?.slug;
-      if (typeof slug === 'string' && slug !== '') {
-        const instance = getInstanceBySlug(app.db, service, slug);
-        if (instance === null) throw new ApiError(404, 'NOT_FOUND', { service });
-        if (!instance.enabled) throw notConfigured(service, 'disabled', instance.name);
-        request.instance = instance;
-        return;
-      }
-      const fallback = getDefaultInstance(app.db, service);
-      if (fallback === null) throw notConfigured(service, 'missing');
-      request.instance = fallback;
+    if (!multi) {
+      if (!isServiceConfigured(app.db, service)) throw notConfigured(service, 'missing');
       return;
     }
-
-    if (!isServiceConfigured(app.db, service)) throw notConfigured(service, 'missing');
+    if (slug !== null) {
+      const instance = getInstanceBySlug(app.db, service, slug);
+      if (instance === null) throw new ApiError(404, 'NOT_FOUND', { service });
+      if (!instance.enabled) throw notConfigured(service, 'disabled', instance.name);
+      request.instance = instance;
+      return;
+    }
+    // Sans slug : l'instance par défaut (pour un utilisateur : la première
+    // qu'il peut atteindre si la par défaut lui est fermée).
+    const rows = listEnabledInstances(app.db, service);
+    const level = requiredLevel(request);
+    const allowed = (row: InstanceRow) =>
+      level !== 'admin' && canAccess(request, service, row.slug, level);
+    const fallback =
+      request.user?.role === 'admin'
+        ? (rows.find((row) => row.isDefault) ?? rows[0])
+        : (rows.find((row) => row.isDefault && allowed(row)) ?? rows.find(allowed) ?? rows[0]);
+    if (fallback === undefined) throw notConfigured(service, 'missing');
+    assertServiceAccess(request, service, fallback.slug);
+    request.instance = fallback;
   });
 };
 

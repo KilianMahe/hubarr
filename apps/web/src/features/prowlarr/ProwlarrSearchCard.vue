@@ -20,6 +20,7 @@ import { fillLegacy } from '../../app/legacy-template';
 import { useNotifyStore } from '../../app/stores/notify';
 import { sortReleases, type ReleaseSort } from './search';
 import { prowlarrApi } from './prowlarr-api';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{ indexers: ProwlarrIndexer[] }>();
 const { t } = useI18n();
@@ -211,6 +212,7 @@ const COLUMNS = [
                   <td class="text-no-wrap text-muted">{{ age(release) }}</td>
                   <td class="text-end">
                     <v-btn
+                      v-write
                       size="small"
                       variant="tonal"
                       color="service-text"
@@ -249,6 +251,7 @@ const COLUMNS = [
                 </div>
                 <template #append>
                   <v-btn
+                    v-write
                     :icon="grabs.get(release.guid) === 'done' ? msCheck : msDownload"
                     size="small"
                     variant="text"

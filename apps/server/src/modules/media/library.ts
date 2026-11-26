@@ -20,6 +20,7 @@ import { LIBRARY_TIMEOUT_MS as SERIES_LIBRARY_TIMEOUT_MS } from '../../integrati
 import type { TmdbClient } from '../../integrations/tmdb/client';
 import { listEnabledInstances, type InstanceRow } from '../instances/instances';
 import { radarrClient, sonarrClient } from '../services/clients';
+import type { AccessScope } from '../users/access-scope';
 
 export interface Owned<T> {
   item: T;
@@ -31,8 +32,9 @@ async function collect<T>(
   app: FastifyInstance,
   type: 'radarr' | 'sonarr',
   load: (row: InstanceRow) => Promise<T[]>,
+  scope?: AccessScope,
 ): Promise<Owned<T>[]> {
-  const rows = listEnabledInstances(app.db, type);
+  const rows = scope === undefined ? listEnabledInstances(app.db, type) : scope.instances(type);
   const lists = await Promise.all(
     rows.map(async (row) => {
       try {
@@ -46,19 +48,27 @@ async function collect<T>(
   return lists.flat();
 }
 
-/** Films de toutes les instances Radarr actives. */
-export function collectMovies(app: FastifyInstance): Promise<Owned<Movie>[]> {
-  return collect(app, 'radarr', (row) =>
-    app.cache.library.movies(row.slug, () => radarrClient(app, row).movies(LIBRARY_TIMEOUT_MS)),
+/** Films des instances Radarr actives (celles que le compte peut lire, avec `scope`). */
+export function collectMovies(app: FastifyInstance, scope?: AccessScope): Promise<Owned<Movie>[]> {
+  return collect(
+    app,
+    'radarr',
+    (row) =>
+      app.cache.library.movies(row.slug, () => radarrClient(app, row).movies(LIBRARY_TIMEOUT_MS)),
+    scope,
   );
 }
 
-/** Séries de toutes les instances Sonarr actives. */
-export function collectSeries(app: FastifyInstance): Promise<Owned<Series>[]> {
-  return collect(app, 'sonarr', (row) =>
-    app.cache.library.series(row.slug, () =>
-      sonarrClient(app, row).seriesList(SERIES_LIBRARY_TIMEOUT_MS),
-    ),
+/** Séries des instances Sonarr actives (celles que le compte peut lire, avec `scope`). */
+export function collectSeries(app: FastifyInstance, scope?: AccessScope): Promise<Owned<Series>[]> {
+  return collect(
+    app,
+    'sonarr',
+    (row) =>
+      app.cache.library.series(row.slug, () =>
+        sonarrClient(app, row).seriesList(SERIES_LIBRARY_TIMEOUT_MS),
+      ),
+    scope,
   );
 }
 
@@ -101,12 +111,16 @@ export function seriesLibStatus(series: Series): LibStatus {
   return 'missing';
 }
 
-/** Index des titres déjà présents dans une bibliothèque. */
+/** Index des titres déjà présents dans une bibliothèque (instances lisibles, avec `scope`). */
 export async function buildLibraryIndex(
   app: FastifyInstance,
   tmdb: TmdbClient | null,
+  scope?: AccessScope,
 ): Promise<LibraryIndex> {
-  const [movies, series] = await Promise.all([collectMovies(app), collectSeries(app)]);
+  const [movies, series] = await Promise.all([
+    collectMovies(app, scope),
+    collectSeries(app, scope),
+  ]);
   const index: LibraryIndex = { movie: new Map(), tv: new Map() };
   for (const { item, slug } of movies) {
     if (item.tmdbId === null || item.tmdbId === 0 || item.id === null) continue;

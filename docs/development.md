@@ -42,7 +42,7 @@ Open `http://localhost:5173`. The front end (Vite) and the API (`tsx watch`) hot
 - **Contracts in `packages/shared`**: every endpoint declares its zod schemas in `packages/shared/src/schemas`; the front end infers its types from the same schemas.
 - **No hard-coded text** in the front end: i18n keys, in French and English (`packages/shared/src/i18n`). The `no-raw-text` ESLint rule enforces it.
 - **API errors** shaped as `{ code, message?, service?, details? }`; messages translated client side.
-- **Security**: `requireRole('admin')` on administration modules, CSRF token on every mutation, no service URL exposed to the browser (proxied images).
+- **Security**: every route declares its access policy (the server refuses to start otherwise): `guardAdminModule()` on Hubarr's administration modules, `guardServiceModule()` on service modules (each route declares `config.service`, and `config.permission` when the HTTP method does not tell read from write), `config.access: 'user'` only for a personal route or an aggregate that filters by `request.access` (pinned list in `route-policies.test.ts`), CSRF token on every mutation, no service URL exposed to the browser (proxied images).
 - **License**: `// SPDX-License-Identifier: AGPL-3.0-or-later` header in every source file (ESLint rule, fixable with `make lint-fix`). Accepted dependency licenses: MIT, Apache-2.0, ISC, BSD (checked by `tools/check-licenses.js`).
 - **Factor out**: one module for Radarr/Sonarr administration, one view for the torrent clients.
 - High-level documentation and comments in **French**, code and identifiers in **English**.
@@ -53,7 +53,7 @@ Open `http://localhost:5173`. The front end (Vite) and the API (`tsx watch`) hot
 1. **Client** in `apps/server/src/integrations/<service>`, on `integrations/http` (timeouts, circuit breaker, authentication, `UpstreamError`). Types generated from OpenAPI when the service publishes a spec, zod schemas otherwise.
 2. **Configuration**: declare the service in `packages/shared/src/constants/services.ts` (fields, connection test).
 3. **Schemas** of the endpoints in `packages/shared/src/schemas/<service>.ts`.
-4. **Fastify module** in `apps/server/src/modules/<service>`: routes, service guard, role, cache invalidation after mutations.
+4. **Fastify module** in `apps/server/src/modules/<service>`: routes, service guard and access (`guardServiceModule()`, `config.permission`), cache invalidation after mutations. On screen, hide write actions with `v-write` (or `useServiceAccess`).
 5. **Screen** in `apps/web/src/features/<service>`, routes in `app/router`, drawer entry, FR and EN i18n keys.
 6. **Fake service** in `e2e/mocks/src/<service>` and a Playwright test.
 7. **Page** in `docs/` (and `docs/fr/`).

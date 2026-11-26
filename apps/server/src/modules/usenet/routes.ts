@@ -2,8 +2,8 @@
 // Module Usenet (P3d.5) : les 15 routes de `UsenetController` sous
 // `/api/usenet/:client` (`sabnzbd` ou `nzbget`), plus les données des deux
 // pages (`GET /api/usenet/:client` : catégories et historique récent ;
-// `…/history?page=` : historique paginé). Réservé aux admins ; garde de
-// service selon le client.
+// `…/history?page=` : historique paginé). Garde de service et droit
+// d'accès selon le client.
 //
 // Écarts : client non configuré → 409 commun (l'original :
 // redirection ou 403) ; client injoignable → 503 commun et refus → 502 avec
@@ -39,7 +39,7 @@ import {
   urlBlockedReason,
 } from '../../integrations/http';
 import { NzbgetClient, SabnzbdClient, type UsenetClient } from '../../integrations/usenet/clients';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { isServiceConfigured, readServiceConfig } from '../services/config';
 
 export const RECENT_HISTORY_LIMIT = 15;
@@ -104,7 +104,13 @@ async function action(task: () => Promise<void>): Promise<{ ok: true }> {
 }
 
 export const usenetRoutes: FastifyPluginAsync = async (instance) => {
-  instance.addHook('onRequest', requireRole('admin'));
+  // Droit sur le client désigné par `:client` (ces routes ne déclarent pas `config.service`).
+  guardServiceModule(instance, (request) => {
+    const parsed = usenetClientIdSchema.safeParse(
+      (request.params as { client?: unknown } | undefined)?.client,
+    );
+    return parsed.success ? parsed.data : null;
+  });
   // Garde de service selon le paramètre `:client` (la garde commune lit `config.service`).
   instance.addHook('preHandler', async (request: FastifyRequest) => {
     const client = (request.params as { client?: unknown } | undefined)?.client;

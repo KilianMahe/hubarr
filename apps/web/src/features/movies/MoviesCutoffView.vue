@@ -15,6 +15,7 @@ import { moviesApi, moviesKeys } from './movies-api';
 import { useCutoffList } from './useArrList';
 import CutoffFilters from './CutoffFilters.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const format = useFormat();
@@ -105,6 +106,7 @@ async function upgrade(movie: CutoffMovie): Promise<void> {
           </v-list-item-subtitle>
           <template #append>
             <v-btn
+              v-write
               size="small"
               :variant="upgrades.get(movie.id) === 'launched' ? 'tonal' : 'flat'"
               :color="

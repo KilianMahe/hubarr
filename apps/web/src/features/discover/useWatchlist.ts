@@ -32,6 +32,8 @@ export function useWatchlist() {
   const notify = useNotifyStore();
   const client = useQueryClient();
   const enabled = computed(() => isConfigured(session.services, 'tmdb'));
+  /** Ajout et retrait : droit d'écriture sur TMDB (la watchlist en relève). */
+  const editable = computed(() => enabled.value && session.can('tmdb', null, 'write'));
   const status = useQuery({
     queryKey: discoverKeys.watchlistStatus,
     queryFn: ({ signal }) => discoverApi.watchlistStatus(signal),
@@ -66,6 +68,7 @@ export function useWatchlist() {
   });
   return {
     enabled,
+    editable,
     has: (type: TmdbMediaType, id: number) => keys.value.has(`${type}_${id}`),
     toggle: (item: WatchlistCandidate) => {
       toggle.mutate(item);

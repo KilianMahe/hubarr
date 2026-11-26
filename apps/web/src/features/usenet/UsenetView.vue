@@ -55,6 +55,7 @@ import {
 import { useLiveQuery } from '../../app/live';
 import StatTile from '../../components/ds/StatTile.vue';
 import ServiceHeader from '../../components/ds/ServiceHeader.vue';
+import { vWrite } from '../../app/access';
 
 const route = useRoute();
 const i18n = useI18n();
@@ -320,6 +321,7 @@ const statusColor = (item: UsenetDownload) =>
       <v-spacer />
       <v-btn
         v-if="!smAndDown"
+        v-write
         :prepend-icon="msAdd"
         color="service"
         variant="flat"
@@ -329,6 +331,7 @@ const statusColor = (item: UsenetDownload) =>
       >
       <v-btn
         v-if="queue.data.value?.paused"
+        v-write
         :prepend-icon="msPlayArrowFill"
         variant="tonal"
         data-test="usenet-resume-all"
@@ -337,6 +340,7 @@ const statusColor = (item: UsenetDownload) =>
       >
       <v-btn
         v-else
+        v-write
         :prepend-icon="msPauseFill"
         variant="tonal"
         data-test="usenet-pause-all"
@@ -345,6 +349,7 @@ const statusColor = (item: UsenetDownload) =>
       >
       <v-text-field
         v-model="speedInput"
+        v-write
         :label="t('usenet.toolbar.speed_limit')"
         :placeholder="t('usenet.toolbar.speed_limit_placeholder')"
         density="compact"
@@ -386,6 +391,7 @@ const statusColor = (item: UsenetDownload) =>
 
       <div class="d-flex flex-wrap align-center ga-2 mb-2">
         <v-checkbox-btn
+          v-write
           :model-value="allSelected"
           :indeterminate="selected.size > 0 && !allSelected"
           density="compact"
@@ -460,6 +466,7 @@ const statusColor = (item: UsenetDownload) =>
               >
                 <td @click.stop>
                   <v-checkbox-btn
+                    v-write
                     :model-value="selected.has(item.id)"
                     density="compact"
                     :aria-label="item.name"
@@ -477,6 +484,7 @@ const statusColor = (item: UsenetDownload) =>
                 <td>{{ t(`usenet.status.${item.status}`) }}</td>
                 <td class="text-end text-no-wrap" @click.stop>
                   <v-btn
+                    v-write
                     :icon="item.status === 'paused' ? msPlayArrowFill : msPauseFill"
                     size="small"
                     variant="text"
@@ -486,6 +494,7 @@ const statusColor = (item: UsenetDownload) =>
                     @click="itemAction(item, item.status === 'paused' ? 'resume' : 'pause')"
                   />
                   <v-btn
+                    v-write
                     :icon="msDelete"
                     size="small"
                     variant="text"
@@ -507,6 +516,7 @@ const statusColor = (item: UsenetDownload) =>
             >
               <template #prepend>
                 <v-checkbox-btn
+                  v-write
                   :model-value="selected.has(item.id)"
                   density="compact"
                   :aria-label="item.name"
@@ -554,6 +564,7 @@ const statusColor = (item: UsenetDownload) =>
               </template>
               <template #append>
                 <v-btn
+                  v-write
                   :icon="item.status === 'paused' ? msPlayArrowFill : msPauseFill"
                   size="small"
                   variant="text"
@@ -564,6 +575,7 @@ const statusColor = (item: UsenetDownload) =>
                   @click.stop="itemAction(item, item.status === 'paused' ? 'resume' : 'pause')"
                 />
                 <v-btn
+                  v-write
                   :icon="msDelete"
                   size="small"
                   variant="text"
@@ -602,6 +614,7 @@ const statusColor = (item: UsenetDownload) =>
     <v-slide-y-reverse-transition>
       <v-card
         v-if="selected.size > 0"
+        v-write
         class="bulk-bar d-flex flex-wrap align-center ga-2 pa-2 mt-3"
         elevation="6"
         data-test="usenet-bulk"
@@ -681,9 +694,14 @@ const statusColor = (item: UsenetDownload) =>
         </tbody>
       </v-table>
       <template #actions>
-        <v-btn v-if="detail" color="error" variant="tonal" @click="askDelete([detail.id])">{{
-          t('usenet.actions.delete')
-        }}</v-btn>
+        <v-btn
+          v-if="detail"
+          v-write
+          color="error"
+          variant="tonal"
+          @click="askDelete([detail.id])"
+          >{{ t('usenet.actions.delete') }}</v-btn
+        >
         <v-btn variant="text" @click="detail = null">{{ t('common.action.close') }}</v-btn>
       </template>
     </ResponsiveDialog>

@@ -2,7 +2,7 @@
 // Recherche globale (P4.5) : port de `GlobalSearchNormalizationTest`
 // (accents et casse ignorés, « commence par » d'abord, départage sur le titre
 // brut, titre original cherché, champs internes retirés, 12 résultats au
-// plus), recherche en ligne, réservée aux admins ; vocabulaire de correction
+// plus), recherche en ligne, limitée aux instances lisibles ; vocabulaire de correction
 // (`SearchVocabularyTest`).
 
 import type { LocalSearchHit, OnlineSearchHit } from '@hubarr/shared';
@@ -102,11 +102,26 @@ describe('routes', () => {
     ]);
   });
 
-  it('réservée aux admins', async () => {
-    env = await mediaEnv({ role: 'user' });
-    expect(
-      (await env.browser.get(`/api/medias/${env.radarr.slug}/search?q=matrix`)).statusCode,
-    ).toBe(403);
+  it('utilisateur simple : instances lisibles seulement, en local comme en ligne', async () => {
+    env = await mediaEnv({
+      role: 'user',
+      permissions: ({ radarr4k }) => ({ [`radarr:${radarr4k.slug}`]: 'read' }),
+    });
+    env.up.radarr.on('GET /api/v3/movie', { body: [movie(1, { title: 'Matrix A' })] });
+    env.up.radarr4k.on('GET /api/v3/movie', { body: [movie(2, { title: 'Matrix B' })] });
+    env.up.sonarr.on('GET /api/v3/series', { body: [series(1, { title: 'Matrix Show' })] });
+    env.up.radarr4k.on('GET /api/v3/movie/lookup', {
+      body: [movie(0, { id: undefined, tmdbId: 700, title: 'Matrix C' })],
+    });
+    const local = (await env.browser.get(`/api/medias/${env.radarr.slug}/search?q=matrix`)).json<
+      LocalSearchHit[]
+    >();
+    expect(local.map((h) => [h.title, h.instance.slug])).toEqual([['Matrix B', env.radarr4k.slug]]);
+    // Instance du slug fermée : la recherche en ligne passe par l'instance lisible.
+    const online = (
+      await env.browser.get(`/api/medias/${env.radarr.slug}/search/online?q=matrix`)
+    ).json<OnlineSearchHit[]>();
+    expect(online.map((h) => h.title)).toEqual(['Matrix C']);
   });
 });
 

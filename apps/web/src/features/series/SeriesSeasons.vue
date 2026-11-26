@@ -42,6 +42,7 @@ import {
   seasonLabel,
   type SearchState,
 } from './series-detail';
+import { pageReadOnly, vWrite } from '../../app/access';
 
 const props = defineProps<{
   episodes: Episode[];
@@ -184,7 +185,7 @@ const isWatched = (episode: Episode) =>
           :color="group.monitored ? 'service-text' : 'muted'"
           variant="text"
           size="small"
-          :disabled="!seriesMonitored"
+          :disabled="!seriesMonitored || pageReadOnly"
           :aria-pressed="group.monitored"
           :aria-label="monitorTitle(group.monitored)"
           :title="monitorTitle(group.monitored)"
@@ -192,6 +193,7 @@ const isWatched = (episode: Episode) =>
           @click="emit('seasonMonitor', group.seasonNumber, !group.monitored)"
         />
         <v-btn
+          v-write
           :icon="searches[`s${group.seasonNumber}`] === 'done' ? msCheck : msSearch"
           :loading="searches[`s${group.seasonNumber}`] === 'running'"
           variant="tonal"
@@ -217,18 +219,21 @@ const isWatched = (episode: Episode) =>
           </template>
           <v-list density="compact">
             <v-list-item
+              v-write
               :prepend-icon="msManageSearch"
               :title="t('media.series.detail.season_interactive_search')"
               data-test="season-interactive"
               @click="emit('interactiveSeason', group.seasonNumber)"
             />
             <v-list-item
+              v-write
               :prepend-icon="msFileCopy"
               :title="t('media.series.detail.manage_files')"
               data-test="season-files"
               @click="emit('seasonFiles', group.seasonNumber)"
             />
             <v-list-item
+              v-write
               :prepend-icon="msEditSquare"
               :title="t('media.series.detail.rename_files')"
               data-test="season-rename"
@@ -265,7 +270,7 @@ const isWatched = (episode: Episode) =>
             :color="episode.monitored ? 'service-text' : 'muted'"
             variant="text"
             size="x-small"
-            :disabled="!seriesMonitored"
+            :disabled="!seriesMonitored || pageReadOnly"
             :aria-pressed="episode.monitored"
             :aria-label="monitorTitle(episode.monitored)"
             :title="monitorTitle(episode.monitored)"
@@ -324,6 +329,7 @@ const isWatched = (episode: Episode) =>
               :title="infoTip(episode)"
             />
             <v-btn
+              v-write
               :icon="searches[`e${episode.id}`] === 'done' ? msCheck : msSearch"
               :loading="searches[`e${episode.id}`] === 'running'"
               variant="text"
@@ -335,6 +341,7 @@ const isWatched = (episode: Episode) =>
               @click="emit('searchEpisode', episode)"
             />
             <v-btn
+              v-write
               :icon="msManageSearch"
               variant="text"
               class="episode__action"
@@ -346,6 +353,7 @@ const isWatched = (episode: Episode) =>
             />
             <v-btn
               v-if="episode.hasFile"
+              v-write
               :icon="msDelete"
               variant="text"
               class="episode__action episode__action--danger"

@@ -15,12 +15,14 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { pageReadOnly, useServiceAccess } from '../app/access';
 import { useDownloadWatchers } from '../app/download-watch';
 import { pageHeader } from '../app/page-header';
 import { useRestoredRefreshing } from '../app/query-persist';
 import { SERVICE_SETTINGS } from '@hubarr/shared';
 import { isHomeRoute, visibleBottomNav } from '../app/home-tabs';
 import { bottomNavActive, type BottomNavItem } from '../app/navigation';
+import { serviceOfRoute } from '../app/router/guards';
 import { useSessionStore } from '../app/stores/session';
 import {
   isAdministered,
@@ -141,10 +143,20 @@ const mobileService = computed(
     smAndDown.value && route.matched.some((r) => Boolean(r.meta.service ?? r.meta.serviceParam)),
 );
 const selection = computed(() => (smAndDown.value ? chrome.selection.value : null));
+// Droits sur le service de la page : en lecture seule, ni FAB (ajout, actions
+// de la fiche) ni action d'écriture ; une pastille le signale dans la barre.
+const routeService = computed(() => serviceOfRoute(route));
+const routeAccess = useServiceAccess(routeService, () =>
+  typeof route.params.slug === 'string' ? route.params.slug : null,
+);
+const readOnly = computed(
+  () => routeService.value !== null && routeAccess.canRead.value && !routeAccess.canWrite.value,
+);
+watch(readOnly, (value) => (pageReadOnly.value = value), { immediate: true });
 // FAB : celui de la page (speed-dial des fiches…), sinon celui de la route,
 // qui mène à la page d'index du service avec `?action=` (`useFabQueryAction`).
 const fab = computed<FabSpec | null>(() => {
-  if (!smAndDown.value) return null;
+  if (!smAndDown.value || readOnly.value) return null;
   if (chrome.fab.value) return chrome.fab.value;
   const spec = [...route.matched].reverse().find((r) => r.meta.fab)?.meta.fab;
   if (!spec) return null;
@@ -179,6 +191,7 @@ const fab = computed<FabSpec | null>(() => {
   <AppTopBar
     :title="title"
     :subtitle="subtitle"
+    :read-only="readOnly"
     :show-nav-toggle="!lgAndUp"
     :pill="mobileService"
     :search="mobileService ? chrome.search.value : null"

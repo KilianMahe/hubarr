@@ -150,6 +150,14 @@
       },
       "use_default": "Use instance default language"
     },
+    "notifications": {
+      "title": "Notifications",
+      "label": "{count, plural, =0 {Notifications} one {Notifications, # unread} other {Notifications, # unread}}",
+      "mark_all_read": "Mark all as read",
+      "clear": "Clear all",
+      "remove": "Remove notification",
+      "empty": "No notifications."
+    },
     "health": {
       "title": "Services health",
       "summary_ok": "All services OK",
@@ -898,7 +906,8 @@
       "logs": "Logs",
       "updates": "Updates",
       "about": "About",
-      "aria_label": "Settings sections"
+      "aria_label": "Settings sections",
+      "users": "Users"
     },
     "services": {
       "title": "External services",
@@ -1076,8 +1085,8 @@
         }
       },
       "toasts": {
-        "label": "Toast notifications",
-        "help": "Transient bubbles at the bottom of the screen (downloads finished, errors)."
+        "label": "Toasts",
+        "help": "Brief pop-ups confirming an action. When disabled, only errors are still shown; everything is still recorded in the notification center (bell)."
       },
       "timezone": {
         "label": "Timezone",
@@ -6607,6 +6616,75 @@
       "gone": "This playback has already ended",
       "error_reason": "Could not stop the playback: {reason}",
       "error_unknown": "unknown error"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "description": "Accounts that can sign in to Hubarr. An admin has every right; a user only reaches the services you open to them, read-only or read and write.",
+    "you": "You",
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "level": {
+      "none": "None",
+      "read": "Read",
+      "write": "Write"
+    },
+    "action": {
+      "add": "Add a user",
+      "create": "Create account",
+      "save": "Save",
+      "edit": "Edit {name}",
+      "delete": "Delete {name}"
+    },
+    "summary": {
+      "all": "Every right",
+      "none": "No access",
+      "counts": "Write: {write} · Read: {read}"
+    },
+    "last_login": {
+      "never": "Never signed in",
+      "at": "Last sign-in: {date}"
+    },
+    "delete_confirm": "Delete {name}'s account? Their open sessions are closed. This cannot be undone.",
+    "flash": {
+      "created": "Account for {name} created",
+      "saved": "Account for {name} saved",
+      "deleted": "Account for {name} deleted"
+    },
+    "dialog": {
+      "add_title": "New user",
+      "edit_title": "Edit {name}"
+    },
+    "field": {
+      "email": "Email",
+      "display_name": "Display name",
+      "display_name_hint": "Optional; the email is shown otherwise.",
+      "password": "Temporary password",
+      "password_hint": "At least {min} characters. Give it to the user, who can change it in their profile.",
+      "password_reset": "New temporary password",
+      "password_reset_hint": "Leave empty to keep it. A new password closes the account's open sessions.",
+      "role": "Role",
+      "role_self_hint": "You cannot change your own role."
+    },
+    "permissions": {
+      "title": "Service access",
+      "admin_all": "An admin has every right on every service, and on Hubarr's settings.",
+      "set_all": "All:",
+      "hint": "Read: browse the service's pages. Write: also act on them (add, edit, delete, start a search…). Service settings stay admin-only.",
+      "no_service": "No service is configured yet."
+    },
+    "read_only": {
+      "label": "Read-only",
+      "hint": "Your account can browse this service but not act on it."
+    },
+    "error": {
+      "email_invalid": "Invalid email address.",
+      "password_too_short": "The password must be at least {min} characters long.",
+      "email_taken": "An account already uses this email.",
+      "last_admin": "Not allowed: you cannot delete your own account or remove your own admin role, and Hubarr must keep at least one admin.",
+      "forbidden": "Not allowed: your account does not have this right on this service."
     }
   }
 }

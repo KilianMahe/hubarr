@@ -13,6 +13,7 @@ import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { useNotifyStore } from '../../app/stores/notify';
 import DialogTitle from '../../components/DialogTitle.vue';
+import { useServiceAccess, vWrite } from '../../app/access';
 import { bazarrApi, bazarrKeys } from './bazarr-api';
 
 const props = defineProps<{
@@ -25,6 +26,8 @@ const props = defineProps<{
 const open = defineModel<boolean>({ required: true });
 const emit = defineEmits<{ downloaded: [] }>();
 const { t } = useI18n();
+// Recherche ouverte à la lecture ; téléchargement : droit d'écriture sur Bazarr.
+const { canWrite: bazarrWrite } = useServiceAccess('bazarr');
 const { smAndDown } = useDisplay();
 const notify = useNotifyStore();
 const queryClient = useQueryClient();
@@ -138,6 +141,7 @@ const results = computed(() => search.data.value?.results ?? []);
                 <td class="text-muted">{{ result.uploader ?? '' }}</td>
                 <td class="text-end">
                   <v-btn
+                    v-write="bazarrWrite"
                     size="small"
                     color="service"
                     variant="tonal"

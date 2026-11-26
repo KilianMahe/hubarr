@@ -145,7 +145,7 @@ const icalUrl = computed(() => absoluteAppUrl('/calendrier.ics'));
 async function copyIcal(): Promise<void> {
   try {
     await navigator.clipboard.writeText(icalUrl.value);
-    notify.success('common.labels.copied');
+    notify.success('common.labels.copied', undefined, { history: false });
   } catch {
     notify.error('error.generic.message');
   }
@@ -361,7 +361,7 @@ const MAX_PER_CELL = 3;
         v-for="(day, i) in week"
         :key="day"
         class="cal-week__day"
-        :class="{ 'cal-month__cell--today': day === today }"
+        :class="{ 'cal-week__day--today': day === today }"
       >
         <button type="button" class="cal-week__head text-label-large" @click="openDay(day)">
           {{ weekdayNames[i] }} {{ Number(day.slice(8, 10)) }}
@@ -459,11 +459,17 @@ const MAX_PER_CELL = 3;
 .cal-month__cell--other {
   opacity: 0.45;
 }
-/* Jour choisi, listé sous la grille (mobile et desktop, V26). */
+/* Jour choisi, listé sous la grille (mobile et desktop, V26) : encadré. */
 .cal-month__cell--selected {
   background: rgba(var(--v-theme-primary), 0.18);
+  outline: 2px solid rgb(var(--v-theme-primary));
 }
-.cal-month__cell--today {
+/* Jour actuel : numéro en couleur primaire, l'encadré reste au jour choisi. */
+.cal-month__cell--today > .text-label-medium {
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+}
+.cal-week__day--today {
   outline: 2px solid rgb(var(--v-theme-primary));
 }
 .cal-month__cell--past .cal-block {

@@ -49,11 +49,13 @@ const series = useQuery({
   enabled: computed(() => props.kind === 'sonarr'),
   retry: false,
 });
-// Même clé que la page Système (`ArrSystemView`).
+// Même clé que la page Système (`ArrSystemView`), réservée aux admins : un
+// utilisateur ne voit pas la version du service.
 const system = useQuery({
   queryKey: computed(() => [props.kind, slug.value, 'page', 'system']),
   queryFn: ({ signal }) =>
     (props.kind === 'radarr' ? moviesApi : seriesApi).system(slug.value, signal),
+  enabled: computed(() => session.isAdmin),
   retry: false,
 });
 const version = computed(() => system.data.value?.status?.version ?? null);
@@ -121,32 +123,40 @@ const groups = computed<ServerGroup[]>(() => {
           to: { name: page.name, params: { slug: slug.value } },
         })),
     },
-    {
-      title: t('server.group.commands'),
-      items: [
-        {
-          id: 'refresh-all',
-          icon: msRefresh,
-          label: refreshLabel,
-          run: () => command(api.refreshAll, refreshLabel),
-        },
-        {
-          id: 'rss-sync',
-          icon: msRssFeed,
-          label: rssLabel,
-          run: () => command(api.rssSync, rssLabel),
-        },
-        {
-          id: 'search-missing',
-          icon: msTroubleshoot,
-          label: missingLabel,
-          confirm: t('server.commands.search_missing_confirm'),
-          run: () =>
-            command(radarr ? moviesApi.searchAllMissing : seriesApi.missingSearch, missingLabel),
-        },
-      ],
-    },
-    ...adminMenu(props.kind, 'service').map((group) => ({
+    // Commandes : droit d'écriture sur l'instance ; administration : admins.
+    ...(!session.can(props.kind, slug.value, 'write')
+      ? []
+      : [
+          {
+            title: t('server.group.commands'),
+            items: [
+              {
+                id: 'refresh-all',
+                icon: msRefresh,
+                label: refreshLabel,
+                run: () => command(api.refreshAll, refreshLabel),
+              },
+              {
+                id: 'rss-sync',
+                icon: msRssFeed,
+                label: rssLabel,
+                run: () => command(api.rssSync, rssLabel),
+              },
+              {
+                id: 'search-missing',
+                icon: msTroubleshoot,
+                label: missingLabel,
+                confirm: t('server.commands.search_missing_confirm'),
+                run: () =>
+                  command(
+                    radarr ? moviesApi.searchAllMissing : seriesApi.missingSearch,
+                    missingLabel,
+                  ),
+              },
+            ],
+          },
+        ]),
+    ...(!session.isAdmin ? [] : adminMenu(props.kind, 'service')).map((group) => ({
       title: t(group.labelKey),
       items: group.pages.map((page) => ({
         id: page.name,

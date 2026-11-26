@@ -85,6 +85,7 @@ import {
 } from './library';
 import { seriesApi, seriesKeys } from './series-api';
 import { useSubtitleStatuses } from '../bazarr/bazarr-api';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -581,6 +582,7 @@ void resumeActiveCommands();
     >
       <v-btn
         v-if="mdAndUp"
+        v-write
         :prepend-icon="msAdd"
         color="service"
         variant="flat"
@@ -592,6 +594,7 @@ void resumeActiveCommands();
       <v-menu location="bottom end">
         <template #activator="{ props: menuProps }">
           <v-btn
+            v-write
             v-bind="menuProps"
             :icon="msMoreVert"
             size="small"
@@ -729,6 +732,7 @@ void resumeActiveCommands();
           />
           <v-btn
             v-if="mdAndUp"
+            v-write
             :prepend-icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'outlined'"
@@ -741,6 +745,7 @@ void resumeActiveCommands();
           >
           <v-btn
             v-else
+            v-write
             :icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'text'"
@@ -760,6 +765,7 @@ void resumeActiveCommands();
       <div v-if="activeFilter || query.q !== ''" class="d-flex flex-wrap align-center ga-2 mb-2">
         <template v-if="activeFilter">
           <v-btn
+            v-write
             :prepend-icon="msRefresh"
             size="small"
             variant="tonal"
@@ -771,6 +777,7 @@ void resumeActiveCommands();
             >{{ t('media.series.actions.refresh_filtered') }}</v-btn
           >
           <v-btn
+            v-write
             :prepend-icon="msSearch"
             size="small"
             variant="tonal"
@@ -881,16 +888,32 @@ void resumeActiveCommands();
       @clear="toggleSelectMode"
       @select-all="selectAll"
     >
-      <v-btn size="small" variant="tonal" data-test="bulk-edit" @click="openDialog('edit')">{{
-        t('media.series.bulk.edit')
-      }}</v-btn>
-      <v-btn size="small" variant="tonal" data-test="bulk-tags" @click="openDialog('tags')">{{
-        t('media.series.bulk.tags')
-      }}</v-btn>
-      <v-btn size="small" variant="tonal" data-test="bulk-rename" @click="openDialog('rename')">{{
-        t('media.series.bulk.rename')
-      }}</v-btn>
       <v-btn
+        v-write
+        size="small"
+        variant="tonal"
+        data-test="bulk-edit"
+        @click="openDialog('edit')"
+        >{{ t('media.series.bulk.edit') }}</v-btn
+      >
+      <v-btn
+        v-write
+        size="small"
+        variant="tonal"
+        data-test="bulk-tags"
+        @click="openDialog('tags')"
+        >{{ t('media.series.bulk.tags') }}</v-btn
+      >
+      <v-btn
+        v-write
+        size="small"
+        variant="tonal"
+        data-test="bulk-rename"
+        @click="openDialog('rename')"
+        >{{ t('media.series.bulk.rename') }}</v-btn
+      >
+      <v-btn
+        v-write
         size="small"
         variant="tonal"
         color="error"

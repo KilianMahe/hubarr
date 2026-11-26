@@ -159,7 +159,7 @@ function star(): void {
     <v-card-text>
       <div class="d-flex flex-wrap ga-2 mb-4">
         <v-btn
-          v-if="watchlist.enabled.value"
+          v-if="watchlist.editable.value"
           :prepend-icon="inWatchlist ? msStarFill : msStar"
           :color="inWatchlist ? 'warning' : undefined"
           variant="tonal"
@@ -170,7 +170,7 @@ function star(): void {
           }}</v-btn
         >
         <v-btn
-          v-if="session.isAdmin && !d.inLibrary"
+          v-if="!d.inLibrary && session.can(d.type === 'tv' ? 'sonarr' : 'radarr', null, 'write')"
           :prepend-icon="msAdd"
           color="primary"
           data-test="detail-add"
@@ -179,7 +179,7 @@ function star(): void {
             t('decouverte.modal.add_to', { service: d.type === 'tv' ? 'Sonarr' : 'Radarr' })
           }}</v-btn
         >
-        <v-btn v-if="session.isAdmin && libraryLocation" :to="libraryLocation" variant="tonal">{{
+        <v-btn v-if="libraryLocation" :to="libraryLocation" variant="tonal">{{
           t('decouverte.modal.view_in', {
             section: t(
               d.type === 'tv' ? 'decouverte.modal.view_series' : 'decouverte.modal.view_movies',

@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import { USER_ROLES } from '../constants/domain';
+import { userPermissionsSchema } from './users';
 
 /** Utilisateur tel que l'API l'expose (jamais le hash du mot de passe). */
 export const authUserSchema = z.object({
@@ -13,6 +14,8 @@ export const authUserSchema = z.object({
   displayName: z.string(),
   /** URL de l'avatar (`/api/profil/avatar/file/…`), ou `null` : le front affiche alors les initiales. */
   avatarUrl: z.string().nullable(),
+  /** Droits par service (`hasAccess`) ; vide pour un admin, qui a tous les droits. */
+  permissions: userPermissionsSchema,
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 

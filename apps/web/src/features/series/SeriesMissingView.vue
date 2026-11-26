@@ -16,6 +16,7 @@ import SonarrNav from './SonarrNav.vue';
 import { episodeCode } from './library';
 import { seriesApi, seriesKeys } from './series-api';
 import { mediaDetailLocation } from '../../app/media-links';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const { slug, page, setPage } = useRoutePage();
@@ -73,6 +74,7 @@ async function searchAll(): Promise<void> {
       <v-spacer />
       <v-btn
         v-if="records.length > 0"
+        v-write
         :prepend-icon="msSearch"
         color="service"
         variant="flat"
@@ -124,6 +126,7 @@ async function searchAll(): Promise<void> {
             <td class="text-muted">{{ episode.airDate ?? '—' }}</td>
             <td class="text-end">
               <v-btn
+                v-write
                 :icon="STATE_ICONS[states[episode.id] ?? 'running']"
                 :loading="states[episode.id] === 'running'"
                 :color="

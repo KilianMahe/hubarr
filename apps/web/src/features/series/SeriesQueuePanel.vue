@@ -44,6 +44,7 @@ import {
 } from './series-queue';
 import { useLiveQuery } from '../../app/live';
 import { useNotifyStore } from '../../app/stores/notify';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{ slug: string; standalone?: boolean }>();
 const emit = defineEmits<{
@@ -264,6 +265,7 @@ function statusLabel(item: SeriesQueueItem): string {
           <v-spacer />
           <v-btn
             v-if="warnings.stale.length > 0"
+            v-write
             size="small"
             color="warning"
             variant="flat"
@@ -274,6 +276,7 @@ function statusLabel(item: SeriesQueueItem): string {
           >
           <v-btn
             v-if="warnings.blocked.length > 0"
+            v-write
             size="small"
             color="service"
             variant="flat"
@@ -344,6 +347,7 @@ function statusLabel(item: SeriesQueueItem): string {
             <td class="text-end text-no-wrap series-queue__actions">
               <template v-if="standalone && item.seriesId !== null">
                 <v-btn
+                  v-write
                   :icon="msRefresh"
                   size="small"
                   variant="text"
@@ -354,6 +358,7 @@ function statusLabel(item: SeriesQueueItem): string {
                   @click="seriesCommand(item, 'refresh')"
                 />
                 <v-btn
+                  v-write
                   :icon="msFolderOpen"
                   size="small"
                   variant="text"
@@ -366,6 +371,7 @@ function statusLabel(item: SeriesQueueItem): string {
               </template>
               <v-btn
                 v-if="isManageable(item)"
+                v-write
                 :icon="msBuild"
                 size="small"
                 variant="text"
@@ -377,6 +383,7 @@ function statusLabel(item: SeriesQueueItem): string {
               />
               <v-btn
                 v-if="queueActions(item).grab"
+                v-write
                 :icon="msDownload"
                 size="small"
                 variant="text"
@@ -388,6 +395,7 @@ function statusLabel(item: SeriesQueueItem): string {
                 @click="grab(item)"
               />
               <v-btn
+                v-write
                 :icon="msClose"
                 size="small"
                 variant="text"

@@ -2,13 +2,21 @@
 // Environnement de test des routes Prowlarr (P3c) : application, admin
 // connecté, Prowlarr configuré sur un faux upstream (réponses par « MÉTHODE
 // chemin », appels enregistrés) ; `url()` vise `/api/prowlarr<chemin>`.
+// `permissions` : droits d'un compte `user`.
 
+import type { UserPermissions } from '@hubarr/shared';
 import type { FastifyInstance } from 'fastify';
 import { MockAgent } from 'undici';
 import { buildApp } from '../../../src/app';
 import type { AppDatabase } from '../../../src/db/client';
 import { applyServicePatch } from '../../../src/modules/services/config';
-import { TestBrowser, UNUSED_DATA_DIR, createTestDatabase, createUser } from '../../helpers';
+import {
+  TestBrowser,
+  UNUSED_DATA_DIR,
+  createTestDatabase,
+  createUser,
+  grantPermissions,
+} from '../../helpers';
 import { EMAIL, PASSWORD, fakeRadarr, noDns, type FakeRadarr } from '../movies/radarr-env';
 
 export const PROWLARR_ORIGIN = 'http://prowlarr.test:9696';
@@ -24,14 +32,19 @@ export interface ProwlarrEnv {
 }
 
 export async function prowlarrEnv(
-  options: { role?: 'admin' | 'user'; configured?: boolean } = {},
+  options: { role?: 'admin' | 'user'; configured?: boolean; permissions?: UserPermissions } = {},
 ): Promise<ProwlarrEnv> {
   const database = await createTestDatabase();
   const agent = new MockAgent();
   agent.disableNetConnect();
   const prowlarr = fakeRadarr(agent, PROWLARR_ORIGIN);
   const app = buildApp({ database, dataDir: UNUSED_DATA_DIR, dispatcher: agent, ...noDns });
-  await createUser(database, { email: EMAIL, password: PASSWORD, role: options.role ?? 'admin' });
+  const userId = await createUser(database, {
+    email: EMAIL,
+    password: PASSWORD,
+    role: options.role ?? 'admin',
+  });
+  if (options.permissions !== undefined) grantPermissions(database, userId, options.permissions);
   if (options.configured !== false) {
     applyServicePatch(database.db, 'prowlarr', { url: PROWLARR_ORIGIN, apiKey: 'prowlarr-key' });
   }

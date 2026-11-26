@@ -17,6 +17,10 @@ export const API_ERROR_CODES = [
   'PAYLOAD_TOO_LARGE',
   'AVATAR_MISSING',
   'AVATAR_INVALID_TYPE',
+  /** Adresse déjà prise par un autre compte. */
+  'EMAIL_TAKEN',
+  /** Opération qui laisserait Hubarr sans administrateur (ou retirerait ses droits au compte courant). */
+  'LAST_ADMIN',
   'SERVICE_NOT_CONFIGURED',
   'SERVICE_UNREACHABLE',
   'UPSTREAM_ERROR',

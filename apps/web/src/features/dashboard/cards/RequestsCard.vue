@@ -29,7 +29,7 @@ const ago = (iso: string | null) => {
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.requests.title')"
     :icon="msMoveToInbox"
-    :to="session.isAdmin ? { name: 'seerr' } : undefined"
+    :to="session.can('seerr', null, 'read') ? { name: 'seerr' } : undefined"
     :link-label="t('dashboard.requests.manage_cta')"
     :loading="query.isFetching.value"
     data-test="card-requests"

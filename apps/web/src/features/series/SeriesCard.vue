@@ -23,6 +23,7 @@ import {
   seriesDisplayState,
   seriesStateTitle,
 } from './library';
+import { pageReadOnly } from '../../app/access';
 
 const props = defineProps<{
   series: SeriesLibraryItem;
@@ -99,14 +100,14 @@ const monitorLabel = computed(() =>
     </template>
     <template #action>
       <component
-        :is="selectMode ? 'span' : 'button'"
+        :is="selectMode || pageReadOnly ? 'span' : 'button'"
         class="poster-monitor"
-        :type="selectMode ? undefined : 'button'"
-        :aria-pressed="selectMode ? undefined : series.monitored"
+        :type="selectMode || pageReadOnly ? undefined : 'button'"
+        :aria-pressed="selectMode || pageReadOnly ? undefined : series.monitored"
         :aria-label="monitorLabel"
         :title="monitorLabel"
         data-test="series-card-monitor"
-        @click="!selectMode && emit('monitor')"
+        @click="!selectMode && !pageReadOnly && emit('monitor')"
       >
         <v-icon :icon="series.monitored ? msBookmarkFill : msBookmark" size="20" />
       </component>

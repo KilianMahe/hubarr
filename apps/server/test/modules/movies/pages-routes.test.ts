@@ -11,7 +11,8 @@ import type {
   MovieCollection,
 } from '@hubarr/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { rawMovie, radarrEnv, warmLibrary, type RadarrEnv } from './radarr-env';
+import { demoteUser } from '../../helpers';
+import { EMAIL, rawMovie, radarrEnv, warmLibrary, type RadarrEnv } from './radarr-env';
 
 let env: RadarrEnv;
 beforeEach(async () => {
@@ -36,6 +37,14 @@ describe('file d’attente', () => {
     expect(env.radarr.callsTo('POST', '/api/v3/command')[0]?.body).toEqual({
       name: 'RefreshMonitoredDownloads',
     });
+  });
+
+  it('refresh-downloads ouvert au droit de lecture ; import refusé', async () => {
+    demoteUser(env.database, EMAIL, { [`radarr:${env.instance.slug}`]: 'read' });
+    env.radarr.on('POST', '/api/v3/command', { id: 1 });
+    expect((await env.browser.post(env.url('/command/refresh-downloads'))).statusCode).toBe(200);
+    expect((await env.browser.post(env.url('/queue/9/import'))).statusCode).toBe(403);
+    expect(env.radarr.callsTo('POST', '/api/v3/command')).toHaveLength(1);
   });
 
   it('import forcé : import manuel du dossier de sortie avec qualité et langues de la file', async () => {
@@ -426,6 +435,12 @@ describe('collections', () => {
 
 describe('système', () => {
   const systemUrl = () => `/api/medias/${env.instance.slug}/radarr/systeme`;
+
+  it('réservé aux admins : un droit d’écriture ne suffit pas', async () => {
+    demoteUser(env.database, EMAIL, { [`radarr:${env.instance.slug}`]: 'write' });
+    expect((await env.browser.get(systemUrl())).statusCode).toBe(403);
+    expect(env.radarr.callsTo('GET', '/api/v3/system/status')).toHaveLength(0);
+  });
 
   it('sections normalisées ; une section en échec vaut null', async () => {
     env.radarr.on('GET', '/api/v3/system/status', {

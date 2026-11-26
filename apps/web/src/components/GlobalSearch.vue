@@ -60,10 +60,9 @@ const slug = computed(
     defaultInstance(session.services, 'sonarr')?.slug ??
     null,
 );
+// Instances lisibles par le compte (bootstrap filtré par ses droits).
 const available = computed(
-  () =>
-    session.isAdmin &&
-    (isConfigured(session.services, 'radarr') || isConfigured(session.services, 'sonarr')),
+  () => isConfigured(session.services, 'radarr') || isConfigured(session.services, 'sonarr'),
 );
 
 const passes = (type: 'film' | 'serie') => filter.value === 'all' || filter.value === type;

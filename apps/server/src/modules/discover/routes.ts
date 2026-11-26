@@ -58,8 +58,9 @@ import {
   type TmdbClient,
   type TmdbRaw,
 } from '../../integrations/tmdb/client';
-import { defaultQualityProfileIdOf, listEnabledInstances } from '../instances/instances';
+import { defaultQualityProfileIdOf } from '../instances/instances';
 import { recentWatchedTitles, watchedOf } from '../tracearr-watch/sync';
+import type { AccessScope } from '../users/access-scope';
 import { findUserById } from '../users/users';
 import {
   buildLibraryIndex,
@@ -102,8 +103,9 @@ function pageOf(data: TmdbRaw, page: number) {
   };
 }
 
-function candidates(app: FastifyInstance, type: 'radarr' | 'sonarr'): AddCandidate[] {
-  return listEnabledInstances(app.db, type).map((row) => ({
+/** Instances proposées à l'ajout : celles où le compte peut écrire. */
+function candidates(scope: AccessScope, type: 'radarr' | 'sonarr'): AddCandidate[] {
+  return scope.instances(type, 'write').map((row) => ({
     slug: row.slug,
     name: row.name,
     isDefault: row.isDefault,
@@ -112,10 +114,14 @@ function candidates(app: FastifyInstance, type: 'radarr' | 'sonarr'): AddCandida
 }
 
 /** Instances Radarr qui possèdent le film (toutes, pas seulement la première). */
-async function movieOwners(app: FastifyInstance, tmdbId: number): Promise<LibraryOwner[]> {
+async function movieOwners(
+  app: FastifyInstance,
+  tmdbId: number,
+  scope: AccessScope,
+): Promise<LibraryOwner[]> {
   const owners: LibraryOwner[] = [];
   const seen = new Set<string>();
-  for (const { item, slug, instanceName } of await collectMovies(app)) {
+  for (const { item, slug, instanceName } of await collectMovies(app, scope)) {
     if (item.tmdbId !== tmdbId || item.id === null || seen.has(slug)) continue;
     seen.add(slug);
     owners.push({
@@ -133,10 +139,11 @@ async function seriesOwners(
   app: FastifyInstance,
   tvdbId: number,
   tmdbId: number,
+  scope: AccessScope,
 ): Promise<LibraryOwner[]> {
   const owners: LibraryOwner[] = [];
   const seen = new Set<string>();
-  for (const { item, slug, instanceName } of await collectSeries(app)) {
+  for (const { item, slug, instanceName } of await collectSeries(app, scope)) {
     const match = (tvdbId > 0 && item.tvdbId === tvdbId) || (tmdbId > 0 && item.tmdbId === tmdbId);
     if (!match || item.id === null || seen.has(slug)) continue;
     seen.add(slug);
@@ -157,7 +164,12 @@ interface Seed {
 }
 
 /** Recommandations personnelles (`myRecommendations`). */
-async function myRecommendations(app: FastifyInstance, tmdb: TmdbClient, index: LibraryIndex) {
+async function myRecommendations(
+  app: FastifyInstance,
+  tmdb: TmdbClient,
+  index: LibraryIndex,
+  scope: AccessScope,
+) {
   const latest = <T extends { tmdbId: number | null; added: string }>(rows: T[]) => {
     const seen = new Set<number>();
     return rows
@@ -169,7 +181,10 @@ async function myRecommendations(app: FastifyInstance, tmdb: TmdbClient, index: 
       .sort((a, b) => b.added.localeCompare(a.added))
       .slice(0, 8);
   };
-  const [movies, series] = await Promise.all([collectMovies(app), collectSeries(app)]);
+  const [movies, series] = await Promise.all([
+    collectMovies(app, scope),
+    collectSeries(app, scope),
+  ]);
   const seeds: Seed[] = [
     ...latest(movies.map(({ item }) => ({ tmdbId: item.tmdbId, added: item.addedAt ?? '' }))).map(
       (r) => ({ type: 'movie' as const, id: r.tmdbId ?? 0 }),
@@ -287,7 +302,8 @@ async function watchedSuggestions(
 export const discoverRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const tmdb = () => tmdbClient(instance);
-  const libraryIndex = (client: TmdbClient) => buildLibraryIndex(instance, client);
+  const libraryIndex = (client: TmdbClient, scope: AccessScope) =>
+    buildLibraryIndex(instance, client, scope);
 
   // n° 550 : accueil de la découverte (données de la page d'origine).
   app.get(
@@ -309,7 +325,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       };
       try {
         const [index, trendingRaw] = await Promise.all([
-          libraryIndex(client),
+          libraryIndex(client, request.access),
           client.trendingAll(),
         ]);
         if (!Array.isArray(trendingRaw.results)) return empty;
@@ -372,7 +388,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
         'airing-today': [() => client.airingTodayTv(page), 'tv'],
       };
       const [load, type] = loaders[request.params.type] ?? [() => client.trendingAll(), null];
-      const [index, data] = await Promise.all([libraryIndex(client), load()]);
+      const [index, data] = await Promise.all([libraryIndex(client, request.access), load()]);
       return { results: enrich(resultsOf(data), index, type), ...pageOf(data, page) };
     },
   );
@@ -381,9 +397,14 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
   app.get(
     '/api/decouverte/mes-recommandations',
     { config, schema: { response: { 200: myRecommendationsSchema } } },
-    async () => {
+    async (request) => {
       const client = tmdb();
-      return myRecommendations(instance, client, await libraryIndex(client));
+      return myRecommendations(
+        instance,
+        client,
+        await libraryIndex(client, request.access),
+        request.access,
+      );
     },
   );
 
@@ -391,13 +412,18 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
   app.get(
     '/api/decouverte/dossiers',
     { config, schema: { response: { 200: folderSuggestionsSchema } } },
-    async () => {
+    async (request) => {
       const client = tmdb();
       const [folders, index] = await Promise.all([
         instance.cache.folders.read(),
-        libraryIndex(client),
+        libraryIndex(client, request.access),
       ]);
-      return { folders: FolderSuggestions.present(folders, index) };
+      // Dossiers des seules instances lisibles (clé `service:slug:chemin`).
+      const visible = folders.filter((folder) => {
+        const slug = folder.key.slice(folder.service.length + 1).split(':')[0] ?? '';
+        return request.access.can(folder.service, slug);
+      });
+      return { folders: FolderSuggestions.present(visible, index) };
     },
   );
 
@@ -410,7 +436,12 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const tracearrUserId = user?.tracearrUserId ?? null;
       if (tracearrUserId === null) return { linked: false, seeds: 0, results: [] };
       const client = tmdb();
-      return watchedSuggestions(instance, client, await libraryIndex(client), tracearrUserId);
+      return watchedSuggestions(
+        instance,
+        client,
+        await libraryIndex(client, request.access),
+        tracearrUserId,
+      );
     },
   );
 
@@ -425,7 +456,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const client = tmdb();
       const { year } = request.params;
       const [index, moviesRaw, tvRaw] = await Promise.all([
-        libraryIndex(client),
+        libraryIndex(client, request.access),
         client.discoverMovies({ primary_release_year: year, sort_by: 'popularity.desc' }),
         client.discoverTv({ first_air_date_year: year, sort_by: 'popularity.desc' }),
       ]);
@@ -461,7 +492,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       if (q.vote_count_min) params['vote_count.gte'] = q.vote_count_min;
       if (q.sort) params.sort_by = q.sort;
       const [index, data] = await Promise.all([
-        libraryIndex(client),
+        libraryIndex(client, request.access),
         movie ? client.discoverMovies(params) : client.discoverTv(params),
       ]);
       return { results: enrich(resultsOf(data), index, q.type), ...pageOf(data, 1) };
@@ -500,7 +531,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const poster = tmdbImage(detail.poster_path, 'w342');
       if (type === 'movie') {
         const tmdbId = int(detail.id);
-        const owners = await movieOwners(instance, tmdbId);
+        const owners = await movieOwners(instance, tmdbId, request.access);
         return {
           type: 'film' as const,
           id: tmdbId,
@@ -510,7 +541,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
           poster,
           inLibrary: owners.length > 0,
           instances: owners,
-          candidates: candidates(instance, 'radarr'),
+          candidates: candidates(request.access, 'radarr'),
         };
       }
       const tvdbId = int(obj(detail.external_ids).tvdb_id);
@@ -524,7 +555,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const genres = objects(detail.genres).map((g) => int(g.id));
       const origin = Array.isArray(detail.origin_country) ? detail.origin_country : [];
       const isAnime = genres.includes(16) && origin.includes('JP');
-      const owners = await seriesOwners(instance, tvdbId, int(detail.id));
+      const owners = await seriesOwners(instance, tvdbId, int(detail.id), request.access);
       return {
         type: 'serie' as const,
         id: tvdbId,
@@ -535,7 +566,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
         poster,
         inLibrary: owners.length > 0,
         instances: owners,
-        candidates: candidates(instance, 'sonarr'),
+        candidates: candidates(request.access, 'sonarr'),
         seriesType: isAnime ? ('anime' as const) : ('standard' as const),
       };
     },
@@ -550,7 +581,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const { type, id } = request.params;
       const [d, index, similarRaw] = await Promise.all([
         type === 'movie' ? client.movie(id) : client.tv(id),
-        libraryIndex(client),
+        libraryIndex(client, request.access),
         type === 'movie' ? client.movieSimilar(id) : client.tvSimilar(id),
       ]);
       if (!int(d.id)) throw notFound('decouverte.error.not_found');
@@ -569,7 +600,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const client = tmdb();
       const { type, id } = request.params;
       const [index, recRaw, simRaw] = await Promise.all([
-        libraryIndex(client),
+        libraryIndex(client, request.access),
         type === 'movie' ? client.movieRecommendations(id) : client.tvRecommendations(id),
         type === 'movie' ? client.movieSimilar(id) : client.tvSimilar(id),
       ]);
@@ -590,7 +621,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       if (q.length < 2) return { results: [], page: 1, totalPages: 1, totalResults: 0 };
       const client = tmdb();
       const [index, data] = await Promise.all([
-        libraryIndex(client),
+        libraryIndex(client, request.access),
         client.searchMulti(q, request.query.page),
       ]);
       const results = resultsOf(data).filter(
@@ -610,9 +641,14 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
     async (request) => {
       const client = tmdb();
       try {
-        return await smartSearch(client, await libraryIndex(client), request.query, {
-          vocabulary: () => instance.cache.vocabulary.read(),
-        });
+        return await smartSearch(
+          client,
+          await libraryIndex(client, request.access),
+          request.query,
+          {
+            vocabulary: () => instance.cache.vocabulary.read(),
+          },
+        );
       } catch (error) {
         request.log.warn({ err: error }, 'découverte : recherche en échec');
         throw new ApiError(502, 'UPSTREAM_ERROR', { service: 'tmdb' });
@@ -649,7 +685,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
       const data = await client.collection(request.params.id);
       const parts = objects(data.parts);
       if (parts.length === 0) throw notFound('decouverte.error.collection_not_found');
-      const index = await libraryIndex(client);
+      const index = await libraryIndex(client, request.access);
       return {
         name: str(data.name) ?? '',
         poster: tmdbImage(data.poster_path, 'w342'),
@@ -705,7 +741,7 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
         name: str(person.name) ?? '',
         profile: tmdbImage(person.profile_path, 'w342'),
         bio: text(person.biography),
-        results: enrich(items.slice(0, 40), await libraryIndex(client)),
+        results: enrich(items.slice(0, 40), await libraryIndex(client, request.access)),
       };
     },
   );
@@ -714,13 +750,13 @@ export const discoverRoutes: FastifyPluginAsync = async (instance) => {
   app.get(
     '/api/decouverte/watchlist',
     { config, schema: { response: { 200: watchlistResponseSchema } } },
-    async () => {
+    async (request) => {
       const rows = instance.db
         .select()
         .from(watchlistItems)
         .orderBy(desc(watchlistItems.addedAt))
         .all();
-      const index = await libraryIndex(tmdb());
+      const index = await libraryIndex(tmdb(), request.access);
       return {
         items: rows.map((w) => ({
           id: w.id,

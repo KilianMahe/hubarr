@@ -1,6 +1,6 @@
 # Settings
 
-The **Settings** page (`/admin/settings`, from the account menu or the bottom of the side menu) is for administrators only. It has six tabs, each with its own address (`#section-services`, `#section-display`…), handy as a bookmark. On mobile, the tabs are in the bottom bar and the top bar names the open section ("Settings · Backup").
+The **Settings** page (`/admin/settings`, from the account menu or the bottom of the side menu) is for administrators only. It has seven tabs, each with its own address (`#section-services`, `#section-users`, `#section-display`…), handy as a bookmark. On mobile, the tabs are in the bottom bar and the top bar names the open section ("Settings · Backup").
 
 ## External services
 
@@ -36,10 +36,14 @@ The health icon in the top bar sums up the configured services (green: everythin
 
 When a service does not answer, its page shows a banner with the reason; **Retry** checks again right away. The page of a service that is not configured leads to these settings, the page of a disabled service to the home page.
 
+## Users
+
+Accounts that can sign in to Hubarr, their role and their access to each service: see [Users and access](./users.md).
+
 ## Display
 
 - **Home page**: dashboard, search (TMDb), movies, series, qBittorrent or last visited page. If the chosen page is unavailable, Hubarr opens the first configured service.
-- **Notifications**: when disabled, only errors are still shown.
+- **Toasts**: when disabled, only errors still show a toast; every message is still recorded in the [notification center](./dashboard.md#notification-center).
 - **Time zone**, **date and time formats**; the system time zone (`TZ`) by default.
 - **Theme** (classic with a light/dark toggle, or one of 17 presets) and **accent colour**: applied as soon as you save.
 - **Refresh rate** of qBittorrent, Deluge and Transmission, **live activity source**, **density** and **items per page**.
@@ -47,7 +51,7 @@ When a service does not answer, its page shows a banner with the reason; **Retry
 - **Dashboard layout**: order (drag a section by its handle, or Move up/Move down buttons) and visible sections.
 
 ::: tip Refresh rate and real time
-A torrent client's refresh rate drives the global watch on media pages: number of active downloads in the side menu and a notification when a download finishes (or fails), once across all tabs. `0` turns it off. Screens update through a real-time stream: Hubarr queries each service once per interval however many tabs are open, and falls back to periodic polling on its own when the stream is cut (proxy, network).
+A torrent client's refresh rate drives the global watch on media pages: number of active downloads in the side menu and a notification in the [notification center](./dashboard.md#notification-center) when a download finishes (or fails), once across all tabs. `0` turns it off. Screens update through a real-time stream: Hubarr queries each service once per interval however many tabs are open, and falls back to periodic polling on its own when the stream is cut (proxy, network).
 :::
 
 **Reset** restores every preference and the dashboard layout to their defaults.

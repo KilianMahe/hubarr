@@ -6,7 +6,7 @@
 // Conventions : horodatages en millisecondes (`timestamp_ms`), valeurs libres en
 // JSON validé par zod côté application, e-mails stockés en minuscules.
 
-import { MEDIA_TYPES, USER_ROLES } from '@hubarr/shared';
+import { ACCESS_LEVELS, MEDIA_TYPES, USER_ROLES } from '@hubarr/shared';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 const createdAt = () =>
@@ -20,7 +20,7 @@ const updatedAt = () =>
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date());
 
-/** Comptes. En pratique un seul, l'admin créé par l'assistant. */
+/** Comptes : l'admin créé par l'assistant, puis ceux qu'ajoute un admin. */
 export const users = sqliteTable('user', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
@@ -92,6 +92,30 @@ export const serviceInstances = sqliteTable(
   (table) => [
     uniqueIndex('service_instance_type_slug_uq').on(table.type, table.slug),
     index('service_instance_type_position_idx').on(table.type, table.position),
+  ],
+);
+
+/**
+ * Droits d'un compte non admin sur un service : par instance pour
+ * Radarr/Sonarr (`instance_id`), par service sinon (`instance_id` nul).
+ * Supprimés avec le compte ou l'instance.
+ */
+export const userPermissions = sqliteTable(
+  'user_permission',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    service: text('service').notNull(),
+    instanceId: integer('instance_id').references(() => serviceInstances.id, {
+      onDelete: 'cascade',
+    }),
+    level: text('level', { enum: ACCESS_LEVELS }).notNull(),
+  },
+  (table) => [
+    index('user_permission_user_idx').on(table.userId),
+    uniqueIndex('user_permission_scope_uq').on(table.userId, table.service, table.instanceId),
   ],
 );
 

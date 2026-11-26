@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../../../src/app';
 import type { AppDatabase } from '../../../src/db/client';
 import { sessions, users } from '../../../src/db/schema';
-import { requireRole } from '../../../src/plugins/access';
+import { guardAdminModule } from '../../../src/plugins/access';
 import { ANONYMOUS_SESSION_TTL_MS } from '../../../src/plugins/sessions';
 import {
   TestBrowser,
@@ -22,10 +22,12 @@ const ADMIN = { email: 'Admin@Example.com', password: 'correct-horse' };
 
 /** Routes de test : une protégée, une réservée aux administrateurs, une mutation. */
 const testRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/api/test/me', async (request) => ({ user: request.user }));
-  app.post('/api/test/mutate', async () => ({ ok: true }));
+  app.get('/api/test/me', { config: { access: 'user' } }, async (request) => ({
+    user: request.user,
+  }));
+  app.post('/api/test/mutate', { config: { access: 'user' } }, async () => ({ ok: true }));
   await app.register(async (admin) => {
-    admin.addHook('onRequest', requireRole('admin'));
+    guardAdminModule(admin);
     admin.get('/api/test/admin', async () => ({ ok: true }));
   });
 };
@@ -73,6 +75,7 @@ describe('connexion', () => {
       id: 1,
       email: 'admin@example.com',
       role: 'admin',
+      permissions: {},
       displayName: 'admin@example.com',
       avatarUrl: null,
     });

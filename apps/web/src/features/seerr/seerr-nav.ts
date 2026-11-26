@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Barre basse de Seerr (mobile, P5b.4, D131) : demandes et utilisateurs. Les
 // réglages et le système s'ouvrent depuis les paramètres de Hubarr (P5c.4, D140).
+// Sans l'onglet des utilisateurs (non admin), la barre n'a plus d'objet.
 
 import { msConfirmationNumber, msGroup } from '../../components/symbols';
 import type { BottomNavItem } from '../../app/navigation';
@@ -14,5 +15,7 @@ export const SEERR_BOTTOM_NAV: BottomNavItem[] = [
     icon: msGroup,
     to: { name: 'seerr-users' },
     matches: (route) => name(route.name) === 'seerr-user',
+    // Gestion des utilisateurs de Seerr : admins de Hubarr seulement.
+    visible: ({ isAdmin }) => isAdmin,
   },
 ];

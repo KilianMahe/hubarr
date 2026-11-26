@@ -1,6 +1,6 @@
 # Paramètres
 
-La page **Paramètres** (`/admin/settings`, menu du compte ou bas du menu latéral) est réservée aux administrateurs. Elle compte six onglets ; chaque onglet a sa propre adresse (`#section-services`, `#section-display`…), pratique pour un marque-page. Sur mobile, les onglets sont dans la barre du bas et la barre du haut nomme la section ouverte (« Paramètres · Sauvegarde »).
+La page **Paramètres** (`/admin/settings`, menu du compte ou bas du menu latéral) est réservée aux administrateurs. Elle compte sept onglets ; chaque onglet a sa propre adresse (`#section-services`, `#section-users`, `#section-display`…), pratique pour un marque-page. Sur mobile, les onglets sont dans la barre du bas et la barre du haut nomme la section ouverte (« Paramètres · Sauvegarde »).
 
 ## Services externes
 
@@ -36,10 +36,14 @@ L'icône de santé de la barre du haut résume l'état des services configurés 
 
 Quand un service ne répond pas, sa page affiche un bandeau qui en donne la raison ; **Réessayer** relance la vérification aussitôt. La page d'un service non configuré renvoie vers ces paramètres, celle d'un service désactivé vers l'accueil.
 
+## Utilisateurs
+
+Comptes qui peuvent se connecter à Hubarr, leur rôle et leur accès à chaque service : voir [Utilisateurs et accès](./utilisateurs.md).
+
 ## Affichage
 
 - **Page d'accueil** : tableau de bord, recherche (TMDb), films, séries, qBittorrent ou dernière page visitée. Si la page choisie n'est pas disponible, Hubarr ouvre le premier service configuré.
-- **Notifications** : désactivées, seules les erreurs restent affichées.
+- **Toasts** : désactivés, seules les erreurs affichent encore un toast ; chaque message reste consigné dans le [centre de notifications](./tableau-de-bord.md#centre-de-notifications).
 - **Fuseau horaire**, **formats de date et d'heure** ; par défaut, le fuseau du système (`TZ`).
 - **Thème** (classique avec bascule clair/sombre, ou l'un des 17 préréglages) et **couleur principale** : appliqués dès l'enregistrement.
 - **Rafraîchissement** de qBittorrent, Deluge et Transmission, **source de l'activité en direct**, **densité** et **éléments par page**.
@@ -47,7 +51,7 @@ Quand un service ne répond pas, sa page affiche un bandeau qui en donne la rais
 - **Disposition du tableau de bord** : ordre (glisser une section par sa poignée, ou boutons Monter/Descendre) et sections affichées.
 
 ::: tip Rafraîchissement et temps réel
-Le rafraîchissement d'un client torrent règle la surveillance globale sur les pages média : nombre de téléchargements actifs dans le menu latéral et notification à la fin (ou en erreur) d'un téléchargement, une seule fois tous onglets confondus. `0` la désactive. Les écrans se mettent à jour par un flux temps réel : Hubarr ne sollicite chaque service qu'une fois par intervalle, quel que soit le nombre d'onglets ouverts, et revient tout seul à des relectures périodiques si le flux est coupé (proxy, réseau).
+Le rafraîchissement d'un client torrent règle la surveillance globale sur les pages média : nombre de téléchargements actifs dans le menu latéral et notification dans le [centre de notifications](./tableau-de-bord.md#centre-de-notifications) à la fin (ou en erreur) d'un téléchargement, une seule fois tous onglets confondus. `0` la désactive. Les écrans se mettent à jour par un flux temps réel : Hubarr ne sollicite chaque service qu'une fois par intervalle, quel que soit le nombre d'onglets ouverts, et revient tout seul à des relectures périodiques si le flux est coupé (proxy, réseau).
 :::
 
 **Réinitialiser** remet toutes ces préférences et la disposition du tableau de bord à leurs valeurs par défaut.

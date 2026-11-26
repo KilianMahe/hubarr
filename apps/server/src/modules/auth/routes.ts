@@ -11,7 +11,7 @@ import { users } from '../../db/schema';
 import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
 import { getDummyHash, verifyPassword } from '../../security/password';
-import { findUserByEmail, normalizeEmail, toAuthUser } from '../users/users';
+import { findUserByEmail, loadAuthUser, normalizeEmail } from '../users/users';
 import { LoginThrottle } from './login-throttle';
 
 export interface AuthRoutesOptions {
@@ -61,7 +61,7 @@ export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (instance
         userId: user.id,
         persistent: request.body.remember,
       });
-      return { user: toAuthUser(user), csrfToken: session.data.csrfToken };
+      return { user: loadAuthUser(app.db, user), csrfToken: session.data.csrfToken };
     },
   );
 

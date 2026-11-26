@@ -25,7 +25,7 @@ import type { DbExecutor } from '../db/client';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { sessions, users } from '../db/schema';
-import { toAuthUser } from '../modules/users/users';
+import { loadAuthUser } from '../modules/users/users';
 
 export const ANONYMOUS_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -200,7 +200,7 @@ const sessionsPlugin: FastifyPluginAsync<SessionOptions> = async (app, options) 
       expiresAt: row.session.expiresAt,
     };
     request.session = session;
-    request.user = row.user === null ? null : toAuthUser(row.user);
+    request.user = row.user === null ? null : loadAuthUser(db, row.user);
 
     const ttl = ttlFor(session.userId);
     if (session.expiresAt.getTime() - current < ttl - REFRESH_INTERVAL_MS) {

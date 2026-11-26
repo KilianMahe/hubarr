@@ -61,6 +61,11 @@ const rows = computed(() =>
 );
 const multiple = computed(() => instances.value.length > 1);
 
+/** Gestion de l'import (import, suppression) : droit d'écriture sur l'instance. */
+function canManage(row: DashboardQueueRow): boolean {
+  return row.manageable && session.can(row.service, row.slug, 'write');
+}
+
 /** Premier motif donné par l'instance, affiché sous une ligne à problème. */
 function firstReason(row: DashboardQueueRow): string | null {
   for (const message of row.item.statusMessages) {
@@ -98,15 +103,15 @@ function manage(row: DashboardQueueRow): void {
       <v-list-item
         v-for="row in rows.slice(0, MAX_SHOWN)"
         :key="row.key"
-        :to="row.manageable ? undefined : (row.to ?? undefined)"
-        :link="row.manageable || row.to !== null"
+        :to="canManage(row) ? undefined : (row.to ?? undefined)"
+        :link="canManage(row) || row.to !== null"
         :aria-label="
-          row.manageable ? t('dashboard.queue.manage.open', { title: row.title }) : undefined
+          canManage(row) ? t('dashboard.queue.manage.open', { title: row.title }) : undefined
         "
         class="px-0"
         data-test="dashboard-queue-row"
-        :data-manageable="row.manageable || undefined"
-        @click="row.manageable ? manage(row) : undefined"
+        :data-manageable="canManage(row) || undefined"
+        @click="canManage(row) ? manage(row) : undefined"
       >
         <v-list-item-title class="font-weight-medium">{{ row.title }}</v-list-item-title>
         <v-list-item-subtitle>

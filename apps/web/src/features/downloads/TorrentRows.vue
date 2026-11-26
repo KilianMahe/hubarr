@@ -31,6 +31,7 @@ import ProgressRow from '../../components/ds/ProgressRow.vue';
 import StatusChip from '../../components/ds/StatusChip.vue';
 import { stateColor, stateIcon, type TorrentView } from './torrents';
 import { useTorrentI18n } from './use-torrent-i18n';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{
   client: TorrentClientId;
@@ -129,6 +130,7 @@ function onRowClick(event: Event, hash: string): void {
         >
           <td data-row-stop>
             <v-checkbox-btn
+              v-write
               :model-value="selected.has(t.hash)"
               :aria-label="t.name"
               density="compact"
@@ -185,6 +187,7 @@ function onRowClick(event: Event, hash: string): void {
           </template>
           <td class="text-end text-no-wrap" data-row-stop>
             <v-btn
+              v-write
               :icon="t.state === 'paused' ? msPlayArrowFill : msPauseFill"
               size="small"
               variant="text"
@@ -193,6 +196,7 @@ function onRowClick(event: Event, hash: string): void {
               @click="emit('action', t.hash, t.state === 'paused' ? 'resume' : 'pause')"
             />
             <v-btn
+              v-write
               :icon="msDelete"
               size="small"
               variant="text"
@@ -221,6 +225,7 @@ function onRowClick(event: Event, hash: string): void {
         <template #prepend>
           <div class="d-flex align-center" data-row-stop>
             <v-checkbox-btn
+              v-write
               :model-value="selected.has(t.hash)"
               :aria-label="t.name"
               density="compact"
@@ -287,6 +292,7 @@ function onRowClick(event: Event, hash: string): void {
         <template #append>
           <div class="d-flex" data-row-stop>
             <v-btn
+              v-write
               :icon="t.state === 'paused' ? msPlayArrowFill : msPauseFill"
               size="small"
               variant="text"
@@ -295,6 +301,7 @@ function onRowClick(event: Event, hash: string): void {
               @click.stop="emit('action', t.hash, t.state === 'paused' ? 'resume' : 'pause')"
             />
             <v-btn
+              v-write
               :icon="msDelete"
               size="small"
               variant="text"

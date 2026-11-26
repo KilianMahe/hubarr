@@ -54,7 +54,7 @@ const queryClient = new QueryClient({
 const session = useSessionStore(pinia);
 const persistence = createQueryPersistence(queryClient, {
   persister: createIdbPersister(),
-  version: bootstrap?.version ?? '',
+  version: () => session.version,
 });
 if (session.user) await persistence.start(session.user.id);
 watch(
@@ -83,4 +83,16 @@ createApp(App)
   .provide(QUERY_PERSISTENCE, persistence)
   .mount('#app');
 
-registerServiceWorker(bootstrap?.version);
+// La version n'est connue qu'avec une session : le worker s'enregistre dès
+// qu'elle l'est (au démarrage, ou après la connexion).
+const stopWorkerWatch = watch(
+  () => session.version,
+  (version) => {
+    if (version === '') return;
+    registerServiceWorker(version);
+    queueMicrotask(() => {
+      stopWorkerWatch();
+    });
+  },
+  { immediate: true },
+);

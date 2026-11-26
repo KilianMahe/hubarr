@@ -22,6 +22,7 @@ import {
   seriesDisplayState,
   seriesProgressTitle,
 } from './library';
+import { pageReadOnly } from '../../app/access';
 
 const props = defineProps<{
   series: SeriesLibraryItem;
@@ -86,7 +87,7 @@ const monitorLabel = computed(() =>
         :color="series.monitored ? 'service-text' : 'muted'"
         variant="text"
         size="small"
-        :disabled="selectMode"
+        :disabled="selectMode || pageReadOnly"
         :aria-pressed="series.monitored"
         :aria-label="monitorLabel"
         :title="monitorLabel"

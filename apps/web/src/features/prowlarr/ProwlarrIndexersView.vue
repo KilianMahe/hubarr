@@ -51,6 +51,7 @@ import {
 } from './indexers';
 import { prowlarrApi, prowlarrKeys } from './prowlarr-api';
 import StatTile from '../../components/ds/StatTile.vue';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const format = useFormat();
@@ -341,6 +342,7 @@ const testColor = (id: number) =>
       <v-chip v-if="data" size="small" variant="tonal">{{ data.indexers.length }}</v-chip>
       <v-spacer />
       <v-btn
+        v-write
         variant="text"
         size="small"
         :prepend-icon="msDoneAll"
@@ -352,6 +354,7 @@ const testColor = (id: number) =>
         >{{ t('prowlarr.index.test_all_btn') }}</v-btn
       >
       <v-btn
+        v-write
         variant="text"
         size="small"
         :prepend-icon="msSync"
@@ -373,6 +376,7 @@ const testColor = (id: number) =>
       />
       <v-btn
         v-if="!smAndDown"
+        v-write
         color="service"
         size="small"
         :prepend-icon="msAdd"
@@ -454,6 +458,7 @@ const testColor = (id: number) =>
             <tr>
               <th style="width: 40px">
                 <v-checkbox-btn
+                  v-write
                   :model-value="allSelected"
                   :indeterminate="selected.length > 0 && !allSelected"
                   :aria-label="t('media.films.bulk.select_all')"
@@ -485,6 +490,7 @@ const testColor = (id: number) =>
             >
               <td>
                 <v-checkbox-btn
+                  v-write
                   :model-value="selected.includes(indexer.id)"
                   :aria-label="indexer.name"
                   density="compact"
@@ -562,6 +568,7 @@ const testColor = (id: number) =>
               </td>
               <td class="text-end text-no-wrap">
                 <v-btn
+                  v-write
                   :icon="msEdit"
                   variant="text"
                   size="small"
@@ -571,6 +578,7 @@ const testColor = (id: number) =>
                   @click="openEditor(indexer.id)"
                 />
                 <v-btn
+                  v-write
                   :icon="testIcon(indexer.id)"
                   :color="testColor(indexer.id)"
                   variant="text"
@@ -582,6 +590,7 @@ const testColor = (id: number) =>
                   @click="testIndexer(indexer)"
                 />
                 <v-btn
+                  v-write
                   size="x-small"
                   variant="tonal"
                   :color="indexer.enabled ? 'success' : 'error'"
@@ -599,6 +608,7 @@ const testColor = (id: number) =>
                   >{{ t(indexer.enabled ? 'prowlarr.common.on' : 'prowlarr.common.off') }}</v-btn
                 >
                 <v-btn
+                  v-write
                   :icon="msDelete"
                   variant="text"
                   color="error"
@@ -639,6 +649,7 @@ const testColor = (id: number) =>
         >
           <div class="d-flex align-start pa-2 ga-1">
             <v-checkbox-btn
+              v-write
               :model-value="selected.includes(indexer.id)"
               :aria-label="indexer.name"
               density="compact"
@@ -681,6 +692,7 @@ const testColor = (id: number) =>
               </div>
             </div>
             <v-switch
+              v-write
               :model-value="indexer.enabled"
               :loading="toggling === indexer.id"
               :aria-label="
@@ -701,6 +713,7 @@ const testColor = (id: number) =>
           <v-divider />
           <div class="d-flex justify-end pa-1">
             <v-btn
+              v-write
               :icon="msEdit"
               variant="text"
               size="small"
@@ -709,6 +722,7 @@ const testColor = (id: number) =>
               @click="openEditor(indexer.id)"
             />
             <v-btn
+              v-write
               :icon="testIcon(indexer.id)"
               :color="testColor(indexer.id)"
               variant="text"
@@ -719,6 +733,7 @@ const testColor = (id: number) =>
               @click="testIndexer(indexer)"
             />
             <v-btn
+              v-write
               :icon="msDelete"
               variant="text"
               color="error"
@@ -766,6 +781,7 @@ const testColor = (id: number) =>
     <!-- Barre de sélection -->
     <v-sheet
       v-if="selected.length > 0"
+      v-write
       class="prowlarr-indexers__bulk"
       elevation="8"
       rounded="lg"

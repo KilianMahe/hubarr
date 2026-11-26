@@ -68,14 +68,12 @@ function shown(key: DashboardSection): boolean {
     case 'upcoming':
     case 'recent':
       return c.radarr || c.sonarr;
+    // Services lisibles par le compte : `configured` est calculé selon ses droits.
     case 'queue':
-      // Files des instances : routes réservées aux admins.
-      return (c.radarr || c.sonarr) && session.isAdmin;
-    case 'downloads':
-      // Statistiques (lot 13) : données des clients, réservées aux admins.
-      return c.downloads && session.isAdmin;
     case 'disks':
-      return (c.radarr || c.sonarr) && session.isAdmin;
+      return c.radarr || c.sonarr;
+    case 'downloads':
+      return c.downloads;
     case 'requests':
       return c.seerr;
     case 'plex':

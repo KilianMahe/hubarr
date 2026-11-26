@@ -13,6 +13,8 @@ import type {
 import { afterEach, describe, expect, it } from 'vitest';
 import { BAZARR_KEYS } from '../../../src/integrations/bazarr/subtitle-index';
 import { applyServicePatch } from '../../../src/modules/services/config';
+import { demoteUser } from '../../helpers';
+import { EMAIL } from '../movies/radarr-env';
 import { bazarrEnv, bazarrMovie, bazarrSeries, type BazarrEnv } from './bazarr-env';
 
 let env: BazarrEnv | undefined;
@@ -333,5 +335,14 @@ describe('reconstruction en ligne (n° 28)', () => {
     expect(down).toMatchObject({ ok: false, reason: 'breaker_open' });
     expect(current.bazarr.calls.length).toBe(before);
     expect(current.app.cache.store.has('bazarr_subtitle_index.inline_refresh')).toBe(false);
+  });
+  it('ouverte au droit de lecture (index de Hubarr) ; recherche automatique refusée', async () => {
+    const current = await open();
+    demoteUser(current.database, EMAIL, { bazarr: 'read' });
+    current.bazarr.on('GET', '/api/movies', { data: [] });
+    current.bazarr.on('GET', '/api/series', { data: [] });
+    current.bazarr.on('GET', '/api/badges', { movies: 0, episodes: 0, providers: 0 });
+    expect((await current.browser.post(current.url('/refresh'))).statusCode).toBe(200);
+    expect((await current.browser.post(current.url('/auto/movie/1'))).statusCode).toBe(403);
   });
 });

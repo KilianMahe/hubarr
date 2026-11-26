@@ -171,10 +171,12 @@ describe('connexion', () => {
   it('connecte, remplace le jeton CSRF et ouvre l’accueil', async () => {
     const { calls } = fakeFetch({
       'POST /api/auth/login': () => ({ body: { user: ADMIN, csrfToken: 'csrf-2' } }),
+      // Version et préférences relues après la connexion (absentes du bootstrap anonyme).
+      'GET /api/bootstrap': () => ({ body: bootstrapOf({ user: ADMIN, version: '9.9.9' }) }),
       'POST /api/auth/logout': () => ({ status: 204 }),
       'GET /api/auth/csrf': () => ({ body: { token: 'csrf-3' } }),
     });
-    const { wrapper, router } = await mountApp('/login');
+    const { wrapper, router } = await mountApp('/login', bootstrapOf({ user: null, version: '' }));
     await wrapper.get('[data-test="login-email"] input').setValue('admin@example.com');
     await wrapper.get('[data-test="login-password"] input').setValue('password-1');
     await wrapper.get('form').trigger('submit');
@@ -188,6 +190,7 @@ describe('connexion', () => {
     });
     expect(router.currentRoute.value.name).toBe('dashboard');
     expect(wrapper.find('[data-test="dashboard-view"]').exists()).toBe(true);
+    expect(document.body.textContent).toContain(t('footer.version', { version: '9.9.9' }));
 
     // Compte dans le menu latéral seulement (P5d.4, V34).
     expect(wrapper.find('[data-test="user-menu"]').exists()).toBe(false);

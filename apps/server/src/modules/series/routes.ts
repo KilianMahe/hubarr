@@ -6,8 +6,8 @@
 // commandes en cours et état d'une commande, configuration (profils, dossiers,
 // étiquettes).
 //
-// Règle R1 : `/medias/{slug}/series/…` → `/api/medias/:slug/series/…`. Le
-// contrôleur d'origine était réservé aux admins.
+// Règle R1 : `/medias/{slug}/series/…` → `/api/medias/:slug/series/…`. Droit sur
+// l'instance contrôlé par la garde de service.
 //
 // Différences avec l'original (comme D86 et D90 pour Radarr) :
 // - erreurs de Sonarr au format commun (503, 502) au lieu de `{ ok: false }` ;
@@ -49,7 +49,7 @@ import {
   LIBRARY_TIMEOUT_MS,
   type SonarrClient,
 } from '../../integrations/sonarr/client';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { defaultQualityProfileIdOf } from '../instances/instances';
 import { commandStatusOf } from '../movies/routes';
 import { sonarrClient } from '../services/clients';
@@ -83,7 +83,7 @@ type LibrarySeries = Series & { id: number };
 
 export const seriesRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = SERIES_BASE;
   const config = SONARR_CONFIG;

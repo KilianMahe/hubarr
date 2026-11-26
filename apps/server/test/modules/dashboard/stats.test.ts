@@ -115,7 +115,7 @@ const QBIT = 'http://qbit.test:8080';
 const SAB = 'http://sab.test:8080';
 
 describe('routes', () => {
-  it('téléchargements : non configuré → carte masquée ; utilisateur simple → 403', async () => {
+  it('téléchargements : non configuré → carte masquée ; utilisateur sans droit → cartes masquées', async () => {
     env = await mediaEnv();
     const page = (await env.browser.get('/api/tableau-de-bord')).json<DashboardPage>();
     expect(page.configured.downloads).toBe(false);
@@ -125,9 +125,12 @@ describe('routes', () => {
     expect(body.available).toBe(false);
     await env.close();
 
-    env = await mediaEnv({ role: 'user' });
+    env = await mediaEnv({ role: 'user', permissions: () => ({}) });
+    applyServicePatch(env.database.db, 'qbittorrent', { url: QBIT, user: 'u', password: 'p' });
     for (const card of ['downloads', 'disks']) {
-      expect((await env.browser.get(`/api/tableau-de-bord/widget/${card}`)).statusCode).toBe(403);
+      const response = await env.browser.get(`/api/tableau-de-bord/widget/${card}`);
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ available: false });
     }
   });
 

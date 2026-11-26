@@ -72,6 +72,7 @@ import { episodeCode } from './library';
 import { seriesApi, seriesKeys } from './series-api';
 import { queuedEpisodes, releaseLabels, type SearchState } from './series-detail';
 import { SERIES_QUEUE_POLL_MS } from './series-queue';
+import { vWrite } from '../../app/access';
 
 const route = useRoute();
 const router = useRouter();
@@ -682,6 +683,7 @@ useServiceFab(() =>
         <!-- Actions : recherche en premier, suivi (état explicite), actualisation, gestion -->
         <div class="detail-actions">
           <v-btn
+            v-write
             :prepend-icon="msSearch"
             color="service"
             variant="flat"
@@ -692,6 +694,7 @@ useServiceFab(() =>
           >
           <div class="detail-actions__list">
             <v-btn
+              v-write
               :prepend-icon="series.monitored ? msBookmarkFill : msBookmark"
               variant="text"
               :aria-pressed="series.monitored"
@@ -707,6 +710,7 @@ useServiceFab(() =>
               }}</v-btn
             >
             <v-btn
+              v-write
               :prepend-icon="msRefresh"
               variant="text"
               :loading="busy.refresh"
@@ -717,6 +721,7 @@ useServiceFab(() =>
             <!-- Mobile : renommage, fichiers et édition dans le speed-dial -->
             <template v-if="!smAndDown">
               <v-btn
+                v-write
                 :prepend-icon="msEditSquare"
                 variant="text"
                 data-test="series-rename-open"
@@ -724,6 +729,7 @@ useServiceFab(() =>
                 >{{ t('media.series.detail.rename_files') }}</v-btn
               >
               <v-btn
+                v-write
                 :prepend-icon="msFileCopy"
                 variant="text"
                 data-test="series-files-open"
@@ -731,6 +737,7 @@ useServiceFab(() =>
                 >{{ t('media.series.detail.manage_files') }}</v-btn
               >
               <v-btn
+                v-write
                 :prepend-icon="msEdit"
                 variant="text"
                 data-test="series-edit-open"
@@ -877,7 +884,7 @@ useServiceFab(() =>
           </DetailCard>
 
           <!-- Suppression, repliée -->
-          <v-expansion-panels variant="accordion" class="detail-page__wide detail-more">
+          <v-expansion-panels v-write variant="accordion" class="detail-page__wide detail-more">
             <v-expansion-panel elevation="0" rounded="lg" eager>
               <v-expansion-panel-title>
                 <span class="d-flex align-center ga-2 text-error"

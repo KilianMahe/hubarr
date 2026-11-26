@@ -59,7 +59,7 @@ describe('prepareDatabase', () => {
     });
     database.close();
 
-    expect(report).toEqual({ applied: 3, backupFile: null });
+    expect(report).toEqual({ applied: 4, backupFile: null });
     expect(tableNames(join(dataDir, DATABASE_FILE))).toEqual([
       '__drizzle_migrations',
       'service_instance',
@@ -68,6 +68,7 @@ describe('prepareDatabase', () => {
       'tracearr_sync',
       'tracearr_watch',
       'user',
+      'user_permission',
       'watchlist_item',
     ]);
     expect(existsSync(join(dataDir, BACKUP_FILE))).toBe(false);

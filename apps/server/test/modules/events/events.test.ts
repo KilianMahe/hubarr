@@ -126,7 +126,7 @@ describe('flux temps réel', () => {
     expect(env.app.live.subscribers('downloads.qbittorrent')).toBe(0);
   });
 
-  it('sujets refusés : rôle, service non configuré, nom invalide ; session exigée', async () => {
+  it('sujets refusés : sans droit, service non configuré, nom invalide ; session exigée', async () => {
     env = await torrentEnv({ role: 'user' });
     const base = await listen(env);
     const cookie = `${SESSION_COOKIE_NAME}=${env.browser.cookie ?? ''}`;
@@ -144,5 +144,27 @@ describe('flux temps réel', () => {
     expect(
       (await env.app.inject({ method: 'GET', url: '/api/events?topics=health' })).statusCode,
     ).toBe(401);
+  });
+
+  it('droit de lecture sur le client : sujet accepté ; santé limitée aux services lisibles', async () => {
+    env = await torrentEnv({ role: 'user', permissions: { qbittorrent: 'read' } });
+    qbit(env.upstream.qbittorrent);
+    const base = await listen(env);
+    const cookie = `${SESSION_COOKIE_NAME}=${env.browser.cookie ?? ''}`;
+    const stream = await openStream(
+      base,
+      '/api/events?topics=downloads.qbittorrent,downloads.transmission,health',
+      cookie,
+    );
+    await stream.waitFor(() => stream.events.some((e) => e.topic === 'health'));
+    expect(stream.events[0]).toEqual({
+      accepted: ['downloads.qbittorrent', 'health'],
+      rejected: ['downloads.transmission'],
+    });
+    const health = stream.events.find((e) => e.topic === 'health')?.data as {
+      services: Record<string, unknown>;
+    };
+    expect(Object.keys(health.services).sort()).toEqual(['qbittorrent', 'radarr', 'sonarr']);
+    stream.close();
   });
 });

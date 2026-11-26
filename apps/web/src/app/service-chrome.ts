@@ -12,6 +12,7 @@
 
 import { onUnmounted, reactive, watchEffect } from 'vue';
 import { useRoute, useRouter, type LocationQuery } from 'vue-router';
+import { pageReadOnly } from './access';
 
 export interface FabAction {
   icon: string;
@@ -115,7 +116,8 @@ export function useFabQueryAction(action: string, handler: () => void): void {
       Object.entries(route.query).filter(([key]) => key !== FAB_QUERY),
     );
     void router.replace({ query });
-    handler();
+    // Action d'écriture (ajout) : ignorée sur une page en lecture seule.
+    if (!pageReadOnly.value) handler();
   }
   // Exécuté dès l'installation, puis à chaque arrivée du paramètre.
   const stop = watchEffect(consume);

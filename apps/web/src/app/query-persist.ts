@@ -139,9 +139,16 @@ export interface QueryPersistence {
 
 export function createQueryPersistence(
   queryClient: QueryClient,
-  options: { persister: Persister; version: string; throttleMs?: number; timeoutMs?: number },
+  options: {
+    persister: Persister;
+    /** Version de l'image, relue à chaque démarrage (connue après la connexion). */
+    version: string | (() => string);
+    throttleMs?: number;
+    timeoutMs?: number;
+  },
 ): QueryPersistence {
   const { persister, version } = options;
+  const versionOf = typeof version === 'function' ? version : () => version;
   // Le `QueryClient` de vue-query étend celui du cœur, mais ses signatures
   // acceptent des refs : TypeScript ne les voit plus compatibles. Même objet.
   const coreClient = queryClient as unknown as CoreQueryClient;
@@ -167,7 +174,7 @@ export function createQueryPersistence(
   async function start(userId: number): Promise<void> {
     stop();
     const current = ++generation;
-    const buster = cacheBuster(version, userId);
+    const buster = cacheBuster(versionOf(), userId);
     const restore = persistQueryClientRestore({
       queryClient: coreClient,
       persister,

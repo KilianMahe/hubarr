@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Module Bazarr (P3c.4) : les 14 routes de `BazarrController` et les badges
-// de sous-titres des bibliothèques. Réservé aux admins, comme l'original
-// (`#[IsGranted('ROLE_ADMIN')]`) ; garde de service `bazarr`.
+// de sous-titres des bibliothèques. Droit sur Bazarr (lecture,
+// écriture) contrôlé par la garde de service `bazarr`.
 //
 // Écarts : pages en API JSON (plus de cadre Turbo) ; les
 // pages qui lisent l'index ne fetchent jamais Bazarr hors du ping (état
@@ -37,7 +37,7 @@ import { extractLangs } from '../../integrations/bazarr/langs';
 import { BAZARR_KEYS, byMissingThenTitle } from '../../integrations/bazarr/subtitle-index';
 import { LIBRARY_TIMEOUT_MS } from '../../integrations/radarr/client';
 import { LIBRARY_TIMEOUT_MS as SERIES_LIBRARY_TIMEOUT_MS } from '../../integrations/sonarr/client';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { listEnabledInstances } from '../instances/instances';
 import { apiKeyServiceClient, radarrClient, sonarrClient } from '../services/clients';
 
@@ -113,7 +113,7 @@ export function historyItemOf(row: BazarrRow, kind: 'movie' | 'episode'): Bazarr
 }
 
 export const bazarrRoutes: FastifyPluginAsync = async (instance) => {
-  instance.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(instance);
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const clientOf = () => new BazarrClient(apiKeyServiceClient(instance, 'bazarr'));
   const index = () => instance.cache.bazarr;
@@ -358,9 +358,13 @@ export const bazarrRoutes: FastifyPluginAsync = async (instance) => {
   );
 
   // n° 28 : reconstruction en ligne (bouton « Réessayer » du préchauffage), bilan fidèle.
+  // Index de Hubarr seulement, Bazarr n'est pas modifié : ouverte au droit de lecture.
   app.post(
     `${BASE}/refresh`,
-    { config, schema: { response: { 200: bazarrRefreshSchema } } },
+    {
+      config: { ...config, permission: 'read' },
+      schema: { response: { 200: bazarrRefreshSchema } },
+    },
     async () => {
       const states = (): Pick<BazarrRefresh, 'movies' | 'series' | 'badges'> => ({
         movies: index().datasetState(BAZARR_KEYS.movies),

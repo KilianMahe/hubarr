@@ -29,7 +29,7 @@ import {
   profileScores,
   sortReleases,
 } from '../../integrations/radarr/normalize-detail';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { sharedMovieQueue } from '../media/queue';
 import {
   MOVIES_BASE,
@@ -46,7 +46,7 @@ const ACTIVE_STATUSES = new Set(['queued', 'started']);
 
 export const movieReleaseRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = MOVIES_BASE;
   const config = RADARR_CONFIG;

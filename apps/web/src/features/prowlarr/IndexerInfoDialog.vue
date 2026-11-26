@@ -12,6 +12,7 @@ import { capabilityRows, categoryRows, indexerLinks, paramLabelKey } from './ind
 import { prowlarrApi, prowlarrKeys } from './prowlarr-api';
 import DialogTitle from '../../components/DialogTitle.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{ indexerId: number | null }>();
 const open = defineModel<boolean>({ required: true });
@@ -278,6 +279,7 @@ const eventLabel = (type: string | null) =>
       <v-card-actions>
         <v-btn
           v-if="data && indexerId !== null"
+          v-write
           color="error"
           variant="text"
           data-test="indexer-info-delete"
@@ -287,6 +289,7 @@ const eventLabel = (type: string | null) =>
         <v-spacer />
         <v-btn
           v-if="indexerId !== null"
+          v-write
           variant="tonal"
           color="service-text"
           data-test="indexer-info-edit"

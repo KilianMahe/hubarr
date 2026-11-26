@@ -71,6 +71,7 @@ import {
 import { torrentKeys, torrentsApi } from './torrents-api';
 import { useTorrentI18n } from './use-torrent-i18n';
 import { useLiveQuery } from '../../app/live';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{ client: TorrentClientId }>();
 const router = useRouter();
@@ -413,6 +414,7 @@ const tagOptions = computed(() => [
     <ServiceHeader :service="client" :title="title" :subtitle="subtitle">
       <v-btn
         v-if="mdAndUp"
+        v-write
         :prepend-icon="msAdd"
         color="service"
         variant="flat"
@@ -421,6 +423,7 @@ const tagOptions = computed(() => [
         >{{ tk('toolbar.add') }}</v-btn
       >
       <v-btn
+        v-write
         :icon="msPauseFill"
         variant="tonal"
         size="small"
@@ -430,6 +433,7 @@ const tagOptions = computed(() => [
         @click="pauseAll"
       />
       <v-btn
+        v-write
         :icon="msPlayArrowFill"
         variant="tonal"
         size="small"
@@ -544,6 +548,7 @@ const tagOptions = computed(() => [
           />
           <div class="d-flex flex-wrap align-center ga-2 mb-2">
             <v-checkbox-btn
+              v-write
               :model-value="allSelected"
               :indeterminate="selected.size > 0 && !allSelected"
               density="compact"
@@ -670,6 +675,7 @@ const tagOptions = computed(() => [
           <v-slide-y-reverse-transition>
             <BulkActionBar
               v-if="selected.size > 0"
+              v-write
               :count="selected.size"
               data-test="torrent-bulk"
               @clear="selected = new Set()"

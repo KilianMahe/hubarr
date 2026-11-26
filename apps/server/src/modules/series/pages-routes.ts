@@ -44,7 +44,7 @@ import {
   normalizeSeriesHistoryItem,
 } from '../../integrations/sonarr/normalize-detail';
 import type { SonarrEpisodeResource } from '../../integrations/sonarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import {
   CUTOFF_FETCH_MAX,
   SONARR_SORT_KEYS,
@@ -94,7 +94,7 @@ function wantedEpisode(episode: SonarrEpisodeResource): WantedEpisode[] {
 
 export const seriesPagesRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = SERIES_BASE;
   const config = SONARR_CONFIG;
@@ -226,9 +226,13 @@ export const seriesPagesRoutes: FastifyPluginAsync = async (instance) => {
   );
 
   // n° 206 : demander à Sonarr de relire ses clients de téléchargement.
+  // Simple relecture, sans effet sur la bibliothèque : ouverte au droit de lecture.
   app.post(
     `${base}/queue/refresh`,
-    { config, schema: { params: slugParams, response: { 200: okResponseSchema } } },
+    {
+      config: { ...config, permission: 'read' },
+      schema: { params: slugParams, response: { 200: okResponseSchema } },
+    },
     async (request) => {
       await clientOf(request).refreshMonitoredDownloads();
       return { ok: true as const };
@@ -413,9 +417,13 @@ export const seriesPagesRoutes: FastifyPluginAsync = async (instance) => {
   // ── Système, import par lot ─────────────────────────────────────────────────
 
   // n° 160 : page `/medias/{slug}/series/systeme`.
+  // Journaux, disques, indexeurs et clients : administration seulement.
   app.get(
     `${base}/systeme`,
-    { config, schema: { params: slugParams, response: { 200: arrSystemResponseSchema } } },
+    {
+      config: { ...config, permission: 'admin' },
+      schema: { params: slugParams, response: { 200: arrSystemResponseSchema } },
+    },
     async (request, reply) => {
       void reply.header('cache-control', 'no-store');
       return arrSystemResponse(clientOf(request));

@@ -3,8 +3,8 @@
 // `QBittorrentController` (27), `TransmissionController` (21) et
 // `DelugeController` (21), enregistrées **une fois par client** sous
 // `/api/<client>` (règle R1). Une route propre à un client n'existe que si sa
-// capacité est vraie (`TORRENT_CAPABILITIES`). Réservé aux admins, comme
-// l'original ; garde de service `<client>`.
+// capacité est vraie (`TORRENT_CAPABILITIES`). Droit sur le client
+// contrôlé par la garde de service `<client>`.
 //
 // Écarts :
 // - erreurs communes (503 injoignable, 502 refus du client avec son message)
@@ -54,7 +54,7 @@ import {
 } from '../../integrations/torrents/common';
 import { EMPTY_GLUETUN } from '../../integrations/torrents/gluetun';
 import type { TorrentClient } from '../../integrations/torrents/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import { gluetunClient, torrentClient } from './clients';
 import { sharedTorrents, torrentSummary } from './live';
 import { resolveTorrent } from './resolver';
@@ -382,6 +382,6 @@ function registerClient(instance: FastifyInstance, id: TorrentClientId): void {
 }
 
 export const torrentRoutes: FastifyPluginAsync = async (instance) => {
-  instance.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(instance);
   for (const id of TORRENT_CLIENTS) registerClient(instance, id);
 };

@@ -106,6 +106,7 @@ const TILES = [
               </div>
               <div class="text-body-small text-muted">{{ item.year ?? '' }}</div>
               <v-btn
+                v-write
                 block
                 size="small"
                 variant="text"

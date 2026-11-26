@@ -51,6 +51,10 @@ Un clic sur une affiche ouvre un **aperçu rapide** : synopsis, genres, note, é
 
 Un administrateur peut **modifier la mise en page** : glisser une section par sa poignée (à la souris ou au doigt) ou boutons Monter/Descendre pour l'ordre, interrupteur pour masquer une section, puis **Enregistrer**. Le même réglage existe dans **Paramètres → Affichage**. Le bandeau reste toujours en haut.
 
+## Centre de notifications
+
+La cloche de la barre du haut (présente aussi dans la barre des vues de service sur mobile) garde les 50 dernières notifications, la plus récente en tête, avec le nombre de non lues sur sa pastille. Les fins et erreurs de téléchargement torrent n'arrivent que là ; les confirmations d'action (« Enregistré »…) et les erreurs affichent aussi un toast bref. Les notifications non lues sont mises en évidence tant que le menu est ouvert, puis marquées comme lues à sa fermeture. Chacune peut être supprimée, ou la liste entière effacée. L'historique est conservé dans le navigateur, par compte, et partagé entre les onglets ouverts.
+
 ## Menu de santé
 
 L'icône en forme de cœur de la barre du haut résume l'état des services : sa pastille est verte si tous répondent, orange si une partie seulement, rouge sinon. Le menu ne liste que les services configurés, une ligne par instance Radarr et Sonarr.

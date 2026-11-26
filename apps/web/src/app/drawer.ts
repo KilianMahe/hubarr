@@ -78,14 +78,9 @@ function itemFor(services: BootstrapServices, id: ServiceId): DrawerServiceItem 
   };
 }
 
-export function buildDrawerSections(
-  services: BootstrapServices,
-  isAdmin: boolean,
-): DrawerServiceSection[] {
-  const shown = (id: ServiceId) =>
-    isConfigured(services, id) &&
-    isVisibleInSidebar(services, id) &&
-    (isAdmin || SERVICE_PAGES[id]?.adminOnly !== true);
+/** Sections du tiroir : services configurés (lisibles par le compte) et visibles. */
+export function buildDrawerSections(services: BootstrapServices): DrawerServiceSection[] {
+  const shown = (id: ServiceId) => isConfigured(services, id) && isVisibleInSidebar(services, id);
 
   const sections: DrawerServiceSection[] = [];
   for (const family of SERVICE_FAMILIES) {

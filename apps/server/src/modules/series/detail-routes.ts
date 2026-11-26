@@ -37,7 +37,7 @@ import {
   normalizeSeriesHistoryItem,
 } from '../../integrations/sonarr/normalize-detail';
 import type { SonarrEpisodeResource } from '../../integrations/sonarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import {
   SERIES_BASE,
   SONARR_BASE,
@@ -109,7 +109,7 @@ export const seriesDetailRoutes: FastifyPluginAsync<SeriesDetailRoutesOptions> =
   options,
 ) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = SERIES_BASE;
   const config = SONARR_CONFIG;

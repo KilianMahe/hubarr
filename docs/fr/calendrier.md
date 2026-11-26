@@ -5,7 +5,7 @@ Le calendrier (`/calendrier`, onglet **Calendrier** de l'[**Accueil**](./premier
 ## Vues et filtres
 
 - **Mois**, **Semaine** et **Jour** (agenda détaillé) ; la vue choisie est mémorisée par le navigateur. Une adresse comme `/calendrier?view=day&date=2026-11-25` ouvre directement un jour.
-- Dans le mois, cliquez sur un jour pour lister ses sorties sous la grille (le calendrier reste en vue mois) ; les titres affichés dans une case ne sont qu'un aperçu, les sorties s'ouvrent depuis la liste. **Sur mobile**, le mois affiche une pastille de couleur par sortie. La semaine s'affiche en liste, un bloc par jour.
+- Dans le mois, cliquez sur un jour pour lister ses sorties sous la grille (le calendrier reste en vue mois) ; le jour choisi est encadré, le numéro du jour actuel s'affiche en couleur d'accent ; les titres affichés dans une case ne sont qu'un aperçu, les sorties s'ouvrent depuis la liste. **Sur mobile**, le mois affiche une pastille de couleur par sortie. La semaine s'affiche en liste, un bloc par jour.
 - Filtres par **type** (cinéma, numérique, physique, épisodes, chacun avec son icône) et par **statut de téléchargement**.
 - Un clic sur un événement ouvre son aperçu rapide.
 

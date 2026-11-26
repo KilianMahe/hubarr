@@ -55,6 +55,7 @@ import { setupRoutes } from './modules/setup/routes';
 import { themeRoutes } from './modules/theme/routes';
 import { torrentRoutes } from './modules/torrents/routes';
 import { tracearrWatchRoutes } from './modules/tracearr-watch/routes';
+import { userRoutes } from './modules/users/routes';
 import { TracearrWatchSync, WATCH_SYNC_INTERVAL_MS } from './modules/tracearr-watch/sync';
 import { usenetRoutes } from './modules/usenet/routes';
 import { webRoutes } from './modules/web/routes';
@@ -190,6 +191,7 @@ export function buildApp(options: BuildAppOptions): FastifyInstance {
     dataDir: options.dataDir,
   });
   void app.register(instanceRoutes);
+  void app.register(userRoutes);
   void app.register(logsRoutes);
   void app.register(movieRoutes);
   void app.register(movieDetailRoutes);

@@ -127,7 +127,7 @@ describe('resolveServiceAccess', () => {
 
 describe('tiroir', () => {
   it('services configurés et visibles, par famille ; instances multiples en sous-entrées', () => {
-    const sections = buildDrawerSections(servicesOf(), true);
+    const sections = buildDrawerSections(servicesOf());
     // Découverte et Calendrier : onglets de l'accueil (lot 11), plus dans les sections.
     expect(sections.map((section) => section.titleKey)).toEqual([
       'sidebar.family.arrs',
@@ -138,9 +138,11 @@ describe('tiroir', () => {
     expect(radarr?.children?.map((child) => child.label)).toEqual(['Radarr', 'Radarr 4K']);
   });
 
-  it('masqués du menu ou réservés aux admins', () => {
+  it('masqués du menu ou non configurés (services illisibles pour le compte)', () => {
     const services = servicesOf({ sidebar: { calendar: false, tmdb: false } });
-    const keys = buildDrawerSections(services, false).flatMap((section) =>
+    for (const id of ['radarr', 'sonarr', 'qbittorrent', 'prowlarr', 'bazarr'])
+      services.states[id] = { configured: false, disabled: false };
+    const keys = buildDrawerSections(services).flatMap((section) =>
       section.items.map((item) => item.key),
     );
     expect(keys).toEqual(['tautulli']);

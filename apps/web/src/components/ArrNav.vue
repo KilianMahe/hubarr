@@ -41,7 +41,10 @@ const instance = computed(() => instances.value.find((row) => row.slug === slug.
 const headerSubtitle = computed(
   () => [instance.value?.name, props.subtitle].filter((part) => part).join(' · ') || null,
 );
-const menu = computed(() => (props.kind ? adminMenu(props.kind, 'service') : []));
+// Pages d'administration de l'instance (menu « Plus ») : admins seulement.
+const menu = computed(() =>
+  props.kind && session.isAdmin ? adminMenu(props.kind, 'service') : [],
+);
 const settingsPage = computed(() => route.meta.serviceSettings === true);
 const adminActive = computed(() => typeof route.meta.adminPage === 'string');
 const activeTab = computed(() =>

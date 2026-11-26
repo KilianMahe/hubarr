@@ -10,11 +10,11 @@
 import { logsFilterSchema, logsQuerySchema, logsResponseSchema } from '@hubarr/shared';
 import type { FastifyPluginAsync } from 'fastify';
 import type { ZodTypeProvider } from '../../http/zod';
-import { requireRole } from '../../plugins/access';
+import { guardAdminModule } from '../../plugins/access';
 
 export const logsRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardAdminModule(app);
 
   app.get(
     '/api/admin/logs',

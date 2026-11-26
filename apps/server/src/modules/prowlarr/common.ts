@@ -12,6 +12,8 @@ import { apiKeyServiceClient } from '../services/clients';
 export const PROWLARR_BASE = '/api/prowlarr';
 /** Garde de service : désactivé ou non configuré → 409 (D67). */
 export const PROWLARR_CONFIG = { service: 'prowlarr' as const };
+/** Réglages et système de Prowlarr (pages ouvertes depuis les paramètres) : admins seulement. */
+export const PROWLARR_ADMIN_CONFIG = { service: 'prowlarr' as const, permission: 'admin' as const };
 
 /** Identifiant numérique positif d'un élément (`:id`). */
 export const prowlarrIdParams = z.object({ id: z.coerce.number().int().positive() });

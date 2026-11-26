@@ -56,6 +56,7 @@ import type { ProwlarrClient } from '../../integrations/prowlarr/client';
 import { positiveInt, rawQuery, scalar } from '../movies/common';
 import {
   PROWLARR_BASE,
+  PROWLARR_ADMIN_CONFIG,
   PROWLARR_CONFIG,
   orNotFound,
   prowlarrClient,
@@ -148,7 +149,9 @@ async function configOf(client: ProwlarrClient, section: string): Promise<ArrRec
 export function registerSystemRoutes(instance: FastifyInstance): void {
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const base = PROWLARR_BASE;
-  const config = PROWLARR_CONFIG;
+  // Historique : droit sur le service ; le reste (réglages, système) : admins.
+  const config = PROWLARR_ADMIN_CONFIG;
+  const historyConfig = PROWLARR_CONFIG;
   const clientOf = () => prowlarrClient(instance);
 
   // ── Configurations ─────────────────────────────────────────────────────────
@@ -178,7 +181,10 @@ export function registerSystemRoutes(instance: FastifyInstance): void {
   // n° 248 : 50 par page, plus récents en tête.
   app.get(
     `${base}/history`,
-    { config, schema: { querystring: rawQuery, response: { 200: prowlarrHistoryPageSchema } } },
+    {
+      config: historyConfig,
+      schema: { querystring: rawQuery, response: { 200: prowlarrHistoryPageSchema } },
+    },
     async (request) => {
       const page = positiveInt(request.query.page, 1);
       const data = await clientOf().one('/api/v1/history', {
@@ -201,7 +207,7 @@ export function registerSystemRoutes(instance: FastifyInstance): void {
   app.get(
     `${base}/history/since`,
     {
-      config,
+      config: historyConfig,
       schema: { querystring: rawQuery, response: { 200: z.array(prowlarrHistoryRecordSchema) } },
     },
     async (request) => {

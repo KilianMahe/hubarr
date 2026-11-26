@@ -81,6 +81,7 @@ import {
 import { posterUrl } from './movie-display';
 import { moviesApi, moviesKeys } from './movies-api';
 import { useArrCommand } from './useArrCommand';
+import { vWrite } from '../../app/access';
 
 const route = useRoute();
 const router = useRouter();
@@ -855,6 +856,7 @@ function onFilesChanged(): void {
         <!-- Actions : recherche en premier, suivi (état explicite, G2), actualisation -->
         <div class="detail-actions">
           <v-btn
+            v-write
             :prepend-icon="msSearch"
             color="service"
             variant="flat"
@@ -865,6 +867,7 @@ function onFilesChanged(): void {
           >
           <div class="detail-actions__list">
             <v-btn
+              v-write
               :prepend-icon="movie.monitored ? msBookmarkFill : msBookmark"
               variant="text"
               :aria-pressed="movie.monitored"
@@ -876,6 +879,7 @@ function onFilesChanged(): void {
               }}</v-btn
             >
             <v-btn
+              v-write
               :prepend-icon="msGridView"
               variant="text"
               :loading="releasesPanel.loading"
@@ -884,6 +888,7 @@ function onFilesChanged(): void {
               >{{ t('media.films.detail.interactive_search') }}</v-btn
             >
             <v-btn
+              v-write
               :prepend-icon="msRefresh"
               variant="text"
               :loading="busy.refresh"
@@ -990,6 +995,7 @@ function onFilesChanged(): void {
               @renamed="reloadMovie"
             />
             <v-btn
+              v-write
               variant="tonal"
               size="small"
               :append-icon="msChevronRight"
@@ -1012,6 +1018,7 @@ function onFilesChanged(): void {
             >
             <div class="d-flex flex-wrap ga-2">
               <v-btn
+                v-write
                 variant="tonal"
                 size="small"
                 :prepend-icon="msEdit"
@@ -1075,6 +1082,7 @@ function onFilesChanged(): void {
             <template #action="{ person }">
               <button
                 v-if="person.personTmdbId !== null"
+                v-write
                 type="button"
                 class="movie-page__follow"
                 :class="{ 'movie-page__follow--on': isFollowed(person) }"
@@ -1094,6 +1102,7 @@ function onFilesChanged(): void {
               <template #action="{ person }">
                 <button
                   v-if="person.personTmdbId !== null"
+                  v-write
                   type="button"
                   class="movie-page__follow"
                   :class="{ 'movie-page__follow--on': isFollowed(person) }"
@@ -1114,7 +1123,7 @@ function onFilesChanged(): void {
         <DetailSuggestions type="movie" :tmdb-id="movie.tmdbId" class="mt-4" />
 
         <!-- Suppression : repliée, boutons lisibles en entier (G2) -->
-        <v-expansion-panels variant="accordion" class="mt-4 detail-more">
+        <v-expansion-panels v-write variant="accordion" class="mt-4 detail-more">
           <v-expansion-panel elevation="0" rounded="lg" eager>
             <v-expansion-panel-title>
               <span class="d-flex align-center ga-2 text-error"

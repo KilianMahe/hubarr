@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Recherche globale de la barre du haut (P4.5) : `MediaController::globalSearch`
 // et `globalSearchOnline`, sous `/api/medias/:slug/search` (n° 232, 233).
-// Réservée aux admins, comme tout `MediaController`.
+// Résultats limités aux instances que le compte peut lire (admins : toutes).
 //
 // - Locale : index des bibliothèques de **toutes** les instances actives
 //   (60 s en mémoire, champs normalisés une fois par construction), filtre
@@ -9,7 +9,8 @@
 //   titre de tri ; ceux qui commencent par la requête d'abord, puis l'ordre
 //   alphabétique. 12 résultats, avec le statut des sous-titres (Bazarr).
 // - En ligne : recherche Radarr (instance du slug, sinon par défaut) et Sonarr
-//   (instance par défaut), 6 de chaque.
+//   (instance par défaut), 6 de chaque ; pour un utilisateur, la première
+//   instance lisible si celle-ci lui est fermée.
 //
 // Écart : « déjà dans la bibliothèque » d'un résultat en ligne
 // compare l'id TMDB (film) ou TheTVDB (série) à toutes les instances, au lieu
@@ -25,8 +26,8 @@ import {
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from '../../http/zod';
-import { requireRole } from '../../plugins/access';
-import { getDefaultInstance, getInstanceBySlug } from '../instances/instances';
+import type { InstanceRow } from '../instances/instances';
+import type { AccessScope } from '../users/access-scope';
 import { collectMovies, collectSeries } from '../media/library';
 import { radarrClient, sonarrClient } from '../services/clients';
 import { stripAccents } from './ranker';
@@ -113,14 +114,29 @@ export function matchAndRank<
     });
 }
 
+/** Lignes de l'index des instances que le compte peut lire. */
+function visibleRows(rows: IndexRow[], scope: AccessScope): IndexRow[] {
+  if (scope.admin) return rows;
+  return rows.filter((row) =>
+    scope.can(row.type === 'film' ? 'radarr' : 'sonarr', row.instance.slug),
+  );
+}
+
+/** Instance du slug, sinon la par défaut, sinon la première (parmi les actives et lisibles). */
+function pickInstance(rows: InstanceRow[], slug: string | null): InstanceRow | null {
+  return (
+    rows.find((row) => row.slug === slug) ?? rows.find((row) => row.isDefault) ?? rows[0] ?? null
+  );
+}
+
 export const searchRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
   const params = z.object({ slug: z.string().min(1).max(100) });
 
   app.get(
     '/api/medias/:slug/search',
     {
+      config: { access: 'user' },
       schema: {
         params,
         querystring: globalSearchQuerySchema,
@@ -130,14 +146,16 @@ export const searchRoutes: FastifyPluginAsync = async (instance) => {
     async (request) => {
       const term = request.query.q.trim();
       if (term.length < 2) return [];
-      const ranked = matchAndRank(await searchIndex(instance), term).slice(0, MAX_LOCAL);
+      const index = visibleRows(await searchIndex(instance), request.access);
+      const ranked = matchAndRank(index, term).slice(0, MAX_LOCAL);
+      const bazarr = request.access.can('bazarr', null);
       const movies = instance.cache.bazarr.movieStatusMap();
       const series = instance.cache.bazarr.seriesStatusMap();
       return ranked.map((row): LocalSearchHit => {
         const { tmdbId: _t, tvdbId: _v, nTitle: _a, nOriginal: _b, nSort: _c, ...hit } = row;
         const map = row.type === 'film' ? movies : series;
         const status = map.state === 'ready' ? map.items[String(row.id)] : undefined;
-        return status === undefined || status.state === 'hidden'
+        return !bazarr || status === undefined || status.state === 'hidden'
           ? hit
           : { ...hit, subtitle: status };
       });
@@ -147,6 +165,7 @@ export const searchRoutes: FastifyPluginAsync = async (instance) => {
   app.get(
     '/api/medias/:slug/search/online',
     {
+      config: { access: 'user' },
       schema: {
         params,
         querystring: globalSearchQuerySchema,
@@ -156,13 +175,11 @@ export const searchRoutes: FastifyPluginAsync = async (instance) => {
     async (request) => {
       const term = request.query.q.trim();
       if (term.length < 2) return [];
-      const index = await searchIndex(instance);
+      const index = visibleRows(await searchIndex(instance), request.access);
       const movieIds = new Set(index.filter((r) => r.type === 'film').map((r) => r.tmdbId));
       const seriesIds = new Set(index.filter((r) => r.type === 'serie').map((r) => r.tvdbId));
-      const radarr =
-        getInstanceBySlug(instance.db, 'radarr', request.params.slug) ??
-        getDefaultInstance(instance.db, 'radarr');
-      const sonarr = getDefaultInstance(instance.db, 'sonarr');
+      const radarr = pickInstance(request.access.instances('radarr'), request.params.slug);
+      const sonarr = pickInstance(request.access.instances('sonarr'), null);
 
       const [movies, series] = await Promise.all([
         radarr?.enabled

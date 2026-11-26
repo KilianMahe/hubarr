@@ -8,6 +8,7 @@ import { msCheck, msEdit } from '../../components/symbols';
 import { useQuery } from '@tanstack/vue-query';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { vWrite } from '../../app/access';
 import { moviesApi, moviesKeys } from './movies-api';
 import { useArrCommand } from './useArrCommand';
 
@@ -83,6 +84,7 @@ defineExpose({ rename });
     <div class="d-flex align-center pa-3 pb-0">
       <h3 class="text-title-small flex-grow-1">{{ t('media.films.detail.file_naming') }}</h3>
       <v-btn
+        v-write
         :prepend-icon="msEdit"
         size="small"
         variant="tonal"

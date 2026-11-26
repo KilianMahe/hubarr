@@ -6,6 +6,7 @@
 
 import {
   msFindInPage,
+  msGroup,
   msInfo,
   msLan,
   msPalette,
@@ -16,6 +17,7 @@ import type { BottomNavItem } from '../../app/navigation';
 
 export const SETTINGS_SECTIONS = [
   { id: 'services', labelKey: 'admin.nav.services', icon: msLan },
+  { id: 'users', labelKey: 'admin.nav.users', icon: msGroup },
   { id: 'display', labelKey: 'admin.nav.display', icon: msPalette },
   { id: 'languages', labelKey: 'admin.languages.tab_label', icon: msTranslate },
   { id: 'backup', labelKey: 'admin.nav.backup', icon: msSettingsBackupRestore },

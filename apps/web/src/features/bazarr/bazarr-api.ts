@@ -60,10 +60,10 @@ export const bazarrApi = {
     api.get(`${BAZARR_API}/subtitles/movie/${id}`, bazarrMovieSubtitlesSchema, signal),
 };
 
-/** Bazarr utilisable par l'utilisateur (configuré, admin). */
+/** Bazarr utilisable par le compte (configuré et lisible : bootstrap filtré par ses droits). */
 export function useBazarrAvailable() {
   const session = useSessionStore();
-  return computed(() => session.isAdmin && isConfigured(session.services, 'bazarr'));
+  return computed(() => isConfigured(session.services, 'bazarr'));
 }
 
 /** Statut affiché par un badge : `pending` tant que l'index n'est pas chargé. */

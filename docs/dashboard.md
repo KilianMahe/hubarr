@@ -51,6 +51,10 @@ Clicking a poster opens a **quick look**: overview, genres, rating, library stat
 
 Admins can **edit the layout**: drag a section by its handle (with the mouse or a finger) or use the Move up/down buttons to reorder, a switch to hide a section, then **Save**. The same setting is in **Settings → Display**. The hero always stays on top.
 
+## Notification center
+
+The bell in the top bar (also present in the service views' bar on mobile) keeps the latest 50 notifications, most recent first, with the number of unread ones on its badge. Torrent completions and errors only go there; action confirmations ("Saved"…) and errors also show a brief toast. Unread notifications are highlighted while the menu is open and marked as read when it closes. Each one can be removed, or the whole list cleared. The history is kept in the browser, per account, and shared between open tabs.
+
 ## Health menu
 
 The heart icon in the top bar sums up the services' state: its dot is green when all of them respond, orange when only some do, red otherwise. The menu lists configured services only, one line per Radarr and Sonarr instance.

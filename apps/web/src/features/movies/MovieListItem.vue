@@ -14,6 +14,7 @@ import WatchedBadge from '../activity/WatchedBadge.vue';
 import StatusChip from '../../components/ds/StatusChip.vue';
 import { STATUS_COLORS, displayStatusOf, statusLabelKey } from './library';
 import { posterUrl, sizeText, statusTitle } from './movie-display';
+import { pageReadOnly } from '../../app/access';
 
 const props = defineProps<{
   movie: MovieLibraryItem;
@@ -73,7 +74,7 @@ const runtime = computed(() => (props.movie.runtime ? `${props.movie.runtime} mi
         :color="movie.monitored ? 'service-text' : 'muted'"
         variant="text"
         size="small"
-        :disabled="selectMode"
+        :disabled="selectMode || pageReadOnly"
         :aria-pressed="movie.monitored"
         :aria-label="
           t(movie.monitored ? 'media.films.detail.unfollow' : 'media.films.detail.follow')

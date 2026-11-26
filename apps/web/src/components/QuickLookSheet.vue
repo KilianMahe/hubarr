@@ -57,8 +57,9 @@ const action = computed<{ to: RouteLocationRaw; label: string } | null>(() => {
   const value = d.value;
   if (value === undefined) return null;
   if (value.action.kind === 'manage') {
-    // Les fiches Radarr/Sonarr sont réservées aux admins.
-    if (!session.isAdmin) return null;
+    // Fiche Radarr/Sonarr : droit de lecture sur l'instance.
+    const service = value.action.type === 'movie' ? 'radarr' : 'sonarr';
+    if (!session.can(service, value.action.slug, 'read')) return null;
     return {
       to: mediaDetailLocation(value.action.type, value.action.slug, value.action.id),
       label: t('dashboard.quicklook.manage'),
@@ -73,7 +74,7 @@ const inWatchlist = computed(() =>
   d.value?.tmdbId && d.value.tmdbType ? watchlist.has(d.value.tmdbType, d.value.tmdbId) : false,
 );
 const canWatchlist = computed(
-  () => watchlist.enabled.value && overlays.quickLook?.kind === 'tmdb' && d.value?.tmdbId != null,
+  () => watchlist.editable.value && overlays.quickLook?.kind === 'tmdb' && d.value?.tmdbId != null,
 );
 function star(): void {
   const value = d.value;
@@ -92,7 +93,12 @@ const trailerUrl = computed(() =>
     ? `https://www.youtube.com/watch?v=${encodeURIComponent(d.value.trailerKey)}`
     : '',
 );
-const canAdd = computed(() => session.isAdmin && d.value?.action.kind === 'discover');
+// Ajout : droit d'écriture sur au moins une instance du type du titre.
+const canAdd = computed(() => {
+  const value = d.value;
+  if (value?.action.kind !== 'discover') return false;
+  return session.can(value.action.type === 'movie' ? 'radarr' : 'sonarr', null, 'write');
+});
 function add(): void {
   const value = d.value;
   if (value?.action.kind === 'discover')

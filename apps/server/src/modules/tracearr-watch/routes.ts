@@ -20,7 +20,7 @@ import { users } from '../../db/schema';
 import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
 import { tracearrUserKey, type TracearrIdentity } from '../../integrations/activity/tracearr';
-import { requireRole } from '../../plugins/access';
+import { guardAdminModule } from '../../plugins/access';
 import { findUserById, type UserRow } from '../users/users';
 import { forgetIdentityIfUnused, syncStateOf, tracearrClient, watchedOf } from './sync';
 
@@ -67,13 +67,16 @@ export const tracearrWatchRoutes: FastifyPluginAsync = async (instance) => {
 
   app.get(
     '/api/profil/tracearr',
-    { schema: { response: { 200: tracearrLinkSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: tracearrLinkSchema } } },
     async (request) => linkOf(currentUser(request)),
   );
 
   app.post(
     '/api/profil/tracearr',
-    { schema: { body: tracearrLinkRequestSchema, response: { 200: tracearrLinkSchema } } },
+    {
+      config: { access: 'user' },
+      schema: { body: tracearrLinkRequestSchema, response: { 200: tracearrLinkSchema } },
+    },
     async (request) => {
       const user = currentUser(request);
       const { key } = request.body;
@@ -105,7 +108,7 @@ export const tracearrWatchRoutes: FastifyPluginAsync = async (instance) => {
   );
 
   void app.register(async (scope) => {
-    scope.addHook('onRequest', requireRole('admin'));
+    guardAdminModule(scope);
     scope
       .withTypeProvider<ZodTypeProvider>()
       .post(
@@ -120,7 +123,7 @@ export const tracearrWatchRoutes: FastifyPluginAsync = async (instance) => {
 
   app.get(
     '/api/tracearr/watched',
-    { schema: { response: { 200: tracearrWatchedSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: tracearrWatchedSchema } } },
     async (request) => {
       const id = currentUser(request).tracearrUserId;
       if (id === null) return { linked: false, movies: [], shows: [] };

@@ -264,7 +264,14 @@ describe('page', () => {
     wrapper.unmount();
     mounted.pop();
 
-    fakeFetch(routes({ 'GET /api/tableau-de-bord': () => ({ body: page({ layout }) }) }));
+    // Utilisateur sans droit sur Radarr/Sonarr : le serveur les dit non configurés.
+    fakeFetch(
+      routes({
+        'GET /api/tableau-de-bord': () => ({
+          body: page({ layout, configured: { ...page().configured, radarr: false } }),
+        }),
+      }),
+    );
     const user = await mountApp(
       '/tableau-de-bord',
       bootstrapOf({ user: { ...ADMIN, role: 'user' }, services }),
@@ -464,7 +471,7 @@ describe('statistiques (lot 13)', () => {
     expect(wrapper.get('[data-test="disks-failed"]').text()).toContain('Films 4K');
   });
 
-  it('sans client de téléchargement : pas de graphique ; utilisateur simple : aucune des deux', async () => {
+  it('sans client de téléchargement : pas de graphique ; utilisateur sans droit : aucune des deux', async () => {
     const { calls } = fakeFetch(statsRoutes({ downloads: false }));
     const { wrapper } = await mountApp('/tableau-de-bord', bootstrapOf({ user: ADMIN, services }));
     mounted.push(wrapper);
@@ -475,7 +482,8 @@ describe('statistiques (lot 13)', () => {
     wrapper.unmount();
     mounted.pop();
 
-    const user = fakeFetch(statsRoutes());
+    // Services illisibles pour le compte : non configurés d'après le serveur.
+    const user = fakeFetch(statsRoutes({ radarr: false, sonarr: false, downloads: false }));
     const asUser = await mountApp(
       '/tableau-de-bord',
       bootstrapOf({ user: { ...ADMIN, role: 'user' }, services }),

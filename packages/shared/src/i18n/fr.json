@@ -150,6 +150,14 @@
       },
       "use_default": "Utiliser la langue de l'instance"
     },
+    "notifications": {
+      "title": "Notifications",
+      "label": "{count, plural, =0 {Notifications} one {Notifications, # non lue} other {Notifications, # non lues}}",
+      "mark_all_read": "Tout marquer comme lu",
+      "clear": "Tout effacer",
+      "remove": "Supprimer la notification",
+      "empty": "Aucune notification."
+    },
     "health": {
       "title": "Santé des services",
       "summary_ok": "Tous les services OK",
@@ -898,7 +906,8 @@
       "logs": "Journaux",
       "updates": "Mises à jour",
       "about": "À propos",
-      "aria_label": "Sections des paramètres"
+      "aria_label": "Sections des paramètres",
+      "users": "Utilisateurs"
     },
     "services": {
       "title": "Services externes",
@@ -1076,8 +1085,8 @@
         }
       },
       "toasts": {
-        "label": "Notifications (toasts)",
-        "help": "Bulles fugaces en bas d'écran (fin de téléchargement, erreurs)."
+        "label": "Toasts",
+        "help": "Bulles fugaces qui confirment une action. Désactivées, seules les erreurs restent affichées ; tout reste consigné dans le centre de notifications (cloche)."
       },
       "timezone": {
         "label": "Fuseau horaire",
@@ -6607,6 +6616,75 @@
       "gone": "Cette lecture est déjà terminée",
       "error_reason": "Impossible d'arrêter la lecture : {reason}",
       "error_unknown": "erreur inconnue"
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "description": "Comptes qui peuvent se connecter à Hubarr. Un admin a tous les droits ; un utilisateur n'accède qu'aux services que vous lui ouvrez, en lecture seule ou en lecture et écriture.",
+    "you": "Vous",
+    "role": {
+      "admin": "Admin",
+      "user": "Utilisateur"
+    },
+    "level": {
+      "none": "Aucun",
+      "read": "Lecture",
+      "write": "Écriture"
+    },
+    "action": {
+      "add": "Ajouter un utilisateur",
+      "create": "Créer le compte",
+      "save": "Enregistrer",
+      "edit": "Modifier {name}",
+      "delete": "Supprimer {name}"
+    },
+    "summary": {
+      "all": "Tous les droits",
+      "none": "Aucun accès",
+      "counts": "Écriture : {write} · Lecture : {read}"
+    },
+    "last_login": {
+      "never": "Jamais connecté",
+      "at": "Dernière connexion : {date}"
+    },
+    "delete_confirm": "Supprimer le compte de {name} ? Ses sessions ouvertes sont fermées. Cette action est irréversible.",
+    "flash": {
+      "created": "Compte de {name} créé",
+      "saved": "Compte de {name} enregistré",
+      "deleted": "Compte de {name} supprimé"
+    },
+    "dialog": {
+      "add_title": "Nouvel utilisateur",
+      "edit_title": "Modifier {name}"
+    },
+    "field": {
+      "email": "E-mail",
+      "display_name": "Nom affiché",
+      "display_name_hint": "Facultatif ; l'e-mail est affiché à défaut.",
+      "password": "Mot de passe provisoire",
+      "password_hint": "{min} caractères au moins. Transmettez-le à l'utilisateur, qui pourra le changer dans son profil.",
+      "password_reset": "Nouveau mot de passe provisoire",
+      "password_reset_hint": "Laisser vide pour le garder. Un nouveau mot de passe ferme les sessions ouvertes du compte.",
+      "role": "Rôle",
+      "role_self_hint": "Vous ne pouvez pas changer votre propre rôle."
+    },
+    "permissions": {
+      "title": "Accès aux services",
+      "admin_all": "Un admin a tous les droits sur tous les services, ainsi que sur les paramètres de Hubarr.",
+      "set_all": "Tout :",
+      "hint": "Lecture : consulter les pages du service. Écriture : aussi y agir (ajouter, modifier, supprimer, lancer une recherche…). Les réglages des services restent réservés aux admins.",
+      "no_service": "Aucun service n'est configuré pour l'instant."
+    },
+    "read_only": {
+      "label": "Lecture seule",
+      "hint": "Votre compte peut consulter ce service, mais pas y agir."
+    },
+    "error": {
+      "email_invalid": "Adresse e-mail invalide.",
+      "password_too_short": "Le mot de passe doit contenir au moins {min} caractères.",
+      "email_taken": "Un compte existe déjà avec cet e-mail.",
+      "last_admin": "Impossible : vous ne pouvez ni supprimer votre propre compte ni retirer votre rôle d'admin, et Hubarr doit garder au moins un admin.",
+      "forbidden": "Action non autorisée : votre compte n'a pas ce droit sur ce service."
     }
   }
 }

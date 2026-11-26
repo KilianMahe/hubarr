@@ -14,6 +14,7 @@ import { useDisplay } from 'vuetify';
 import ServiceDownBanner from '../../components/ServiceDownBanner.vue';
 import ServiceHeader from '../../components/ds/ServiceHeader.vue';
 import ServiceSettingsNav from '../../components/ServiceSettingsNav.vue';
+import { useSessionStore } from '../../app/stores/session';
 
 const props = defineProps<{
   title: string;
@@ -25,6 +26,8 @@ const props = defineProps<{
 const { t } = useI18n();
 const route = useRoute();
 const { smAndDown } = useDisplay();
+// Onglet des utilisateurs de Seerr réservé aux admins : sans lui, pas d'onglets.
+const session = useSessionStore();
 const settings = computed(() => String(route.name ?? '').startsWith('seerr-settings'));
 const main = computed(() =>
   settings.value
@@ -47,7 +50,7 @@ const main = computed(() =>
     </ServiceHeader>
     <ServiceSettingsNav v-if="settings" />
     <v-tabs
-      v-else-if="!smAndDown"
+      v-else-if="!smAndDown && session.isAdmin"
       :model-value="main"
       density="compact"
       color="service-text"

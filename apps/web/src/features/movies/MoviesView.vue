@@ -87,6 +87,7 @@ import { moviesApi, moviesKeys } from './movies-api';
 import { useArrCommand } from './useArrCommand';
 import SubtitleSearchDialog from '../bazarr/SubtitleSearchDialog.vue';
 import { useSubtitleStatuses } from '../bazarr/bazarr-api';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -650,6 +651,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
     <RadarrNav :subtitle="data ? t('media.films.header_count', { count: data.stats.total }) : null">
       <v-btn
         v-if="mdAndUp"
+        v-write
         :prepend-icon="msAdd"
         color="service"
         variant="flat"
@@ -661,6 +663,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
       <v-menu location="bottom end">
         <template #activator="{ props: menuProps }">
           <v-btn
+            v-write
             v-bind="menuProps"
             :icon="msMoreVert"
             size="small"
@@ -803,6 +806,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
           />
           <v-btn
             v-if="mdAndUp"
+            v-write
             :prepend-icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'outlined'"
@@ -815,6 +819,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
           >
           <v-btn
             v-else
+            v-write
             :icon="selectMode ? msClose : msCheckBox"
             size="small"
             :variant="selectMode ? 'flat' : 'text'"
@@ -834,6 +839,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
       <div v-if="activeFilter || query.q !== ''" class="d-flex flex-wrap align-center ga-2 mb-2">
         <template v-if="activeFilter">
           <v-btn
+            v-write
             :prepend-icon="msRefresh"
             size="small"
             variant="tonal"
@@ -845,6 +851,7 @@ function confirmDelete(deleteFiles: boolean, addImportExclusion: boolean): void 
             >{{ t('media.films.actions.refresh_filtered') }}</v-btn
           >
           <v-btn
+            v-write
             :prepend-icon="msSearch"
             size="small"
             variant="tonal"

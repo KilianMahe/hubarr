@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Pages d'index des services (URL de l'original) et règles d'accès côté
 // client, d'après l'état des services du bootstrap. Le serveur reste
-// l'autorité (`plugins/service-guard.ts`).
+// l'autorité (`plugins/service-guard.ts`) ; pour un compte non admin, le
+// bootstrap ne présente comme configurés que les services qu'il peut lire.
 
 import { SERVICE_SETTINGS, type BootstrapServices, type ServiceId } from '@hubarr/shared';
 import type { RouteLocationRaw } from 'vue-router';
@@ -11,25 +12,23 @@ export interface ServicePage {
   route: string;
   /** Clé i18n du libellé dans le tiroir ; à défaut, le nom du service. */
   labelKey?: string;
-  /** Contrôleur réservé aux admins dans l'original. */
-  adminOnly: boolean;
 }
 
 /** Services qui ont des pages (Gluetun et Emby n'en ont pas : widgets seulement). */
 export const SERVICE_PAGES: Partial<Record<ServiceId, ServicePage>> = {
-  tmdb: { route: 'tmdb', labelKey: 'sidebar.nav.discovery', adminOnly: false },
-  radarr: { route: 'radarr', adminOnly: true },
-  sonarr: { route: 'sonarr', adminOnly: true },
-  prowlarr: { route: 'prowlarr', adminOnly: true },
-  bazarr: { route: 'bazarr', labelKey: 'sidebar.nav.bazarr', adminOnly: true },
-  qbittorrent: { route: 'qbittorrent', labelKey: 'sidebar.nav.qbittorrent', adminOnly: true },
-  deluge: { route: 'deluge', labelKey: 'sidebar.nav.deluge', adminOnly: true },
-  transmission: { route: 'transmission', labelKey: 'sidebar.nav.transmission', adminOnly: true },
-  sabnzbd: { route: 'usenet', adminOnly: true },
-  nzbget: { route: 'usenet', adminOnly: true },
-  tautulli: { route: 'tautulli', adminOnly: false },
-  tracearr: { route: 'tracearr', adminOnly: false },
-  seerr: { route: 'seerr', labelKey: 'sidebar.nav.jellyseerr', adminOnly: true },
+  tmdb: { route: 'tmdb', labelKey: 'sidebar.nav.discovery' },
+  radarr: { route: 'radarr' },
+  sonarr: { route: 'sonarr' },
+  prowlarr: { route: 'prowlarr' },
+  bazarr: { route: 'bazarr', labelKey: 'sidebar.nav.bazarr' },
+  qbittorrent: { route: 'qbittorrent', labelKey: 'sidebar.nav.qbittorrent' },
+  deluge: { route: 'deluge', labelKey: 'sidebar.nav.deluge' },
+  transmission: { route: 'transmission', labelKey: 'sidebar.nav.transmission' },
+  sabnzbd: { route: 'usenet' },
+  nzbget: { route: 'usenet' },
+  tautulli: { route: 'tautulli' },
+  tracearr: { route: 'tracearr' },
+  seerr: { route: 'seerr', labelKey: 'sidebar.nav.jellyseerr' },
 };
 
 export function serviceLabel(id: ServiceId): string {

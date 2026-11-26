@@ -18,8 +18,10 @@ import {
 import { settle, type FakeCall } from './helpers';
 import {
   SERIES,
+  SONARR_READER,
   cleanupMounted,
   clickIn,
+  hiddenByWrite,
   mountSeries,
   seriesItem,
   seriesLibraryOf,
@@ -302,5 +304,19 @@ describe('SeriesView', () => {
     });
     expect(wrapper.find('[data-test="series-content"]').exists()).toBe(false);
     expect(wrapper.text()).not.toContain(t('error.generic.message'));
+  });
+});
+
+describe('Bibliothèque en lecture seule', () => {
+  it('suivi des cartes affiché, non cliquable ; ajout et sélection masqués', async () => {
+    const { fetch } = await mountSeries('/medias/sonarr/series', {}, {}, SONARR_READER);
+    const monitor = document.querySelector<HTMLElement>('[data-test="series-card-monitor"]');
+    expect(monitor?.tagName).toBe('SPAN');
+    monitor?.click();
+    await settle();
+    expect(fetch.calls.some((call) => call.url.endsWith('/monitor'))).toBe(false);
+    for (const id of ['series-add', 'series-select-mode'])
+      for (const element of document.querySelectorAll(`[data-test="${id}"]`))
+        expect(hiddenByWrite(element), id).toBe(true);
   });
 });

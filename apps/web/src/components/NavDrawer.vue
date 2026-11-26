@@ -49,7 +49,7 @@ const footer = computed(() =>
     item.href === DOCS_HREF ? { ...item, href: docsHref(locale.value) } : item,
   ),
 );
-const serviceSections = computed(() => buildDrawerSections(session.services, session.isAdmin));
+const serviceSections = computed(() => buildDrawerSections(session.services));
 const health = useServicesHealth();
 const label = (item: DrawerServiceItem) => item.label ?? t(item.labelKey ?? '');
 const dot = (item: DrawerServiceItem) => healthColor(health.data.value, item);
@@ -78,8 +78,8 @@ const streams = useQuery({
   }),
   retry: false,
 });
-// Demandes Seerr en attente (badge du tiroir, `SEERR_POLL` d'origine), admins.
-const seerrEnabled = computed(() => session.isAdmin && isConfigured(session.services, 'seerr'));
+// Demandes Seerr en attente (badge du tiroir, `SEERR_POLL` d'origine), droit de lecture sur Seerr.
+const seerrEnabled = computed(() => isConfigured(session.services, 'seerr'));
 const seerrPending = useQuery({
   queryKey: ['drawer', 'seerr-pending'],
   queryFn: ({ signal }) => seerrApi.pendingCount(signal),

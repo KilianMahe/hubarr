@@ -20,6 +20,7 @@ import { useI18n } from 'vue-i18n';
 import { useDisplay } from 'vuetify';
 import { useFormat } from '../app/format';
 import { sortReleasesBy, type GrabState, type ReleaseSortKey } from './release-sort';
+import { vWrite } from '../app/access';
 
 const props = defineProps<{
   releases: ArrRelease[];
@@ -225,6 +226,7 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
           </td>
           <td>
             <v-btn
+              v-write
               :icon="GRAB_ICONS[grabState(release)]"
               :color="
                 release.approved || grabState(release) !== 'idle'
@@ -288,6 +290,7 @@ function grabState(release: ArrRelease): GrabState | 'idle' {
             </div>
           </div>
           <v-btn
+            v-write
             :icon="GRAB_ICONS[grabState(release)]"
             :color="GRAB_COLORS[grabState(release)]"
             :variant="release.approved ? 'flat' : 'tonal'"

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Module Tableau de bord (P4.1) : `DashboardController`, ouvert à tout
-// utilisateur connecté. Un endpoint JSON par carte (n° 31 à 42), chargé à part
+// utilisateur connecté, limité aux services et aux instances qu'il peut lire
+// (un service illisible est traité comme non configuré). Un endpoint JSON par carte (n° 31 à 42), chargé à part
 // par le front : l'échec d'une carte n'affecte pas les autres. Chaque carte
 // « échoue ouverte » (forme vide plutôt qu'une erreur) ; un service non
 // configuré renvoie `available: false`, qui masque la carte.
@@ -56,13 +57,12 @@ import { httpFor } from '../activity/routes';
 import { type FromInstance } from '../calendar/events';
 import { int, num, obj, str, text } from '../discover/enrich';
 import { tmdbClient } from '../discover/tmdb';
-import { getInstanceBySlug, listEnabledInstances, type InstanceRow } from '../instances/instances';
+import { getInstanceBySlug, type InstanceRow } from '../instances/instances';
 import { collectMovies, collectSeries, type Owned } from '../media/library';
 import { apiKeyServiceClient, radarrClient, sonarrClient } from '../services/clients';
-import { isServiceConfigured } from '../services/config';
-import { requireRole } from '../../plugins/access';
 import { readDashboardLayout, readResolvedPreferences } from '../settings/preferences';
 import { torrentClient } from '../torrents/clients';
+import type { AccessScope } from '../users/access-scope';
 import { usenetClient } from '../usenet/routes';
 import { bytesPerDay, diskUsage, periodStart, type CompletedItem } from './stats';
 import {
@@ -104,9 +104,9 @@ async function cached<T>(app: FastifyInstance, key: string, fn: () => Promise<T[
 async function fanOut<T>(
   app: FastifyInstance,
   type: 'radarr' | 'sonarr',
+  rows: InstanceRow[],
   load: (row: InstanceRow) => Promise<T[]>,
 ): Promise<FromInstance<T>[]> {
-  const rows = listEnabledInstances(app.db, type);
   const lists = await Promise.all(
     rows.map(async (row) => {
       try {
@@ -138,30 +138,31 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   const nowDate = () => new Date((options.now ?? Date.now)());
   const timezone = () => readResolvedPreferences(instance.db).display_timezone;
   const today = () => dayInZone(nowDate(), timezone()) ?? nowDate().toISOString().slice(0, 10);
-  const configured = (id: Parameters<typeof isServiceConfigured>[1]) =>
-    isServiceConfigured(instance.db, id);
-  const libraries = () => configured('radarr') || configured('sonarr');
-  const tmdb = (): TmdbClient | null => {
+  const libraries = (scope: AccessScope) =>
+    scope.configured('radarr') || scope.configured('sonarr');
+  /** Client TMDB, si TMDB est configuré et lisible par le compte. */
+  const tmdb = (scope: AccessScope): TmdbClient | null => {
+    if (!scope.can('tmdb', null)) return null;
     const client = tmdbClient(instance);
     return client.configured ? client : null;
   };
 
-  const upcoming = () =>
-    cached(instance, 'upcoming', async () => {
+  const upcoming = (scope: AccessScope) =>
+    cached(instance, `upcoming${scope.cacheKey}`, async () => {
       const at = nowDate();
       const [movies, episodes] = await Promise.all([
-        fanOut<Movie>(instance, 'radarr', (row) =>
+        fanOut<Movie>(instance, 'radarr', scope.instances('radarr'), (row) =>
           radarrClient(instance, row).calendar(UPCOMING_DAYS, 0, at),
         ),
-        fanOut<CalendarEpisode>(instance, 'sonarr', (row) =>
+        fanOut<CalendarEpisode>(instance, 'sonarr', scope.instances('sonarr'), (row) =>
           sonarrClient(instance, row).calendar(UPCOMING_DAYS, 0, at),
         ),
       ]);
       return upcomingItems(movies, episodes, today());
     });
 
-  const trending = async () => {
-    const client = tmdb();
+  const trending = async (scope: AccessScope) => {
+    const client = tmdb(scope);
     if (client === null) return [];
     try {
       return resultsOf(await client.trendingAll('week')).slice(0, MAX_RECOMMENDATIONS);
@@ -173,14 +174,19 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 31 : données de la page (aucun appel à un service : la page s'affiche aussitôt).
   app.get(
     '/api/tableau-de-bord',
-    { schema: { response: { 200: dashboardPageSchema } } },
-    async () => {
-      const watchlist = instance.db
-        .select()
-        .from(watchlistItems)
-        .orderBy(desc(watchlistItems.addedAt))
-        .limit(MAX_WATCHLIST)
-        .all();
+    { config: { access: 'user' }, schema: { response: { 200: dashboardPageSchema } } },
+    async (request) => {
+      const configured = (id: Parameters<AccessScope['configured']>[0]) =>
+        request.access.configured(id);
+      // La watchlist (TMDB) suit le droit de lecture sur TMDB.
+      const watchlist = !request.access.can('tmdb', null)
+        ? []
+        : instance.db
+            .select()
+            .from(watchlistItems)
+            .orderBy(desc(watchlistItems.addedAt))
+            .limit(MAX_WATCHLIST)
+            .all();
       return {
         layout: readDashboardLayout(instance.db),
         configured: {
@@ -209,12 +215,12 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 32 : derniers ajouts.
   app.get(
     '/api/tableau-de-bord/widget/recent',
-    { schema: { response: { 200: dashboardRecentSchema } } },
-    async () => {
-      if (!libraries()) return { available: false, items: [] };
+    { config: { access: 'user' }, schema: { response: { 200: dashboardRecentSchema } } },
+    async (request) => {
+      if (!libraries(request.access)) return { available: false, items: [] };
       const [movies, series] = await Promise.all([
-        collectMovies(instance),
-        collectSeries(instance),
+        collectMovies(instance, request.access),
+        collectSeries(instance, request.access),
       ]);
       return { available: true, items: recentAdditions(movies, series) };
     },
@@ -223,10 +229,10 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 33 : tendances TMDB.
   app.get(
     '/api/tableau-de-bord/widget/recommendations',
-    { schema: { response: { 200: dashboardTrendingSchema } } },
-    async () => {
-      if (tmdb() === null) return { available: false, items: [] };
-      const items = (await trending()).flatMap((r) => {
+    { config: { access: 'user' }, schema: { response: { 200: dashboardTrendingSchema } } },
+    async (request) => {
+      if (tmdb(request.access) === null) return { available: false, items: [] };
+      const items = (await trending(request.access)).flatMap((r) => {
         const type =
           r.media_type === 'tv'
             ? ('tv' as const)
@@ -253,12 +259,15 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 34 : prochaines sorties sur 7 jours.
   app.get(
     '/api/tableau-de-bord/widget/upcoming',
-    { schema: { response: { 200: dashboardUpcomingSchema } } },
-    async () => {
+    { config: { access: 'user' }, schema: { response: { 200: dashboardUpcomingSchema } } },
+    async (request) => {
       const day = today();
-      if (!libraries()) return { available: false, today: day, days: UPCOMING_DAYS, items: [] };
+      if (!libraries(request.access))
+        return { available: false, today: day, days: UPCOMING_DAYS, items: [] };
       const last = addDays(day, UPCOMING_DAYS - 1);
-      const items = (await upcoming()).filter((it) => it.day >= day && it.day <= last);
+      const items = (await upcoming(request.access)).filter(
+        (it) => it.day >= day && it.day <= last,
+      );
       return { available: true, today: day, days: UPCOMING_DAYS, items };
     },
   );
@@ -266,15 +275,15 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 35 : demandes Seerr en attente (5 au plus), enrichies du titre et de l'affiche.
   app.get(
     '/api/tableau-de-bord/widget/requests',
-    { schema: { response: { 200: dashboardRequestsSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: dashboardRequestsSchema } } },
     async (request) => {
-      if (!configured('seerr')) return { available: false, items: [] };
+      if (!request.access.configured('seerr')) return { available: false, items: [] };
       const items: DashboardRequests['items'] = [];
       try {
         const seerr = new SeerrClient(apiKeyServiceClient(instance, 'seerr'));
         const data = obj(await seerr.requests(MAX_REQUESTS, 0, 'pending', null));
         const results = Array.isArray(data.results) ? data.results : [];
-        const client = tmdb();
+        const client = tmdb(request.access);
         for (const raw of results.slice(0, MAX_REQUESTS)) {
           const req = obj(raw);
           const media = obj(req.media);
@@ -316,12 +325,12 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 36 : pastilles de santé, une par instance Radarr/Sonarr active puis par service.
   app.get(
     '/api/tableau-de-bord/widget/health',
-    { schema: { response: { 200: dashboardHealthSchema } } },
-    async () => {
+    { config: { access: 'user' }, schema: { response: { 200: dashboardHealthSchema } } },
+    async (request) => {
       const monitor = instance.serviceHealth;
       const chips: DashboardHealth['chips'] = [];
       for (const type of ['radarr', 'sonarr'] as const) {
-        const rows = listEnabledInstances(instance.db, type);
+        const rows = request.access.instances(type);
         const states = await Promise.all(
           rows.map((row) =>
             monitor
@@ -335,12 +344,13 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
             chips.push({ id: type, name: row.name, status: s.status, latencyMs: s.latencyMs });
         });
       }
+      const services = HEALTH_FLAT_SERVICES.filter((service) => request.access.can(service, null));
       const flat = await Promise.all(
-        HEALTH_FLAT_SERVICES.map((service) =>
+        services.map((service) =>
           monitor.statusFor(service).catch(() => ({ status: null, latencyMs: null })),
         ),
       );
-      HEALTH_FLAT_SERVICES.forEach((service, i) => {
+      services.forEach((service, i) => {
         const s = flat[i];
         if (s?.status) {
           chips.push({
@@ -358,11 +368,11 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 37 : activité en cours (Tautulli, ou Tracearr selon la préférence) et historique récent.
   app.get(
     '/api/tableau-de-bord/widget/plex',
-    { schema: { response: { 200: dashboardActivitySchema } } },
-    async (): Promise<DashboardActivity> => {
+    { config: { access: 'user' }, schema: { response: { 200: dashboardActivitySchema } } },
+    async (request): Promise<DashboardActivity> => {
       const source = resolveActivitySource(
         readResolvedPreferences(instance.db).display_activity_source,
-        (service) => configured(service),
+        (service) => request.access.configured(service),
       );
       if (source === null) return { available: false, source: null, activity: null, history: [] };
       if (source === 'tracearr') {
@@ -411,9 +421,9 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 38 : Transmission (vitesses, compteurs, téléchargements actifs).
   app.get(
     '/api/tableau-de-bord/widget/transmission',
-    { schema: { response: { 200: dashboardTransmissionSchema } } },
+    { config: { access: 'user' }, schema: { response: { 200: dashboardTransmissionSchema } } },
     async (request) => {
-      if (!configured('transmission'))
+      if (!request.access.configured('transmission'))
         return { available: false, error: false, stats: null, active: [] };
       try {
         const client = torrentClient(instance, 'transmission');
@@ -433,9 +443,9 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 39 : lecture en cours sur Emby.
   app.get(
     '/api/tableau-de-bord/widget/emby',
-    { schema: { response: { 200: dashboardEmbySchema } } },
-    async () => {
-      if (!configured('emby')) return { available: false, activity: null };
+    { config: { access: 'user' }, schema: { response: { 200: dashboardEmbySchema } } },
+    async (request) => {
+      if (!request.access.configured('emby')) return { available: false, activity: null };
       return {
         available: true,
         activity: await new EmbyClient(httpFor(instance, 'emby')).activity(true, true),
@@ -446,13 +456,14 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 40 : bandeau (mise en avant, statistiques des bibliothèques, sorties à 7 jours).
   app.get(
     '/api/tableau-de-bord/widget/hero',
-    { schema: { response: { 200: dashboardHeroSchema } } },
-    async () => {
+    { config: { access: 'user' }, schema: { response: { 200: dashboardHeroSchema } } },
+    async (request) => {
+      const scope = request.access;
       const [movies, series, trend, coming] = await Promise.all([
-        collectMovies(instance),
-        collectSeries(instance),
-        trending(),
-        libraries() ? upcoming() : Promise.resolve([]),
+        collectMovies(instance, scope),
+        collectSeries(instance, scope),
+        trending(scope),
+        libraries(scope) ? upcoming(scope) : Promise.resolve([]),
       ]);
       return {
         spotlight: pickHeroSpotlight(movies, trend),
@@ -465,19 +476,17 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
     },
   );
 
-  // Lot 13 : octets téléchargés par jour sur 30 jours, d'après les clients configurés (admins).
+  // Lot 13 : octets téléchargés par jour sur 30 jours, d'après les clients configurés et lisibles.
   app.get(
     '/api/tableau-de-bord/widget/downloads',
-    {
-      onRequest: requireRole('admin'),
-      schema: { response: { 200: dashboardDownloadsSchema } },
-    },
+    { config: { access: 'user' }, schema: { response: { 200: dashboardDownloadsSchema } } },
     async (request): Promise<DashboardDownloads> => {
-      const torrents = TORRENT_CLIENTS.filter((id) => configured(id));
-      const usenet = USENET_CLIENTS.filter((id) => configured(id));
+      const torrents = TORRENT_CLIENTS.filter((id) => request.access.configured(id));
+      const usenet = USENET_CLIENTS.filter((id) => request.access.configured(id));
       if (torrents.length + usenet.length === 0)
         return { available: false, days: [], total: 0, average: 0, clients: [] };
-      const hit = instance.cache.store.get('dash.downloads');
+      const cacheKey = `dash.downloads${request.access.cacheKey}`;
+      const hit = instance.cache.store.get(cacheKey);
       if (hit !== undefined) return hit as DashboardDownloads;
       const since = periodStart(nowDate().getTime());
       const read = async (
@@ -534,30 +543,27 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
         average: days.length === 0 ? 0 : Math.round(total / days.length),
         clients: results.map(({ id, ok }) => ({ id, ok })),
       };
-      if (results.every((r) => r.ok))
-        instance.cache.store.set('dash.downloads', value, STATS_CACHE_TTL_MS);
+      if (results.every((r) => r.ok)) instance.cache.store.set(cacheKey, value, STATS_CACHE_TTL_MS);
       return value;
     },
   );
 
-  // Lot 13 : disques des dossiers racines Radarr et Sonarr (admins).
+  // Lot 13 : disques des dossiers racines Radarr et Sonarr (instances lisibles).
   app.get(
     '/api/tableau-de-bord/widget/disks',
-    {
-      onRequest: requireRole('admin'),
-      schema: { response: { 200: dashboardDisksSchema } },
-    },
+    { config: { access: 'user' }, schema: { response: { 200: dashboardDisksSchema } } },
     async (request): Promise<DashboardDisks> => {
-      if (!libraries()) return { available: false, disks: [], failed: [] };
-      const hit = instance.cache.store.get('dash.disks');
+      if (!libraries(request.access)) return { available: false, disks: [], failed: [] };
+      const cacheKey = `dash.disks${request.access.cacheKey}`;
+      const hit = instance.cache.store.get(cacheKey);
       if (hit !== undefined) return hit as DashboardDisks;
       const rows = [
-        ...listEnabledInstances(instance.db, 'radarr').map((row) => ({
+        ...request.access.instances('radarr').map((row) => ({
           service: 'radarr' as const,
           row,
           client: radarrClient(instance, row),
         })),
-        ...listEnabledInstances(instance.db, 'sonarr').map((row) => ({
+        ...request.access.instances('sonarr').map((row) => ({
           service: 'sonarr' as const,
           row,
           client: sonarrClient(instance, row),
@@ -586,7 +592,7 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
         disks: diskUsage(sources.filter((s) => s !== null)),
         failed,
       };
-      if (failed.length === 0) instance.cache.store.set('dash.disks', value, STATS_CACHE_TTL_MS);
+      if (failed.length === 0) instance.cache.store.set(cacheKey, value, STATS_CACHE_TTL_MS);
       return value;
     },
   );
@@ -597,9 +603,12 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 41 : aperçu rapide d'un titre TMDB (tendances, watchlist).
   app.get(
     '/api/tableau-de-bord/quicklook/tmdb/:type/:id',
-    { schema: { params: typeParams, response: { 200: quickLookDetailSchema } } },
+    {
+      config: { access: 'user' },
+      schema: { params: typeParams, response: { 200: quickLookDetailSchema } },
+    },
     async (request): Promise<QuickLookDetail> => {
-      const client = tmdb();
+      const client = tmdb(request.access);
       if (client === null) throw quickLookError();
       const { type, id } = request.params;
       const isTv = type === 'tv';
@@ -608,7 +617,7 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
       const d = obj(data);
       const date = str(isTv ? d.first_air_date : d.release_date) ?? '';
       const ended = isTv && ['Ended', 'Canceled'].includes(str(d.status) ?? '');
-      const match = await libraryMatch(instance, type, id);
+      const match = await libraryMatch(instance, type, id, request.access);
       const day = today();
       const networks = Array.isArray(d.networks) ? d.networks : [];
       return {
@@ -658,10 +667,15 @@ export const dashboardRoutes: FastifyPluginAsync<DashboardRoutesOptions> = async
   // n° 42 : aperçu rapide d'un titre d'une bibliothèque (instance exacte).
   app.get(
     '/api/tableau-de-bord/quicklook/:type/:slug/:id',
-    { schema: { params: libraryParams, response: { 200: quickLookDetailSchema } } },
+    {
+      config: { access: 'user' },
+      schema: { params: libraryParams, response: { 200: quickLookDetailSchema } },
+    },
     async (request): Promise<QuickLookDetail> => {
       const { type, slug, id } = request.params;
-      const row = await findLibraryRow(instance, type, slug, id);
+      if (!request.access.can(type === 'series' ? 'sonarr' : 'radarr', slug))
+        throw quickLookError();
+      const row = await findLibraryRow(instance, type, slug, id, request.access);
       if (row === null) throw quickLookError();
       const day = today();
       const base = {
@@ -739,13 +753,14 @@ async function findLibraryRow(
   type: 'movie' | 'series',
   slug: string,
   id: number,
+  scope: AccessScope,
 ): Promise<LibraryRow | null> {
   const pick = <T extends { id: number | null }>(rows: Owned<T>[]): Owned<T> | null =>
     rows.find((r) => r.item.id === id && r.slug === slug) ??
     rows.find((r) => r.item.id === id) ??
     null;
   if (type === 'series') {
-    const hit = pick(await collectSeries(app));
+    const hit = pick(await collectSeries(app, scope));
     if (hit) return { kind: 'series', item: hit.item, slug: hit.slug };
     const row = getInstanceBySlug(app.db, 'sonarr', slug);
     if (!row?.enabled) return null;
@@ -754,7 +769,7 @@ async function findLibraryRow(
       .catch(() => null);
     return item === null ? null : { kind: 'series', item, slug };
   }
-  const hit = pick(await collectMovies(app));
+  const hit = pick(await collectMovies(app, scope));
   if (hit) return { kind: 'movie', item: hit.item, slug: hit.slug };
   const row = getInstanceBySlug(app.db, 'radarr', slug);
   if (!row?.enabled) return null;
@@ -769,16 +784,17 @@ async function libraryMatch(
   app: FastifyInstance,
   type: 'movie' | 'tv',
   tmdbId: number,
+  scope: AccessScope,
 ): Promise<{ slug: string; id: number; status: 'downloaded' | 'monitored' | 'missing' } | null> {
   if (type === 'movie') {
-    const hit = (await collectMovies(app)).find(
+    const hit = (await collectMovies(app, scope)).find(
       (m) => m.item.tmdbId === tmdbId && m.item.id !== null,
     );
     if (hit?.item.id == null) return null;
     const status = hit.item.hasFile ? 'downloaded' : hit.item.monitored ? 'monitored' : 'missing';
     return { slug: hit.slug, id: hit.item.id, status };
   }
-  const hit = (await collectSeries(app)).find(
+  const hit = (await collectSeries(app, scope)).find(
     (s) => s.item.tmdbId === tmdbId && s.item.id !== null,
   );
   if (hit?.item.id == null) return null;

@@ -24,6 +24,7 @@ import {
   createClock,
   createTestDatabase,
   createUser,
+  grantPermissions,
 } from '../../helpers';
 
 const noDns = { resolve: () => Promise.resolve<string[]>([]) };
@@ -196,12 +197,17 @@ describe('GET /api/health/services', () => {
   let app: FastifyInstance;
   let agent: MockAgent;
   let browser: TestBrowser;
+  let userId: number;
 
   beforeEach(async () => {
     agent = new MockAgent();
     agent.disableNetConnect();
     app = buildApp({ database, dataDir: UNUSED_DATA_DIR, dispatcher: agent, ...noDns });
-    await createUser(database, { email: 'user@example.com', password: 'password-1', role: 'user' });
+    userId = await createUser(database, {
+      email: 'user@example.com',
+      password: 'password-1',
+      role: 'user',
+    });
     browser = new TestBrowser(() => app);
     await browser.login({ email: 'user@example.com', password: 'password-1' });
   });
@@ -243,6 +249,11 @@ describe('GET /api/health/services', () => {
     agent.get('http://nzb.test').intercept({ path: '/jsonrpc', method: 'POST' }).reply(500, '');
     agent.get('http://r1.test').intercept({ path: '/api/v3/system/status' }).reply(200, {});
     agent.get('http://r2.test').intercept({ path: '/api/v3/system/status' }).reply(401, '');
+    grantPermissions(database, userId, {
+      ...Object.fromEntries(HEALTH_FLAT_SERVICES.map((id) => [id, 'read' as const])),
+      'radarr:radarr': 'read',
+      'radarr:radarr-4k': 'read',
+    });
 
     const body = (await browser.get('/api/health/services')).json<ServicesHealthResponse>();
     for (const id of HEALTH_FLAT_SERVICES) expect(body.services).toHaveProperty(id);
@@ -258,6 +269,16 @@ describe('GET /api/health/services', () => {
       { slug: 'radarr-4k', name: 'Radarr 4K', state: false },
     ]);
     expect(body).toMatchObject({ ok: 2, total: 4 });
+
+    // Droits partiels : services et instances illisibles retirés, compteurs recalculés.
+    grantPermissions(database, userId, { 'radarr:radarr-4k': 'read', nzbget: 'read' });
+    const scoped = (await browser.get('/api/health/services')).json<ServicesHealthResponse>();
+    expect(scoped.services).toEqual({ nzbget: false, radarr: false, sonarr: null });
+    expect(scoped.instances).toEqual({
+      radarr: [{ slug: 'radarr-4k', name: 'Radarr 4K', state: false }],
+      sonarr: [],
+    });
+    expect(scoped).toMatchObject({ ok: 0, total: 2 });
   });
 
   it('diagnostic passif : catégorie, URL pour les admins seulement', async () => {
@@ -267,6 +288,9 @@ describe('GET /api/health/services', () => {
       .intercept({ path: /^\/api\/v2/ })
       .reply(200, { response: { result: 'error' } })
       .times(2);
+    // Sans droit sur Tautulli : pas de diagnostic.
+    expect((await browser.get('/api/health/diagnose/tautulli')).statusCode).toBe(403);
+    grantPermissions(database, userId, { tautulli: 'read' });
     expect((await browser.get('/api/health/diagnose/tautulli')).json()).toEqual({
       ok: false,
       category: 'auth',

@@ -57,6 +57,9 @@ function optional<T>(promise: Promise<T>, fallback: T): Promise<T> {
   return promise.catch(() => fallback);
 }
 
+/** Seule commande ouverte au droit d'écriture : synchronisation des applications. */
+const INDEXER_SYNC_COMMAND = 'ApplicationIndexerSync';
+
 export function registerIndexerRoutes(instance: FastifyInstance): void {
   const app = instance.withTypeProvider<ZodTypeProvider>();
   const base = PROWLARR_BASE;
@@ -64,7 +67,11 @@ export function registerIndexerRoutes(instance: FastifyInstance): void {
   const clientOf = () => prowlarrClient(instance);
 
   // n° 239-244 : modèles, lecture, ajout, modification, suppression, test.
-  registerProviderFamily(instance, { upstream: PROWLARR_INDEXERS, segment: 'indexer', list: null });
+  registerProviderFamily(
+    instance,
+    { upstream: PROWLARR_INDEXERS, segment: 'indexer', list: null },
+    config,
+  );
 
   // n° 238 : données de la page des indexeurs.
   app.get(base, { config, schema: { response: { 200: prowlarrOverviewSchema } } }, async () => {
@@ -202,7 +209,15 @@ export function registerIndexerRoutes(instance: FastifyInstance): void {
         response: { 200: z.object({ ok: z.literal(true), cmdId: z.number().nullable() }) },
       },
     },
-    async (request) => ({ ok: true as const, cmdId: await clientOf().command(request.body.name) }),
+    async (request) => {
+      const { name } = request.body;
+      // Hors synchronisation des indexeurs, une commande (sauvegarde, mise à
+      // jour…) relève du système de Prowlarr : admins seulement.
+      if (name !== INDEXER_SYNC_COMMAND && !request.access.admin) {
+        throw new ApiError(403, 'FORBIDDEN', { service: 'prowlarr' });
+      }
+      return { ok: true as const, cmdId: await clientOf().command(name) };
+    },
   );
 
   // n° 292 : état d'une commande ; purgée (404) → `unknown`.

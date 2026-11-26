@@ -8,6 +8,7 @@ import type {
   TracearrHistory,
   TracearrUser,
   TracearrUserDetail,
+  UserPermissions,
 } from '@hubarr/shared';
 import type { MockAgent } from 'undici';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -25,8 +26,11 @@ afterEach(async () => {
   env = undefined;
 });
 
-async function open(role: 'admin' | 'user' = 'user'): Promise<TorrentEnv> {
-  env = await torrentEnv({ role, configure: {} });
+async function open(
+  role: 'admin' | 'user' = 'user',
+  permissions: UserPermissions = { tautulli: 'read', tracearr: 'read', emby: 'read' },
+): Promise<TorrentEnv> {
+  env = await torrentEnv({ role, configure: {}, permissions });
   applyServicePatch(env.database.db, 'tautulli', { url: TAUTULLI, apiKey: 't-key' });
   applyServicePatch(env.database.db, 'tracearr', { url: TRACEARR, apiKey: 'trr_pub_x' });
   applyServicePatch(env.database.db, 'emby', { url: EMBY, apiKey: 'e-key' });
@@ -58,7 +62,12 @@ function tautulli(agent: MockAgent, handler: (cmd: string, query: URLSearchParam
 }
 
 describe('gardes', () => {
-  it('utilisateur simple autorisé ; non configuré → 409', async () => {
+  it('utilisateur simple sans droit → 403', async () => {
+    const current = await open('user', { tracearr: 'read' });
+    expect((await current.browser.get('/api/tautulli/activity')).statusCode).toBe(403);
+  });
+
+  it('utilisateur simple avec la lecture autorisé ; non configuré → 409', async () => {
     const current = await open('user');
     tautulli(current.agent, () => ({ stream_count: 0, sessions: [] }));
     expect((await current.browser.get('/api/tautulli/activity')).statusCode).toBe(200);
@@ -302,16 +311,17 @@ describe('Tracearr', () => {
     expect(charts.plays).toEqual({ categories: [], series: [] });
   });
 
-  it('arrêt d’une lecture : admins seulement, message transmis, lecture terminée → 404', async () => {
+  it('arrêt d’une lecture : écriture sur Tracearr exigée, message transmis, lecture terminée → 404', async () => {
     const SESSION = '33333333-4444-5555-6666-777777777777';
     const GONE = '44444444-5555-6666-7777-888888888888';
     const path = (id: string) => `/api/tracearr/streams/${id}/terminate`;
 
+    // Lecture seule : refusé (403) avant tout appel à Tracearr.
     const user = await open('user');
     expect((await user.browser.post(path(SESSION), {})).statusCode).toBe(403);
     await user.close();
 
-    const current = await open('admin');
+    const current = await open('user', { tracearr: 'write' });
     const pool = current.agent.get(TRACEARR);
     const bodies: unknown[] = [];
     pool

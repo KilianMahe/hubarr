@@ -18,7 +18,7 @@ const query = useQuery({
   queryKey: ['dashboard', 'transmission'],
   queryFn: ({ signal }) => dashboardApi.transmission(signal),
   refetchInterval: useLiveQuery({
-    topic: () => (session.isAdmin ? 'downloads.transmission' : null),
+    topic: () => (session.can('transmission', null, 'read') ? 'downloads.transmission' : null),
     queryKey: ['dashboard', 'transmission'],
     fallbackMs: LIVE_POLL_MS,
   }),
@@ -31,7 +31,7 @@ const query = useQuery({
     v-if="query.data.value?.available !== false"
     :title="t('dashboard.transmission.title')"
     :icon="msDownload"
-    :to="session.isAdmin ? { name: 'transmission' } : undefined"
+    :to="session.can('transmission', null, 'read') ? { name: 'transmission' } : undefined"
     :link-label="t('dashboard.transmission.open_cta')"
     data-test="card-transmission"
   >

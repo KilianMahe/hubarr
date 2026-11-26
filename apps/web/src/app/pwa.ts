@@ -16,7 +16,7 @@ export function serviceWorkerUrl(version: string, base: string): URL {
 }
 
 export function registerServiceWorker(version: string | undefined): void {
-  if (!import.meta.env.PROD || !('serviceWorker' in navigator) || version === undefined) return;
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator) || !version) return;
   navigator.serviceWorker
     .register(serviceWorkerUrl(version, document.baseURI), {
       scope: new URL('./', document.baseURI).pathname,

@@ -4,8 +4,8 @@
 // `/api/<client>/poll-summary` à l'intervalle choisi dans les préférences
 // (`display_*_refresh`, 0 = désactivé), seulement sur les pages média (comme
 // l'original, pour ne pas solliciter le client partout). Badge du nombre de
-// téléchargements actifs dans le tiroir ; notification quand un torrent se
-// termine ou passe en erreur, une seule fois tous onglets confondus
+// téléchargements actifs dans le tiroir ; notification (centre de
+// notifications, sans toast) quand un torrent se termine ou passe en erreur, une seule fois tous onglets confondus
 // (`localStorage` + `BroadcastChannel`, 1 h). Repli exponentiel jusqu'à
 // 2 min quand le client ne répond pas ; pause quand l'onglet est caché.
 // Quand le flux temps réel sert le sujet `downloads.<client>` (P5.2), les
@@ -126,7 +126,7 @@ export function useDownloadWatchers(): void {
 
   const interval = (client: TorrentClientId) => Number(session.preferences[PREF[client]]) * 1000;
   const active = (client: TorrentClientId) =>
-    session.isAdmin &&
+    session.can(client, null, 'read') &&
     isConfigured(session.services, client) &&
     interval(client) > 0 &&
     !document.hidden &&
@@ -154,15 +154,19 @@ export function useDownloadWatchers(): void {
     );
     for (const item of completed) {
       if (alreadyNotified(client, item.hash)) continue;
-      notify.success('downloads.toast.completed', {
-        name: truncate(item.name),
-        size: format.bytes(item.size),
-      });
+      notify.success(
+        'downloads.toast.completed',
+        {
+          name: truncate(item.name),
+          size: format.bytes(item.size),
+        },
+        { toast: false },
+      );
       markNotified(client, item.hash);
     }
     for (const item of errored) {
       if (alreadyNotified(client, item.hash)) continue;
-      notify.error('downloads.toast.errored', { name: truncate(item.name) });
+      notify.error('downloads.toast.errored', { name: truncate(item.name) }, { toast: false });
       markNotified(client, item.hash);
     }
     localStorage.setItem(stateKey(client), JSON.stringify(next));
@@ -208,7 +212,7 @@ export function useDownloadWatchers(): void {
   }
 
   watch(
-    () => [route.name, session.isAdmin, session.services, ...WATCHED_CLIENTS.map(interval)],
+    () => [route.name, session.user, session.services, ...WATCHED_CLIENTS.map(interval)],
     restartAll,
     { immediate: true },
   );

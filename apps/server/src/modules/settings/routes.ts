@@ -48,7 +48,7 @@ import type { Db } from '../../db/client';
 import { DATABASE_FILE } from '../../db/migrate';
 import { ApiError } from '../../http/errors';
 import type { ZodTypeProvider } from '../../http/zod';
-import { requireRole } from '../../plugins/access';
+import { guardAdminModule } from '../../plugins/access';
 import { listInstances, toPublicInstance } from '../instances/instances';
 import {
   applyServicePatch,
@@ -137,7 +137,7 @@ export const settingsRoutes: FastifyPluginAsync<SettingsRoutesOptions> = async (
   options,
 ) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardAdminModule(app);
 
   const databasePath = join(options.dataDir, DATABASE_FILE);
   const snapshot = (): SettingsResponse => ({

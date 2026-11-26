@@ -48,7 +48,7 @@ import {
   normalizeSeriesRelease,
 } from '../../integrations/sonarr/normalize-detail';
 import type { SonarrEpisodeFileResource } from '../../integrations/sonarr/types';
-import { requireRole } from '../../plugins/access';
+import { guardServiceModule } from '../../plugins/access';
 import {
   SERIES_BASE,
   SONARR_CONFIG,
@@ -93,7 +93,7 @@ export async function mergeEpisodeFileChanges(
 
 export const seriesEpisodeRoutes: FastifyPluginAsync = async (instance) => {
   const app = instance.withTypeProvider<ZodTypeProvider>();
-  app.addHook('onRequest', requireRole('admin'));
+  guardServiceModule(app);
 
   const base = SERIES_BASE;
   const config = SONARR_CONFIG;

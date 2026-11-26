@@ -19,6 +19,7 @@ import { useFormat } from '../../app/format';
 import MetaLine from '../../components/ds/MetaLine.vue';
 import SpeedIndicator from '../../components/ds/SpeedIndicator.vue';
 import { useTorrentI18n } from './use-torrent-i18n';
+import { vWrite } from '../../app/access';
 
 const props = defineProps<{
   client: TorrentClientId;
@@ -70,6 +71,7 @@ const location = computed(() =>
       <v-spacer />
       <v-btn
         v-if="smAndUp"
+        v-write
         :prepend-icon="msSpeed"
         :variant="stats?.altSpeed ? 'flat' : 'tonal'"
         :color="stats?.altSpeed ? 'service' : undefined"
@@ -81,6 +83,7 @@ const location = computed(() =>
       >
       <v-btn
         v-else
+        v-write
         :icon="msSpeed"
         :variant="stats?.altSpeed ? 'flat' : 'tonal'"
         :color="stats?.altSpeed ? 'service' : undefined"

@@ -3,7 +3,11 @@
 // deux instances Radarr (« Films » et « Films 4K »), une instance Sonarr,
 // TMDB configuré sur un faux `api.themoviedb.org`, horloge fixe, utilisateur
 // connecté. Chaque faux service répond par « MÉTHODE /chemin ».
+//
+// Un utilisateur simple reçoit par défaut l'écriture sur les trois instances,
+// TMDB et Seerr ; `permissions` les remplace (instances connues à la création).
 
+import type { UserPermissions } from '@hubarr/shared';
 import type { FastifyInstance } from 'fastify';
 import { MockAgent } from 'undici';
 import { buildApp } from '../../src/app';
@@ -11,7 +15,13 @@ import type { AppDatabase } from '../../src/db/client';
 import { DEFAULT_TMDB_API_ORIGIN } from '../../src/integrations/tmdb/origin';
 import { createInstance, type InstanceRow } from '../../src/modules/instances/instances';
 import { applyServicePatch } from '../../src/modules/services/config';
-import { TestBrowser, UNUSED_DATA_DIR, createTestDatabase, createUser } from '../helpers';
+import {
+  TestBrowser,
+  UNUSED_DATA_DIR,
+  createTestDatabase,
+  createUser,
+  grantPermissions,
+} from '../helpers';
 import { EMAIL, PASSWORD, noDns } from './movies/radarr-env';
 import { fakeUpstream, type FakeUpstream } from './torrents/torrent-env';
 
@@ -39,7 +49,16 @@ export interface MediaEnv {
 }
 
 export async function mediaEnv(
-  options: { role?: 'admin' | 'user'; tmdb?: boolean; timezone?: string } = {},
+  options: {
+    role?: 'admin' | 'user';
+    tmdb?: boolean;
+    timezone?: string;
+    permissions?: (instances: {
+      radarr: InstanceRow;
+      radarr4k: InstanceRow;
+      sonarr: InstanceRow;
+    }) => UserPermissions;
+  } = {},
 ): Promise<MediaEnv> {
   const database = await createTestDatabase();
   const agent = new MockAgent();
@@ -54,7 +73,11 @@ export async function mediaEnv(
     now: () => NOW,
     ...noDns,
   });
-  await createUser(database, { email: EMAIL, password: PASSWORD, role: options.role ?? 'admin' });
+  const userId = await createUser(database, {
+    email: EMAIL,
+    password: PASSWORD,
+    role: options.role ?? 'admin',
+  });
   const radarr = await createInstance(
     database.db,
     'radarr',
@@ -74,6 +97,19 @@ export async function mediaEnv(
     noDns,
   );
   if (options.tmdb !== false) applyServicePatch(database.db, 'tmdb', { apiKey: 'tmdb-key' });
+  if (options.role === 'user') {
+    grantPermissions(
+      database,
+      userId,
+      options.permissions?.({ radarr, radarr4k, sonarr }) ?? {
+        [`radarr:${radarr.slug}`]: 'write',
+        [`radarr:${radarr4k.slug}`]: 'write',
+        [`sonarr:${sonarr.slug}`]: 'write',
+        tmdb: 'write',
+        seerr: 'write',
+      },
+    );
+  }
   // Aucune liste par défaut : une bibliothèque vide plutôt qu'un 404.
   for (const id of ['radarr', 'radarr4k'] as const) {
     up[id].on('GET /api/v3/movie', { body: [] });

@@ -18,7 +18,15 @@ import {
   seasonGroups,
 } from '../src/features/series/series-detail';
 import { settle } from './helpers';
-import { SERIES, cleanupMounted, clickIn, mountSeries, seriesItem } from './series-fixtures';
+import {
+  SERIES,
+  SONARR_READER,
+  cleanupMounted,
+  clickIn,
+  hiddenByWrite,
+  mountSeries,
+  seriesItem,
+} from './series-fixtures';
 
 const t = (key: string, values?: Record<string, unknown>) => i18n.global.t(key, values ?? {});
 
@@ -527,5 +535,32 @@ describe('Fiche série', () => {
     await settle();
     expect(router.currentRoute.value.name).toBe('sonarr');
     expect(document.body.textContent).toContain(SERIES[0]?.title ?? '');
+  });
+});
+
+describe('Fiche série en lecture seule (droit de lecture sur l’instance)', () => {
+  it('suivi affiché sans être modifiable ; recherches, fichiers, renommage et suppression masqués', async () => {
+    await mountSeries('/medias/sonarr/series/2', detailRoutes(), {}, SONARR_READER);
+    const $ = (id: string) => document.querySelector(`[data-test="${id}"]`);
+    expect($('read-only-chip')).not.toBeNull();
+    for (const id of [
+      'series-monitor',
+      'series-search-missing',
+      'series-refresh',
+      'season-search',
+      'episode-search',
+      'episode-interactive',
+    ])
+      expect(hiddenByWrite($(id)), id).toBe(true);
+    expect(hiddenByWrite($('series-delete')?.closest('.detail-more'))).toBe(true);
+    // Suivi de la saison et de l'épisode : visible, non modifiable.
+    expect($('season-monitor')?.hasAttribute('disabled')).toBe(true);
+    expect($('episode-monitor')?.hasAttribute('disabled')).toBe(true);
+    // Menu de la saison : l'historique seul.
+    clickIn('[data-test="season-menu"]');
+    await settle();
+    expect(hiddenByWrite($('season-history'))).toBe(false);
+    for (const id of ['season-interactive', 'season-files', 'season-rename'])
+      expect(hiddenByWrite($(id)), id).toBe(true);
   });
 });

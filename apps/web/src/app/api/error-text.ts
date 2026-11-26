@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Texte d'une erreur d'action, pour un bilan ou un dialogue : premier problème
-// de validation (clé i18n), sinon message du serveur (clé i18n `media.api.*`
-// ou texte d'un service tiers, affiché tel quel, jamais en HTML), sinon le
-// message de repli.
+// de validation (clé i18n), sinon refus faute de droit (403 `FORBIDDEN`),
+// sinon message du serveur (clé i18n `media.api.*` ou texte d'un service
+// tiers, affiché tel quel, jamais en HTML), sinon le message de repli.
 
 import { ApiError, validationMessages } from './client';
 
@@ -16,6 +16,7 @@ export function apiErrorText(
 ): string {
   const issue = validationMessages(error).find((message) => message.includes('.'));
   if (issue !== undefined) return t(issue);
+  if (error instanceof ApiError && error.code === 'FORBIDDEN') return t('users.error.forbidden');
   if (error instanceof ApiError) {
     const message = error.serverMessage;
     if (message !== undefined && message !== '') {

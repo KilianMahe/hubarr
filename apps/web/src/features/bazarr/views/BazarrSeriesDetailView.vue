@@ -12,6 +12,7 @@ import BazarrPage from '../BazarrPage.vue';
 import SubtitleSearchDialog from '../SubtitleSearchDialog.vue';
 import { bazarrApi, bazarrKeys } from '../bazarr-api';
 import EmptyState from '../../../components/EmptyState.vue';
+import { vWrite } from '../../../app/access';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -69,6 +70,7 @@ const title = computed(
               <template v-if="episode.missing > 0">
                 <v-btn
                   v-if="episode.episodeId !== null"
+                  v-write
                   size="small"
                   variant="tonal"
                   color="service-text"

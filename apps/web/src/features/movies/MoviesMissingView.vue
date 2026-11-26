@@ -21,6 +21,7 @@ import { useArrCommand } from './useArrCommand';
 import { useRoutePage } from './useRoutePage';
 import { mediaDetailLocation } from '../../app/media-links';
 import EmptyState from '../../components/EmptyState.vue';
+import { vWrite } from '../../app/access';
 
 const { t } = useI18n();
 const format = useFormat();
@@ -202,6 +203,7 @@ async function searchAll(): Promise<void> {
       >
       <v-spacer />
       <v-btn
+        v-write
         :prepend-icon="msSearch"
         color="service"
         variant="flat"
@@ -282,6 +284,7 @@ async function searchAll(): Promise<void> {
           <template #append>
             <v-btn
               v-if="!unavailable(movie)"
+              v-write
               :icon="msSearch"
               size="small"
               variant="text"
@@ -293,6 +296,7 @@ async function searchAll(): Promise<void> {
               @click="searchOne(movie)"
             />
             <v-btn
+              v-write
               :icon="msBookmarkRemove"
               size="small"
               variant="text"
